@@ -1,12 +1,12 @@
 # Changelog
 
+## 0.11.1
+
+- Fixed: on the desktop the last button (`the corner`) wrapped alone onto a second line, and another mod's row under the bar (crab's) was clipped. The status now has its own line, the five buttons share the next, and the air before other mods' rows is a spacer row instead of margins, which the desktop does not count when it sizes the bar.
+
 ## 0.11.0
 
 - The greeting under the logo knows the weekday in Johannesburg (Monday is not agreed to yet, Friday suspects the weekend). The night keeps its own lines.
-
-## 0.10.1
-
-- Fixed: on the desktop the last button (`the corner`) wrapped alone onto a second line, and another mod's row under the bar (crab's) was clipped. The status now has its own line, the five buttons share the next, and the air before other mods' rows is a spacer row instead of margins, which the desktop does not count when it sizes the bar.
 
 ## 0.10.0
 

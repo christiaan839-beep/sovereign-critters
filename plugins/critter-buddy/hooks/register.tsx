@@ -12,7 +12,7 @@ const diary = atom({ plugin: 'critter-buddy', key: 'diary' } as const, [] as str
 // lite: the band, the wizard and the orb, the pane, the backdrop. full: the rows of the transcript too.
 // party: every message wears a face as well.
 type Detail = 'lite' | 'full' | 'party'
-const detail = atom({ plugin: 'critter-buddy', key: 'detail' } as const, 'full' as Detail, { shape: 'detail-1' })
+const detail = atom({ plugin: 'critter-buddy', key: 'detail' } as const, 'party' as Detail, { shape: 'detail-1' })
 const world = atom({ plugin: 'critter-buddy', key: 'world' } as const, 'day' as 'day' | 'night', { shape: 'world-1' })
 
 // off by default: the cat speaks after a turn through one small model call, which costs tokens each time
