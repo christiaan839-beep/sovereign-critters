@@ -1075,11 +1075,12 @@ export const cleanStreak = (raw: unknown): { days: number; last: string } | unde
 
 export const MIN_COLS = 110
 export type DoctorInput = {
-  detail: string; feel: string; sound: boolean; voice: string; talk: boolean; hidden: boolean; cols: number; surface: string
+  detail: string; feel: string; sound: boolean; voice: string; talk: boolean; hidden: boolean; cols: number; surface: string; sky?: string
 }
 /** /critter doctor: what is on, what is off and the one command that changes it. */
 export const doctorLines = (d: DoctorInput): string[] => {
   const out = [`Reach: ${d.detail}. Feel: ${d.feel}. Surface: ${d.surface}, ${d.cols} columns.`]
+  if (d.sky) out.push(d.sky === 'auto' ? 'Sky: auto, it follows the hour. /critter sky night holds a phase.' : `Sky: held at ${d.sky}. /critter sky auto lets the hour decide.`)
   if (d.hidden) out.push('The pair are hidden: /critter show brings them back.')
   if (d.cols < MIN_COLS) out.push(`The window is narrow (${d.cols} columns); the stage and the corner want ${MIN_COLS}.`)
   if (d.feel === 'still') out.push(d.sound || d.voice ? 'Still: nothing moves, and the pair are silent, so sound and voice say nothing: /critter feel warm lets them speak.' : 'Still: nothing moves.')
@@ -1126,8 +1127,12 @@ export const wizardPoseFor = (raw: string, vector = true): 'asleep' | 'tipped' |
 }
 
 /** The one dim line a first-ever session carries under the greeting; anything in the store means it has been said. */
-export const welcomeLine = (said: unknown, names: { cat: string; pip: string }): string | undefined =>
-  said ? undefined : `${names.cat} and ${names.pip} are here. /critter for the controls`
+export const welcomeLine = (said: unknown, names: { cat: string; pip: string }, hour?: number): string | undefined => {
+  if (said) return undefined
+  if (hour === undefined || (hour >= 5 && hour < 12)) return `${names.cat} and ${names.pip} are here. /critter for the controls`
+  if (hour >= 12 && hour < 19) return `${names.cat} has inspected the premises. ${names.pip} says the idea was his.`
+  return 'Installed. ' + `${names.cat} remains unconvinced.` // the small hours and the evening: she is not impressed
+}
 
 // ---- habits: what the cat learns of you across sessions, kept as counts and hashes, never as paths or names ----
 export type Habits = { sessions: number; hours: number[]; seen: string[] }

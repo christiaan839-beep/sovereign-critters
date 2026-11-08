@@ -185,7 +185,10 @@ export const dueForWait = (flights: Iterable<Flight>, now: number): boolean => {
   return due
 }
 /** What the backdrop is made of at an instant, given the pair's joy: the hour, the season, the weather and whether the lights are up. */
-export const skyArgsOf = (now: number, joy: number, fails = 0, glow = false) => ({ phase: phaseOf(hourSast(now)), season: seasonOf(now), weather: weatherOf(joy, fails), festive: festiveOf(now), glow })
+/** The sky the person may choose: the hour decides (auto), or one phase held, day and night. */
+export const SKY_CHOICES = ['auto', 'dawn', 'day', 'dusk', 'night'] as const
+export type SkyChoice = (typeof SKY_CHOICES)[number]
+export const skyArgsOf = (now: number, joy: number, fails = 0, glow = false, pick: SkyChoice = 'auto') => ({ phase: pick === 'auto' ? phaseOf(hourSast(now)) : pick, season: seasonOf(now), weather: weatherOf(joy, fails), festive: festiveOf(now), glow })
 
 /**
  * The one thing the cat would put in the empty prompt box, dim, for Tab to take: the corner when a prop has just been earned, the

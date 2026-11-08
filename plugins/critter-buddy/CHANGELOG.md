@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.24.0
+
+- `/critter sky auto | dawn | day | dusk | night` changes the background behind the chat: a named phase holds that sky, and `auto` lets the hour in Johannesburg decide again. `/critter doctor` says which. Desktop only: other surfaces have no backdrop.
+- The first-run welcome reads the room: plain before noon, dry from noon to seven ("Biscuit has inspected the premises. Pip says the idea was his."), and deadpan from seven at night to five in the morning ("Installed. Biscuit remains unconvinced."). Still once, never again.
+
 ## 0.23.0
 
 - **The sky answers you.** While Claude is thinking, the desktop backdrop's paper and ground warm a little (6% toward the sun or moon's colour: seen, never loud), and settle when the turn ends. Stars, clouds and rain keep their places.

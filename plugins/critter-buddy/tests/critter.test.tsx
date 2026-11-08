@@ -1710,7 +1710,7 @@ test('the first greeting carries the welcome once, writes that it was said, and 
   on('store.get', () => ({ value: undefined }))
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   const ui = await $.ui.mount({ ...row('InfoNotice', { text: 'Sonnet', command: null }), surface: 'terminal' } as never)
-  expect(await ui.find({ type: 'Text', text: /Biscuit and Pip are here\. \/critter for the controls/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Installed\. Biscuit remains unconvinced\./ })).toBeDefined() // the test clock is 03:46 SAST: the small hours get the deadpan line
   expect(await ui.find({ type: 'Text', text: /critter-buddy: .* · \/critter/ })).toBeDefined() // the greeting is still there
   expect(written.welcomed).toBe(true)
   await ui.unmount()
@@ -1724,7 +1724,7 @@ test('a welcome already said is not said again', async ($, on) => {
   on('store.get', (_: unknown, e: { key: string }) => ({ value: e.key === 'welcomed' ? true : undefined }))
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   const ui = await $.ui.mount({ ...row('InfoNotice', { text: 'Sonnet', command: null }, 'r-again'), surface: 'terminal' } as never)
-  expect(await ui.find({ type: 'Text', text: /are here\./ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /(are here\.|remains unconvinced\.|inspected the premises)/ })).toBeUndefined()
   await ui.unmount()
 })
 
@@ -2207,4 +2207,51 @@ test('the drawn backdrop warms while a turn is under way and settles when it end
   expect(warm).not.toBe(calm) // thinking: the paper has warmed
   await $.turn.complete({ answer: 'done' } as never)
   expect(await paper()).toBe(calm) // and settled
+})
+
+import { SKY_CHOICES } from '../hooks/world'
+
+test('the sky can be chosen: a named phase wins over the hour, and auto follows the hour', () => {
+  const noon = Date.UTC(2026, 10, 8, 10) // 12:00 SAST
+  const midnight = Date.UTC(2026, 10, 8, 22) // 00:00 SAST
+  expect([...SKY_CHOICES]).toEqual(['auto', 'dawn', 'day', 'dusk', 'night'])
+  expect(skyArgsOf(noon, 80, 0, false).phase).toBe('day')
+  expect(skyArgsOf(noon, 80, 0, false, 'auto').phase).toBe('day')
+  expect(skyArgsOf(noon, 80, 0, false, 'night').phase).toBe('night')
+  expect(skyArgsOf(midnight, 80, 0, false, 'day').phase).toBe('day')
+  expect(skyArgsOf(midnight, 80, 0, false, 'auto').phase).toBe('night')
+  expect(skyFor(skyArgsOf(noon, 80, 0, false, 'dusk')).key).toMatch(/^dusk-/)
+})
+
+test('/critter sky changes the background of the chat now, says what it did, and refuses a word it does not know', async ($, on) => {
+  stub(on)
+  on('ui.status', () => ({ value: undefined }))
+  on('ui.toast', () => ({ value: undefined }))
+  on('clock.every', () => ({ value: { cancel: () => undefined } }) as never)
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  const run = async (args: string) => JSON.stringify(await $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never))
+  expect(await run('sky')).toMatch(/Usage: \/critter sky auto \| dawn \| day \| dusk \| night/)
+  expect(await run('sky midday')).toMatch(/Usage: \/critter sky/)
+  expect(await run('sky night')).toMatch(/night/)
+  expect(await run('doctor')).toMatch(/Sky: held at night/)
+  expect(await run('sky dawn')).toMatch(/dawn/)
+  expect(await run('doctor')).toMatch(/Sky: held at dawn/)
+  expect(await run('sky auto')).toMatch(/follows the hour/)
+  expect(await run('doctor')).toMatch(/Sky: auto/)
+})
+
+test('the welcome reads the room: plain before noon, dry in the afternoon, deadpan from seven at night, and still only once', () => {
+  const n = NAMES_DEFAULT
+  const plain = 'Biscuit and Pip are here. /critter for the controls'
+  const dry = 'Biscuit has inspected the premises. Pip says the idea was his.'
+  const flat = 'Installed. Biscuit remains unconvinced.'
+  expect(welcomeLine(undefined, n)).toBe(plain) // no hour known: plain
+  for (const h of [5, 6, 11]) expect(welcomeLine(undefined, n, h)).toBe(plain)
+  for (const h of [12, 15, 18]) expect(welcomeLine(undefined, n, h)).toBe(dry)
+  for (const h of [19, 23, 0, 3, 4]) expect(welcomeLine(undefined, n, h)).toBe(flat)
+  expect(welcomeLine(true, n, 12)).toBeUndefined() // said once, never again
+  expect(welcomeLine(undefined, { cat: 'Mog', pip: 'Wick' }, 12)).toBe('Mog has inspected the premises. Wick says the idea was his.')
 })

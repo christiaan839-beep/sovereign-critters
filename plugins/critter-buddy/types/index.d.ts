@@ -74,6 +74,8 @@ declare module 'claude-code' {
       usage: Shaped<string>
       /** Whether the big moments are spoken aloud: empty is off, `default` the system voice, anything else the name of an installed system voice. */
       voice: Shaped<string>
+      /** The phase of the day the backdrop is held at, or auto for the hour. */
+      sky: Shaped<'auto' | 'dawn' | 'day' | 'dusk' | 'night'>
     }
   }
 }
