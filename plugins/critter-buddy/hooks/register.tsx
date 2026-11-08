@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { NAMES_DEFAULT, suggest, catchIn, cleanName, named, faceRuns, faceSvg, initial, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import { NAMES_DEFAULT, cadence, suggest, catchIn, cleanName, named, faceRuns, faceSvg, initial, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
 import type { Names, FaceKind, Reaction, Run, Svgd } from './scene'
 
 // `shape` tags the stored form: a value an earlier version stored is declined, not misread.
@@ -239,8 +239,11 @@ export const register: Register = on => {
       })
       .catch(() => undefined)
     ticker?.cancel() // a second session.start must not stack a second clock
+    let beat = 0
     ticker = $.clock.every(250, async () => {
       if ((await read($, isHidden)) === true) return
+      beat += 1
+      if (beat % cadence(await read($, scene)) !== 0) return // still: the picture has not changed, so it is not redrawn
       const t = await $.clock.now()
       const nm = await read($, names)
       let said: string[] = []

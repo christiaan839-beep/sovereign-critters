@@ -9,7 +9,7 @@ const PANE = 'stunt'
 const calls = atom({ plugin: 'stunt', key: 'calls' } as const, [] as Stunt['calls'])
 const total = atom({ plugin: 'stunt', key: 'total' } as const, 0 as Stunt['total'])
 
-// The stand: 40 cards across, 13 rows. Clawd takes rows 1-10 at twice his sprite's size; row 12 holds the strip of calls.
+// The stand: 40 cards across, 13 rows. The critter takes rows 1-10 at twice its sprite's size; row 12 holds the strip of calls.
 const COLUMNS = 40
 const ROWS = 13
 const CLAWD = ['...XXXXXXXXXXXX...', '...XXEXXXXXXEXX...', '.XXXXXXXXXXXXXXXX.', '...XXXXXXXXXXXX...', '....X.X....X.X....']
@@ -17,7 +17,7 @@ const STAND = 0x2f4f72, CLAY = 0xd97757, INK = 0x141413, PAPER = 0xfaf9f5
 const CARD = '█'.codePointAt(0)!
 const TOOL_COLORS: Record<string, number> = { Read: 0x6a9bcc, Edit: 0xd97757, Write: 0xd97757, Bash: 0x788c5d, Grep: 0xb0aea5, Glob: 0xb0aea5 }
 
-// The colour each card shows: Clawd, his eyes (shut on a blink), the stand behind him, and the strip of tool calls.
+// The colour each card shows: the critter, its eyes (shut on a blink), the stand behind it, and the strip of tool calls.
 function card(column: number, row: number, history: readonly string[], isBlinking: boolean): number {
   if (row >= 1 && row <= 10 && column >= 2 && column < 38) {
     const cell = CLAWD[Math.floor((row - 1) / 2)]?.[Math.floor((column - 2) / 2)]
@@ -62,7 +62,7 @@ export const register: Register = on => {
   let flip = async (_isBlinking: boolean) => {}
 
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'stunt', description: 'Opens the card stunt: Clawd, painted in the terminal, a card for each of the last 40 tool calls' })
+    await $.command.register({ name: 'stunt', description: 'Opens the card stunt: the critter, painted in the terminal, a card for each of the last 40 tool calls' })
     // Every four seconds the crowd flips the eye cards and back: a blit repaints the mounted Raster, no render pass.
     // Each flip paints the strip as it stands then, so a call that lands mid-blink keeps its card.
     flip = async (isBlinking: boolean) => {

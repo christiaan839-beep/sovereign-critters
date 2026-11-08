@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Look, Scene } from '../types'
-import { suggest, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
+import { cadence, suggest, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
 
 test('the cat sprite is rectangular, sixteen by twenty, in every pose', () => {
   const base = { ...initial(), cols: 40, cx: -40, kx: 6 }
@@ -297,6 +297,18 @@ test('/critter offers its subcommands as you type, in the cat\'s voice, and only
   expect(words('/critter')).toEqual([])
   expect(words('/diary ')).toEqual([])
   expect(suggest('/critter pe', 3)).toEqual([])
+})
+
+test('the scene steps four times a second while anything moves, and once a second when both are still', () => {
+  const still = { ...initial(), look: 'idle' as const, fx: [], jt: 0, mode: 'loaf' as const }
+  expect(cadence(still)).toBe(4)
+  expect(cadence({ ...still, look: 'done' })).toBe(4)
+  for (const look of ['reader', 'coder', 'chef', 'wizard', 'writer', 'web'] as const) expect(cadence({ ...still, look })).toBe(1)
+  expect(cadence({ ...still, jt: 3 })).toBe(1)
+  expect(cadence({ ...still, fx: [{ k: 'spark', x: 1, y: 1, vx: 0, vy: 0, life: 5 }] })).toBe(1)
+  expect(cadence({ ...still, game: { ...still.game, on: true } })).toBe(1)
+  for (const mode of ['pounce', 'knock', 'swat', 'yawn'] as const) expect(cadence({ ...still, mode })).toBe(1)
+  expect(cadence({ ...still, mode: 'walk' })).toBe(4) // an idle stroll is slow enough to be seen at once a second
 })
 
 test('the wizard paces beside the orb while Claude works, and stays inside his frame', () => {

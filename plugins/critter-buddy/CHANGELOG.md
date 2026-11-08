@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.1
+
+- Lighter on the desktop: the scene steps four times a second while anything moves, and once a second when both are still, so a picture that has not changed is not redrawn.
+
 ## 0.7.0
 
 - The cat and the wizard critter have names, Biscuit and Pip, and every line says them. `/critter name cat <name>` and `/critter name pip <name>` rename them.

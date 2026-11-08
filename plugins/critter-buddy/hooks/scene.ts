@@ -764,3 +764,15 @@ export const suggest = (text: string, cursor: number, n: Names = NAMES_DEFAULT):
       ]
   return list.filter(r => r.text.startsWith(typed.toLowerCase()) && r.text !== typed)
 }
+
+// ---- cadence -------------------------------------------------------------------
+/**
+ * How many clock beats pass between one step of the scene and the next. While anything moves (work, a cast, a jump, a falling
+ * cup, the game, sparks) every beat steps: four a second. When both are still it steps once a second, so the desktop is not asked
+ * to redraw a picture that has not changed.
+ */
+export const cadence = (s: Scene): 1 | 4 => {
+  const working = s.look !== 'idle' && s.look !== 'done'
+  const moving = s.jt > 0 || s.fx.length > 0 || s.game.on || s.mode === 'pounce' || s.mode === 'knock' || s.mode === 'swat' || s.mode === 'yawn'
+  return working || moving ? 1 : 4
+}
