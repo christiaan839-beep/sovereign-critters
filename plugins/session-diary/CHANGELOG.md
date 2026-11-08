@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1
+
+- The pane's buttons are spaced by a column gap, so none loses its closing bracket in the terminal (the same fault seen in critter-buddy's stage).
+
 ## 0.4.0
 
 - `/diary postcard` sums the session up on one screen: how long, the hours it ran, turns and Claude's working time, tool calls and failures, the busiest hour, and the three tools used most. `/diary postcard copy` (or `p` in the pane) puts it on the clipboard as markdown. Tool names and times only, as ever. A session of two hours or more gets a line saying so; a diary at its 300-line cap says the start may be missing.

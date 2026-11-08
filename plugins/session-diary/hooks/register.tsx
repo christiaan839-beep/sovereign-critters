@@ -207,13 +207,10 @@ export const register: Register = on => {
             {lineOf(x)}
           </Text>
         ))}
-        <Box flexDirection="row">
+        <Box flexDirection="row" columnGap={1}>
           <Button key="copy" label="copy as markdown" hotkey="c" onPress={async () => { await $.ui.copy({ text: markdownOf(await read($, entries)) }) }} />
-          <Text> </Text>
           <Button key="postcard" label="postcard" hotkey="p" onPress={async () => { await $.ui.copy({ text: postcardOf(await read($, entries)) }) }} />
-          <Text> </Text>
           <Button key="clear" label="clear" hotkey="x" onPress={() => update($, entries, () => [] as Entry[])} />
-          <Text> </Text>
           <Button key="close" label="close" hotkey="q" onPress={() => $.ui.close({ id: PANE })} />
         </Box>
       </Box>
