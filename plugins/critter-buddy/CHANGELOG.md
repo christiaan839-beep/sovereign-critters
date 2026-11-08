@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.1
+
+- The band's controls sit on one centred line that wraps in a narrow window: the label in full, the mood dim after it, then the four buttons, with a line of air above. Other mods' rows (usage lines) are held a line clear beneath, instead of crowding the buttons.
+
 ## 0.8.0
 
 - The prompt box is painted as you type: `/critter` in clay, a word it knows in teal, a stray word underlined in gold, and a dim ghost line after a finished word saying what it does. It rides on the `prompt.edit` answer, so the colours always sit on the characters they were made for. Other drafts are left alone.

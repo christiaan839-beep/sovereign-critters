@@ -393,17 +393,16 @@ export const register: Register = on => {
             <Text> </Text>
           </Box>
         ) : rowsOf(Text, rows, 'r')}
-        <Box flexDirection="row">
-          <Text dimColor>{`${s.label} · cat ${moodOf(s)} `}</Text>
+        {/* one centred line that wraps in a narrow window, with air above, and the usage rows of other mods held clear beneath */}
+        <Box key="controls" flexDirection="row" alignItems="center" flexWrap="wrap" columnGap={1} marginTop={1}>
+          <Text key="label">{s.label}</Text>
+          <Text key="mood" dimColor>{`· cat ${moodOf(s)}`}</Text>
           <Button key="pet" label={`pet ${nm.cat}`} hotkey="p" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'pet')); await ring($, 'purr') }} />
-          <Text> </Text>
-           <Button key="treat" label={`feed ${nm.cat}`} hotkey="t" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'treat'))} />
-          <Text> </Text>
+          <Button key="treat" label={`feed ${nm.cat}`} hotkey="t" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'treat'))} />
           <Button key="cast" label={`${nm.pip} casts`} hotkey="c" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'spell')); await ring($, 'cast') }} />
-          <Text> </Text>
           <Button key="corner" label="the corner" hotkey="k" onPress={() => $.ui.open({ id: PANE, title: 'Cat corner', focus: true })} />
         </Box>
-        {others}
+        <Box key="others" flexDirection="column" marginTop={1}>{others}</Box>
       </Box>
     )
   })

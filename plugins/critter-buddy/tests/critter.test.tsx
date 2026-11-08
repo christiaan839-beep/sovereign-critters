@@ -852,3 +852,16 @@ test("the diary is read as markdown: a time in code, the line plain, the newest 
   expect(diaryMarkdown(Array.from({ length: 30 }, (_, i) => `10:${String(i).padStart(2, '0')} l${i}`), NAMES_DEFAULT).split('\n').filter(l => l.startsWith('- ')).length).toBe(12)
   expect(diaryMarkdown(['09:00 `code` and *stars*'], NAMES_DEFAULT)).toContain('\\`code\\` and \\*stars\\*') // a line cannot break the markdown
 })
+
+// ---- the band's controls: aligned, wrapping, and clear of the usage lines beneath ----
+test('the band keeps its label and buttons on one centred line that wraps, with air above and below', async ($, on) => {
+  stub(on)
+  for (const surface of ['desktop', 'terminal'] as const) {
+    const ui = await $.ui.mount({ ...BAND, surface })
+    const bar = (await ui.find({ key: 'controls' })) as { props?: Record<string, unknown> } | undefined
+    expect(bar?.props).toMatchObject({ alignItems: 'center', flexWrap: 'wrap', marginTop: 1 })
+    expect(await ui.find({ type: 'Text', text: /^ready$/ })).toBeDefined() // the label is its own run, apart from the mood
+    expect(await ui.find({ type: 'Text', text: /^· cat / })).toBeDefined()
+    await ui.unmount()
+  }
+})
