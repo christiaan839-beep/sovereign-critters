@@ -1,0 +1,49 @@
+{
+  "name": "sovereign-critters",
+  "description": "Claude Code mods from Sovereign Matrix: a wizard critter and an orange cat, a build bell, a session diary, and five small mods that show what a mod can do.",
+  "owner": {
+    "name": "Sovereign Matrix"
+  },
+  "plugins": [
+    {
+      "name": "critter-buddy",
+      "source": "./plugins/critter-buddy",
+      "description": "The wizard, the cat, faces on every tool row, a stage, a diary the model can read, and a Day and Night backdrop."
+    },
+    {
+      "name": "build-bell",
+      "source": "./plugins/build-bell",
+      "description": "A soft bell and a toast when a long command finishes."
+    },
+    {
+      "name": "session-diary",
+      "source": "./plugins/session-diary",
+      "description": "/diary: every tool call with its time, a line for each turn, and a copy-as-markdown button. Names and times only."
+    },
+    {
+      "name": "forge",
+      "source": "./plugins/forge",
+      "description": "A tool that counts text exactly: characters, words, lines and UTF-8 bytes."
+    },
+    {
+      "name": "stunt",
+      "source": "./plugins/stunt",
+      "description": "/stunt: the critter painted in a pane, with a card for each of the last 40 tool calls."
+    },
+    {
+      "name": "crab",
+      "source": "./plugins/crab",
+      "description": "A band that shows what a reload keeps and what it does not."
+    },
+    {
+      "name": "guard",
+      "source": "./plugins/guard",
+      "description": "Stops a git push that forces or writes main or master, before Bash runs it. Best effort."
+    },
+    {
+      "name": "everywhere",
+      "source": "./plugins/everywhere",
+      "description": "/everywhere: a pane of your three most-used tools, drawn by each app its own way."
+    }
+  ]
+}
