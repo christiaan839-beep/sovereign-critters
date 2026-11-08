@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Look, Scene } from '../types'
-import { nudgeFor, RIDGE, dueForWait, LONG_CALL, skyArgsOf, nextProp, dayKey, easterOf, festiveOf, holidayOf, hourSast, phaseOf, propsFor, seasonOf, skyFor, streakAlive, streakNext, weatherOf } from '../hooks/world'
+import { nudgeFor, RIDGE, RIDGE_FAR, dueForWait, LONG_CALL, skyArgsOf, nextProp, dayKey, easterOf, festiveOf, holidayOf, hourSast, phaseOf, propsFor, seasonOf, skyFor, streakAlive, streakNext, weatherOf } from '../hooks/world'
 import { FULL_MARK, cleanVoice, riskLine, stepLine, plainRuns, usageLine, PROPS, weekdayOf, cadence, suggest, moodLine, skyOf, stepFeel, FEELS, controlLabels, draftRuns, diaryMarkdown, diaryParts, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
 
 test('the cat sprite is rectangular, sixteen by twenty, in every pose', () => {
@@ -1037,7 +1037,7 @@ test('the sky is made of the hour, the season, the weather and the lights, and e
   const storm = skyFor({ phase: 'night', season: 'summer', weather: 'storm', festive: true })
   expect(storm.bodyHidden).toBe(true)
   expect(storm.stars).toHaveLength(0)
-  expect(storm.rain.length).toBeGreaterThan(40)
+  expect(storm.rain.length).toBeGreaterThan(20) // a storm is rain, thinned in 0.21.1 so the transcript stays readable under it
   expect(storm.bolt).toBeDefined()
   expect(storm.lights).toBe(true)
   const dawn = skyFor({ phase: 'dawn', season: 'spring', weather: 'cloud', festive: false })
@@ -1937,4 +1937,69 @@ test('no meaning rides on colour alone: each face says what the call did in its 
   expect(new Set(faces).size).toBe(4) // four states, four different strings, with no colour to help
   expect(plain('err')).toContain('×')
   expect(plain('ok')).toContain('^')
+})
+
+// ---- 0.21.1: the desktop's quiet drawings, from the review render ----
+const lum = (hex: string): number => {
+  const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
+  return 0.2126 * c[0]! + 0.7152 * c[1]! + 0.0722 * c[2]!
+}
+
+test('the horizon is two ridges, a far one and a near one, each visible against the ground and the near one the stronger, in every hour and season', () => {
+  expect(RIDGE_FAR.length).toBe(RIDGE.length)
+  expect(RIDGE_FAR).not.toBe(RIDGE) // a different swell, so the two do not run in step
+  expect(new Set(RIDGE_FAR).size).toBeGreaterThanOrEqual(4)
+  expect([...RIDGE].filter((c, i) => c !== RIDGE_FAR[i]).length).toBeGreaterThan(RIDGE.length * 0.4) // out of step along most of its length
+  for (const phase of ['day', 'dawn', 'dusk', 'night'] as const) for (const season of ['summer', 'autumn', 'winter', 'spring'] as const) {
+    const sky = skyFor({ phase, season, weather: 'clear', festive: false })
+    const near = Math.abs(lum(sky.ridgeColour) - lum(sky.ground))
+    const far = Math.abs(lum(sky.ridgeFarColour) - lum(sky.ground))
+    expect(near).toBeGreaterThanOrEqual(0.03) // seen, not a pale strip
+    expect(near).toBeLessThanOrEqual(0.2) // and still quiet
+    expect(far).toBeGreaterThanOrEqual(0.012)
+    expect(far).toBeLessThan(near) // the far ridge is the fainter of the two
+    if (phase === 'night' || phase === 'dusk') expect(near).toBeLessThanOrEqual(0.1) // in the dark it is quieter still
+    expect(sky.ridgeFarColour).not.toBe(sky.ridgeColour)
+  }
+})
+
+test('rain is thin enough to read a transcript through: a shower of a dozen drops, a storm of a few more', () => {
+  const rain = skyFor({ phase: 'day', season: 'spring', weather: 'rain', festive: false }).rain.length
+  const storm = skyFor({ phase: 'day', season: 'spring', weather: 'storm', festive: false }).rain.length
+  expect(rain).toBe(12)
+  expect(storm).toBe(28)
+  expect(skyFor({ phase: 'day', season: 'spring', weather: 'cloud', festive: false }).rain).toHaveLength(0)
+  // the storm's drops include the shower's: a rising storm adds drops, it does not move them
+  const a = skyFor({ phase: 'day', season: 'spring', weather: 'rain', festive: false }).rain
+  const b = skyFor({ phase: 'day', season: 'spring', weather: 'storm', festive: false }).rain
+  expect(b.slice(0, 12)).toEqual(a)
+})
+
+test('the corner pane has a spacer row above its pair and another below, so they do not touch the heading or the days line', async ($, on) => {
+  stub(on)
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  for (const surface of ['desktop', 'terminal'] as const) {
+    const corner = await $.ui.mount({ plugin: 'critter-buddy', component: 'Pane', requestId: 'cat-corner', props: { bodyColumns: 60 }, surface } as never)
+    expect(await corner.find({ key: 'above-art' })).toBeDefined()
+    expect(await corner.find({ key: 'below-art' })).toBeDefined()
+    await corner.unmount()
+  }
+})
+
+test('the backdrop draws both ridges, the far one above the near one', async ($, on) => {
+  stub(on)
+  kept.set('critter-buddy.scene', { value: { shape: 'scene-5', value: { ...initial(), joy: 70 } }, version: 1 })
+  const ui = await $.ui.mount({ ...row('Backdrop', { id: 'x', plugin: 'critter-buddy', glass: { blur: 14, opacity: 0.5 } }), surface: 'desktop' } as never)
+  const near = await ui.find({ type: 'Text', text: RIDGE })
+  const far = await ui.find({ type: 'Text', text: RIDGE_FAR })
+  expect(near).toBeDefined()
+  expect(far).toBeDefined()
+  expect(JSON.stringify(far)).not.toBe(JSON.stringify(near)) // two different elements, not one drawn twice
+  const sky = skyFor({ phase: 'night', season: 'spring', weather: 'clear', festive: false }) // the test clock is 03:46 on 9 September
+  expect((far as any).props.color).toBe(sky.ridgeFarColour) // each ridge in its own colour
+  expect((near as any).props.color).toBe(sky.ridgeColour)
+  await ui.unmount()
 })

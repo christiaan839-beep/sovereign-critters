@@ -3,7 +3,7 @@ import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
 import { windowWidth, fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, wizardPoseFor, isQuiet, motionTick, welcomeLine, cleanMemory, cleanStreak, doctorLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
-import { hourSast, dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
+import { hourSast, dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, RIDGE_FAR, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
 import type { Flight, Streak } from './world'
 import type { SoundName, Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
 
@@ -747,6 +747,7 @@ export const register: Register = on => {
     return (
       <Box position="absolute" top={0} left={0} width="100%" height="100%" backgroundColor={sky.paper}>
         <Box position="absolute" bottom={0} left={0} width="100%" height="30%" backgroundColor={sky.ground}>
+          <Box position="absolute" top={-2} left={0} width="100%"><Text color={sky.ridgeFarColour} wrap="truncate-end">{RIDGE_FAR}</Text></Box>
           <Box position="absolute" top={-1} left={0} width="100%"><Text color={sky.ridgeColour} wrap="truncate-end">{RIDGE}</Text></Box>
         </Box>
         {sky.wisps.map((w, i) => (
@@ -831,6 +832,7 @@ export const register: Register = on => {
     return (
       <Box flexDirection="column">
         <Box key="head" flexDirection="row" justifyContent="center"><Text bold>{`${nm.cat} and ${nm.pip} · ${stageWord(nowMs, s.joy, s.fails)}`}</Text></Box>
+        {gap('above-art')}
         <Box key="art" flexDirection="row" justifyContent="center">
           {vector
             ? svg(paintBigSvg({ ...s, cols: Math.min(60, cols), cdir: 1 }, 8), 'The critter and the cat, large')
@@ -842,6 +844,7 @@ export const register: Register = on => {
                 </Text>
               ))}</Box>}
         </Box>
+        {gap('below-art')}
         <Box key="streak" flexDirection="row" justifyContent="center">
           <Text dimColor>{days >= 2 ? `day ${days} together${next ? ` · a ${next.prop} in ${next.inDays} day${next.inDays === 1 ? '' : 's'}` : ' · the lamp is lit'}` : 'come back tomorrow and the days begin to count'}</Text>
         </Box>

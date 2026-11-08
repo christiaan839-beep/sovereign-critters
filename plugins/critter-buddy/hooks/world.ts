@@ -136,6 +136,9 @@ const mix = (a: string, b: string, k: number): string => {
 /** The far ridge along the horizon: a gentle highveld skyline of two slow swells, one row of blocks, the same every time. */
 export const RIDGE: string = Array.from({ length: 400 }, (_, i) => '▁▂▃▄▅'[Math.max(0, Math.min(4, Math.round(2 + 1.6 * Math.sin(i / 9) + 0.9 * Math.sin(i / 3.7 + 1))))]).join('')
 
+/** The farther ridge behind it: a slower, different swell, so the two never run in step. Drawn fainter, one row higher. */
+export const RIDGE_FAR: string = Array.from({ length: 400 }, (_, i) => '▁▂▃▄▅'[Math.max(0, Math.min(4, Math.round(2 + 1.5 * Math.sin(i / 14 + 2) + 0.8 * Math.sin(i / 5.3 + 0.5))))]).join('')
+
 /** The window behind the conversation, from the hour, the season, the session's weather and the holiday. */
 export const skyFor = (o: { phase: Phase; season: Season; weather: Weather; festive: boolean }) => {
   const dark = o.phase === 'night' || o.phase === 'dusk'
@@ -151,10 +154,12 @@ export const skyFor = (o: { phase: Phase; season: Season; weather: Weather; fest
     stars: o.phase === 'night' && o.weather !== 'storm' ? STARS : o.phase === 'dusk' ? STARS.slice(0, 8) : ([] as typeof STARS),
     cloudColour: CLOUD_COLOUR[o.phase][o.weather],
     clouds: cloudy ? place(o.weather === 'cloud' ? 3 : 6, 3, 10, 130) : ([] as { top: number; left: number }[]),
-    rain: o.weather === 'rain' ? place(26, 40, 30, 150) : o.weather === 'storm' ? place(60, 40, 30, 150) : ([] as { top: number; left: number }[]),
+    rain: o.weather === 'rain' ? place(12, 40, 30, 150) : o.weather === 'storm' ? place(28, 40, 30, 150) : ([] as { top: number; left: number }[]),
     bolt: o.weather === 'storm' ? { top: 6, left: 74 } : undefined,
     lights: o.festive,
-    ridgeColour: dark ? mix(GROUND[o.phase][o.season], '#8f7cc4', 0.12) : mix(GROUND[o.phase][o.season], '#4fa39a', 0.14), // the ridge is the ground a shade toward violet at night, toward teal by day
+    // two ridges, each the ground a shade toward violet at night and toward teal by day: the near one stronger, the far one faint
+    ridgeColour: dark ? mix(GROUND[o.phase][o.season], '#8f7cc4', 0.3) : mix(GROUND[o.phase][o.season], '#4fa39a', 0.22),
+    ridgeFarColour: dark ? mix(GROUND[o.phase][o.season], '#8f7cc4', 0.15) : mix(GROUND[o.phase][o.season], '#4fa39a', 0.1),
     wisps: o.weather === 'clear' && !dark ? place(3, 20, 7, 120) : ([] as { top: number; left: number }[]), // a clear day still has high thin cloud
   }
 }

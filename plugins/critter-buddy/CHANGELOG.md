@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.21.1
+
+- The desktop backdrop's horizon is two ridges now, a far one and a nearer, stronger one in the same quiet palette, instead of one nearly invisible pale strip.
+- The cat corner's pair no longer touch the heading or the "day N together" line: a spacer row sits above and below them.
+- The storm's rain is thinner (28 drops, a shower 12) so a transcript stays readable under it.
+
 ## 0.21.0
 
 - `/critter feel still`: a feel in which nothing moves. The cat and the wizard stay where they are, no hop, spark, heart or bubble is drawn, and breath, blink, the wizard's pacing and bolts, and the thinking orb all hold one frame (eyes open), while the clock and the story go on. Sound and speech are off, as in calm. Choosing another feel moves them again.
