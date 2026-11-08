@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.2
+
+- The cauldron beside the wizard is gone. It stood on top of the cat. The wizard casts alone.
+
 ## 0.7.1
 
 - Lighter on the desktop: the scene steps four times a second while anything moves, and once a second when both are still, so a picture that has not changed is not redrawn.

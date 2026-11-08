@@ -324,6 +324,15 @@ test('the cat has legs and paws, and a walking cat lifts one', () => {
   expect(pale(up)).toBeLessThan(pale(down))
 })
 
+test('the wizard casts alone: no cauldron stands beside him, on either side', () => {
+  for (const cdir of [1, -1] as const) {
+    const c = canvasOf({ ...initial(), cols: 80, cx: 30, cdir, kx: -80, look: 'wizard' as const, wt: 8, tick: 0, fx: [] }, 80)
+    const keys = new Set(c.flat())
+    expect(keys.has('Z')).toBe(false) // the cauldron's dark body
+    expect(keys.has('T')).toBe(false) // and its teal rim
+  }
+})
+
 test('the wizard paces beside the orb while Claude works, and stays inside his frame', () => {
   const s = { ...initial(), cols: 40 }
   // the empty cells left of his leftmost pixel, over all rows: one more when he steps right

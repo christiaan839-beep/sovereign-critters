@@ -203,7 +203,6 @@ const laptopPx = (tick: number): Px => {
     'qqqqqqqqqqqqqqqqqq', 'qKqKqKqKqKqKqKqKqq', 'qqqqqqqqqqqqqqqqqq',
   ]
 }
-const potPx = (): Px => ['.TTTTT.', 'ZZZZZZZ', 'ZZZZZZZ', '.ZZZZZ.', '..Z.Z..']
 
 // ---- the cat -----------------------------------------------------------------
 // Our own cat, drawn in the manner of a pixel-cat sheet: seated, facing you, 28 pixels tall. It is built from shapes (a head,
@@ -527,10 +526,9 @@ const blit = (c: string[][], px: Px, x0: number, bottom: number, flip: boolean) 
   })
 }
 const JUMP = [0, 2, 4, 5, 5, 4, 2, 1, 0, 0]
-// The laptop and the cauldron are the film's small sprites, drawn at twice their size to stand beside the 22 x 14 critter.
+// A jump is the film's, at twice its height, to suit the 22 x 14 critter.
 export const SCALE = 2
 export const CRIT_W = 30 // the critter's cells, with room for a magnifier or a pan
-const up = (px: Px, k = SCALE): Px => px.flatMap(r => { const w = [...r].map(c => c.repeat(k)).join(''); return Array.from({ length: k }, () => w) })
 
 /** Every pixel of the scene on one canvas, keys into the palette; '.' is clear. */
 export const canvasOf = (s: Scene, cols: number): string[][] => {
@@ -549,7 +547,6 @@ export const canvasOf = (s: Scene, cols: number): string[][] => {
       })
   const facing = s.mode === 'sulk' ? (s.kdir === 1 ? -1 : 1) : s.kdir
   blit(canvas, catPx, s.kx - 1, H - 1 - lift, facing === -1)
-  if (s.look === 'wizard') blit(canvas, outline(up(potPx()), 'X'), s.cx + (s.cdir === 1 ? CRIT_W + 6 : -7 * SCALE - 8), H - 1, false)
   const hop = (JUMP[Math.min(9, s.jt)] ?? 0) * SCALE
   blit(canvas, critterPx(s, stepA), s.cx, H - 1 - hop, s.cdir === -1)
   if (s.look === 'done') blit(canvas, cupPx(s.tick), s.cx + (s.cdir === 1 ? CRIT_W - 4 : -CUP_W), H - 1, s.cdir === -1)
@@ -571,7 +568,7 @@ export const paint = (s: Scene): Run[][] => {
   return runsOf(canvasOf(s, cols), colourOf(s))
 }
 
-/** The wizard alone, built and holding his staff, to stand beside the thinking orb: no cat, no pot, 13 cells wide. */
+/** The wizard alone, built and holding his staff, to stand beside the thinking orb: no cat, no cauldron. */
 export const WIZARD_COLS = 32
 const wizardCanvas = (s: Scene): string[][] =>
   canvasOf(
