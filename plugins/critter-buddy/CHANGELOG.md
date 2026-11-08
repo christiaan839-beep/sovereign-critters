@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.3
+
+- The cat talks by default: one small model call after each turn, a line from the cat in the transcript. `/critter talk off` keeps it quiet and spends nothing. Sound is still the founder's to switch on (`/critter sound on`).
+
 ## 0.11.2
 
 - Everything on by default: `party` is the starting reach (the bar, the wizard, the orb, the rows and every message). `/critter lite` and `/critter full` still turn it down. (The code change shipped inside 0.11.1; this records it.)

@@ -16,7 +16,7 @@ const detail = atom({ plugin: 'critter-buddy', key: 'detail' } as const, 'party'
 const world = atom({ plugin: 'critter-buddy', key: 'world' } as const, 'day' as 'day' | 'night', { shape: 'world-1' })
 
 // off by default: the cat speaks after a turn through one small model call, which costs tokens each time
-const talk = atom({ plugin: 'critter-buddy', key: 'talk' } as const, false as boolean, { shape: 'talk-1' })
+const talk = atom({ plugin: 'critter-buddy', key: 'talk' } as const, true as boolean, { shape: 'talk-1' })
 
 const names = atom({ plugin: 'critter-buddy', key: 'names' } as const, NAMES_DEFAULT as Names, { shape: 'names-1' })
 const feel = atom({ plugin: 'critter-buddy', key: 'feel' } as const, 'warm' as Feel, { shape: 'feel-1' })
@@ -354,7 +354,7 @@ export const register: Register = on => {
       }
     }
     if (sub === 'talk') {
-      if (arg !== 'on' && arg !== 'off') return { text: 'Usage: /critter talk on | off. The cat speaks after each turn through one small model call; that costs tokens, so it is off until you say.' }
+      if (arg !== 'on' && arg !== 'off') return { text: 'Usage: /critter talk on | off. The cat speaks after each turn through one small model call; that costs tokens, so /critter talk off keeps the cat quiet.' }
       await update($, talk, () => arg === 'on')
       return { text: arg === 'on' ? 'The cat will speak after each turn: one small model call each time.' : 'The cat is quiet again.' }
     }
