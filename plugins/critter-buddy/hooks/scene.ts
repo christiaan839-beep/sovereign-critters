@@ -367,11 +367,11 @@ export const react = (s: Scene, ev: Reaction, arg = 0): Scene => {
       return { ...poke(woke, 'pounce'), joy: clamp(s.joy - 6), stats: { ...s.stats, errors: s.stats.errors + 1 },
         log: say(s, milestone(s.stats.errors + 1, ERROR_LINES) ?? 'That broke. {cat} was already watching it.') }
     case 'test':
-      return { ...woke, jt: 1, joy: clamp(s.joy + 6), stats: { ...s.stats, tests: s.stats.tests + 1 },
-        look: 'wizard', wt: 8, label: 'green', fx: addFx(s, ...sparks(s.cx + 6, 3)), log: say(s, milestone(s.stats.tests + 1, TEST_LINES) ?? 'Green. {cat} allows it.') }
+      return { ...woke, jt: 1, joy: clamp(s.joy + 6), trust: clamp(s.trust + 3), stats: { ...s.stats, tests: s.stats.tests + 1 },
+        look: 'wizard', wt: 8, label: 'green', fx: addFx(s, ...sparks(s.cx + 6, 3)), log: [...say(s, milestone(s.stats.tests + 1, TEST_LINES) ?? 'Green. {cat} allows it.'), ...forgives(s, 3)] }
     case 'commit':
-      return { ...woke, jt: 1, joy: clamp(s.joy + 8), stats: { ...s.stats, commits: s.stats.commits + 1 },
-        look: 'wizard', wt: 8, label: 'committed', fx: addFx(s, ...sparks(s.cx + 6, 4)), log: say(s, milestone(s.stats.commits + 1, COMMIT_LINES) ?? 'A commit. {pip} drew a small star in the history.') }
+      return { ...woke, jt: 1, joy: clamp(s.joy + 8), trust: clamp(s.trust + 4), stats: { ...s.stats, commits: s.stats.commits + 1 },
+        look: 'wizard', wt: 8, label: 'committed', fx: addFx(s, ...sparks(s.cx + 6, 4)), log: [...say(s, milestone(s.stats.commits + 1, COMMIT_LINES) ?? 'A commit. {pip} drew a small star in the history.'), ...forgives(s, 4)] }
     case 'turn': {
       const mins = Math.round(arg / 60000)
       const long = arg > 120000
@@ -1010,3 +1010,61 @@ export const cadence = (s: Scene): 1 | 4 => {
   const moving = s.jt > 0 || s.fx.length > 0 || s.game.on || s.mode === 'pounce' || s.mode === 'knock' || s.mode === 'swat' || s.mode === 'yawn'
   return working || moving ? 1 : 4
 }
+
+// ---- a store that cannot be trusted, and the doctor who reads the rest ----
+const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
+const whole = (v: unknown, lo: number, hi: number, fallback: number): number =>
+  typeof v === 'number' && Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.floor(v))) : fallback
+
+/** What the store kept of the cat, made safe: anything that is not a cat's memory is nothing, and a number is held in its range. */
+export const cleanMemory = (raw: unknown): { trust: number; pets: number; lastSeen: number } | undefined => {
+  if (!isObj(raw) || typeof raw.trust !== 'number' || !Number.isFinite(raw.trust)) return undefined
+  return { trust: whole(raw.trust, 0, 100, 60), pets: whole(raw.pets, 0, Number.MAX_SAFE_INTEGER, 0), lastSeen: whole(raw.lastSeen, 0, Number.MAX_SAFE_INTEGER, 0) }
+}
+
+/** The day count the store kept, or nothing when it is not a count of days with a date beside it. */
+export const cleanStreak = (raw: unknown): { days: number; last: string } | undefined => {
+  if (!isObj(raw) || typeof raw.days !== 'number' || !Number.isInteger(raw.days) || raw.days < 0) return undefined
+  if (typeof raw.last !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(raw.last)) return undefined
+  return { days: raw.days, last: raw.last }
+}
+
+export const MIN_COLS = 110
+export type DoctorInput = {
+  detail: string; feel: string; sound: boolean; voice: string; talk: boolean; hidden: boolean; cols: number; surface: string
+}
+/** /critter doctor: what is on, what is off and the one command that changes it. */
+export const doctorLines = (d: DoctorInput): string[] => {
+  const out = [`Reach: ${d.detail}. Feel: ${d.feel}. Surface: ${d.surface}, ${d.cols} columns.`]
+  if (d.hidden) out.push('The pair are hidden: /critter show brings them back.')
+  if (d.cols < MIN_COLS) out.push(`The window is narrow (${d.cols} columns); the stage and the corner want ${MIN_COLS}.`)
+  if (d.feel === 'calm') out.push(d.sound || d.voice ? 'Calm keeps the pair silent, so sound and voice say nothing: /critter feel warm lets them speak.' : 'Calm: the pair only breathe, walk and sleep.')
+  out.push(d.sound ? 'Sound is on: a cast chime and a purr.' : 'Sound is off: /critter sound on.')
+  out.push(d.voice ? `The voice is on${d.voice === 'default' ? ', in the system voice' : `: voice ${d.voice}`}.` : 'The voice is off: /critter voice on.')
+  out.push(d.talk ? 'The cat speaks after a turn (one small model call each).' : 'The cat does not speak after a turn: /critter talk on.')
+  return out
+}
+
+/** A cat comes back at 25 at the least: wary, not sulking. Sulking (under 30) is earned in a session, never by the calendar. */
+export const returnTrust = (trust: number, days: number): number => Math.max(25, trust - days * 8)
+
+/** The line a sulking cat says when work lifts it out of the sulk (30 and over); nothing for a cat that was not sulking. */
+const forgives = (s: Scene, gain: number): string[] => (s.trust < 30 && s.trust + gain >= 30 ? ['{cat} has decided to forgive you. Do not make it a habit.'] : [])
+
+const COUNT = / \(×(\d+)\)$/
+/** Lines are appended to the diary; the same line twice in a row is one line with a count, keeping the first time. */
+export const foldDiary = (diary: string[], lines: string[]): string[] => {
+  const out = [...diary]
+  const text = (l: string) => l.replace(/^\d{2}:\d{2} /, '').replace(COUNT, '')
+  for (const line of lines) {
+    const last = out[out.length - 1]
+    if (last !== undefined && !COUNT.test(line) && text(last) === text(line)) {
+      const n = Number(COUNT.exec(last)?.[1] ?? 1)
+      out[out.length - 1] = `${last.replace(COUNT, '')} (×${n + 1})`
+    } else out.push(line)
+  }
+  return out
+}
+
+/** Whether the wizard sits beside a /critter reply: a moment gets him; hiding, a usage line and a multi-line report do not. */
+export const wizardFor = (text: string): boolean => !/^The pair are hidden\./.test(text) && !/^Usage:/.test(text) && !text.includes('\n')

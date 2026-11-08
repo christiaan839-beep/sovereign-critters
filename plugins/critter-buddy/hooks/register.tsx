@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import { foldDiary, returnTrust, wizardFor, cleanMemory, cleanStreak, doctorLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
 import { dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
 import type { Flight, Streak } from './world'
 import type { Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
@@ -314,18 +314,18 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     // The cat remembers you across sessions: neglect costs trust, petting earns it.
     const now = await $.clock.now()
-    const mem = (await $.store.get('memory')) as { trust?: number; pets?: number; lastSeen?: number } | undefined
-    if (mem && typeof mem.trust === 'number') {
-      const days = mem.lastSeen ? Math.floor((now - mem.lastSeen) / DAY) : 0
-      const trust = Math.max(0, mem.trust - days * 8)
+    const mem = cleanMemory(await Promise.resolve($.store.get('memory')).catch(() => undefined))
+    if (mem) {
+      const days = mem.lastSeen ? Math.max(0, Math.floor((now - mem.lastSeen) / DAY)) : 0
+      const trust = returnTrust(mem.trust, days)
       await update($, scene, (s: Scene): Scene => ({ ...s, trust, log: [...s.log, days >= 1 ? `You are back after ${days} day${days === 1 ? '' : 's'}. I am fine.` : 'Back already. Good.'] }))
     }
     // The diary carries across sessions too.
-    const kept = (await $.store.get('diaryLog')) as string[] | undefined
+    const kept = (await Promise.resolve($.store.get('diaryLog')).catch(() => undefined)) as string[] | undefined
     if (Array.isArray(kept)) await update($, diary, (d: string[]) => [...kept.filter(l => typeof l === 'string'), ...d].slice(-200))
     await update($, world, () => (isNight(now) ? 'night' : 'day'))
     try {
-      streak = (await $.store.get('streak')) as Streak | undefined
+      streak = cleanStreak(await Promise.resolve($.store.get('streak')).catch(() => undefined))
       const days = streakAlive(streak, dayKey(now))
       await update($, scene, (s: Scene): Scene => ({ ...s, streak: days }))
     } catch {
@@ -359,7 +359,7 @@ export const register: Register = on => {
         return { ...n, log: [] }
       })
       if (said.length) {
-        const written = await update($, diary, (d: string[]) => [...d, ...said.map(l => `${hhmm(t)} ${named(l, nm)}`)].slice(-200))
+        const written = await update($, diary, (d: string[]) => foldDiary(d, said.map(l => `${hhmm(t)} ${named(l, nm)}`)).slice(-200))
         await $.store.set('diaryLog', written)
       }
       if (dueForWait(flights.values(), t)) await update($, scene, (s: Scene): Scene => react(s, 'wait'))
@@ -369,7 +369,7 @@ export const register: Register = on => {
     })
     // One command, subcommands inside: the session already has /pet from another mod.
     try {
-      await $.command.register({ name: 'critter', description: 'The pair above your prompt: pet, treat, nap, spell, corner, diary, stage, hide, show, lite|full|party, talk on|off, sound on|off, voice on|off|<name>, feel calm|warm|playful, wizard auto|gold|bolt, name cat|pip <name>, cat <coat>' })
+      await $.command.register({ name: 'critter', description: 'The pair above your prompt: pet, treat, nap, spell, corner, diary, doctor, stage, hide, show, lite|full|party, talk on|off, sound on|off, voice on|off|<name>, feel calm|warm|playful, wizard auto|gold|bolt, name cat|pip <name>, cat <coat>' })
     } catch {
       $.ui.log('critter-buddy: /critter is taken by another plugin; the buttons above the prompt still work')
     }
@@ -446,6 +446,9 @@ export const register: Register = on => {
       await update($, feel, () => f)
       return { text: f === 'calm' ? 'Calm: the pair only breathe, walk and sleep. No sparks, no sound.' : f === 'playful' ? 'Playful: more hops, more sparks.' : 'Warm: the usual.' }
     }
+    if (sub === 'doctor') {
+      return { text: doctorLines({ detail: await read($, detail), feel: await read($, feel), sound: await read($, sound), voice: await read($, voice), talk: await read($, talk), hidden: (await read($, isHidden)) === true, cols: liveCols, surface: e.surface ?? 'terminal' }).join('\n') }
+    }
     if (sub === 'stage') {
       await $.ui.open({ id: STAGE, title: 'Stage', focus: true, ...PANE_ASKS.stage })
       return { text: 'The stage is open: the critter alone, walking and idling.' }
@@ -482,7 +485,7 @@ export const register: Register = on => {
       if (hidden) { lastSky = ''; await drawBackdrop($, undefined) } else { lastSky = ''; await syncSky($, await $.clock.now(), (await read($, scene)).joy) }
       return { text: hidden ? 'The pair are hidden.' : 'The pair are back.' }
     }
-    return { text: 'Usage: /critter [pet | treat | nap | spell | corner | stage | diary | hide | show | lite | full | party | talk on|off | sound on|off | voice on|off|<name> | feel calm|warm|playful | wizard auto|gold|bolt | name cat|pip <name> | cat <coat>]' }
+    return { text: 'Usage: /critter [pet | treat | nap | spell | corner | stage | diary | doctor | hide | show | lite | full | party | talk on|off | sound on|off | voice on|off|<name> | feel calm|warm|playful | wizard auto|gold|bolt | name cat|pip <name> | cat <coat>]' }
   })
 
   // ---- the band above the prompt: the pair on the bar, and three things to press ----
@@ -650,7 +653,7 @@ export const register: Register = on => {
     const { Box, Text, face, vector, svg } = kit($.ui.resolve(e), e.surface)
     return (
       <Box flexDirection="row" gap={1} alignItems="flex-end">
-        <Box>{vector ? svg(paintWizardSvg(s, 4), 'The wizard critter') : rowsOf(Text, paintWizard(s), 'c')}</Box>
+        {wizardFor(String(e.props.text ?? '')) ? <Box>{vector ? svg(paintWizardSvg(s, 2), 'The wizard critter') : rowsOf(Text, paintWizard(s), 'c')}</Box> : null}
         <Text>{e.props.text}</Text>
       </Box>
     )

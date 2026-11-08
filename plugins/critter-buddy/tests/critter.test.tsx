@@ -1405,3 +1405,90 @@ test('the review fixes: rm in any order, a voice with brackets, /diary week pain
   const unknown = JSON.stringify(await $.command.run({ command: 'critter', args: 'bogus', origin: { kind: 'composer' }, presentation: {} } as never))
   expect(unknown).toMatch(/voice on\|off/)
 })
+
+import { cleanMemory, cleanStreak, doctorLines } from '../hooks/scene'
+
+test('a damaged store is read as nothing, never as a crash or a nonsense number', () => {
+  expect(cleanMemory({ trust: 70, pets: 4, lastSeen: 1000 })).toEqual({ trust: 70, pets: 4, lastSeen: 1000 })
+  expect(cleanMemory({ trust: 500, pets: -3, lastSeen: 1000 })).toEqual({ trust: 100, pets: 0, lastSeen: 1000 })
+  expect(cleanMemory({ trust: -5, pets: 2.9, lastSeen: 'x' })).toEqual({ trust: 0, pets: 2, lastSeen: 0 })
+  for (const bad of [undefined, null, 'x', 7, [], { trust: NaN }, { trust: '60' }, { pets: 3 }]) expect(cleanMemory(bad)).toBeUndefined()
+  expect(cleanStreak({ days: 5, last: '2026-11-08' })).toEqual({ days: 5, last: '2026-11-08' })
+  for (const bad of [undefined, null, 4, { days: 5 }, { days: -1, last: '2026-11-08' }, { days: 3, last: 'yesterday' }, { days: Infinity, last: '2026-11-08' }]) expect(cleanStreak(bad)).toBeUndefined()
+})
+
+test('the doctor says what is on and why, and names the switch that changes it', () => {
+  const base = { detail: 'party', feel: 'warm', sound: false, voice: '', talk: true, hidden: false, cols: 120, surface: 'terminal' } as const
+  const text = doctorLines(base).join('\n')
+  expect(text).toMatch(/party/)
+  expect(text).toMatch(/sound is off.*\/critter sound on/i)
+  expect(text).toMatch(/voice is off.*\/critter voice on/i)
+  expect(doctorLines({ ...base, sound: true, voice: 'Samantha' }).join('\n')).toMatch(/voice Samantha/)
+  // calm is the quiet switch, and the doctor says so when it silences sound that is on
+  expect(doctorLines({ ...base, feel: 'calm', sound: true }).join('\n')).toMatch(/calm.*silent.*\/critter feel warm/i)
+  // a narrow window is named, exactly at the edge
+  expect(doctorLines({ ...base, cols: 110 }).join('\n')).not.toMatch(/narrow/i)
+  expect(doctorLines({ ...base, cols: 109 }).join('\n')).toMatch(/narrow.*110/i)
+  expect(doctorLines({ ...base, hidden: true }).join('\n')).toMatch(/hidden.*\/critter show/i)
+})
+
+test('/critter doctor answers, even with a store that holds garbage', async ($, on) => {
+  stub(on)
+  on('ui.status', () => ({ value: undefined }))
+  on('ui.toast', () => ({ value: undefined }))
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('clock.every', () => ({ value: { cancel: () => undefined } }) as never)
+  on('store.get', () => ({ value: 'garbage' }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const out = JSON.stringify(await $.command.run({ command: 'critter', args: 'doctor', origin: { kind: 'composer' }, presentation: {} } as never))
+  expect(out).toMatch(/Reach: party/)
+  expect(out).toMatch(/sound is off/i)
+})
+
+import { foldDiary, returnTrust, wizardFor } from '../hooks/scene'
+
+test('the same diary line in a row is one line with a count, and a different line breaks the run', () => {
+  const a = '14:39 Pip is asking you something. Biscuit was not consulted.'
+  const b = '14:40 Pip is asking you something. Biscuit was not consulted.'
+  expect(foldDiary([], [a])).toEqual([a])
+  expect(foldDiary([a], [b])).toEqual(['14:39 Pip is asking you something. Biscuit was not consulted. (×2)'])
+  expect(foldDiary([a], [b, '14:41 Pip is asking you something. Biscuit was not consulted.'])).toEqual(['14:39 Pip is asking you something. Biscuit was not consulted. (×3)'])
+  expect(foldDiary([a], ['14:41 Green. Biscuit allows it.', b])).toEqual([a, '14:41 Green. Biscuit allows it.', b])
+  expect(foldDiary(['14:00 x (×9)'], ['14:01 x'])).toEqual(['14:00 x (×10)'])
+  expect(foldDiary(['14:00 x (×2)'], ['14:01 x (not a count)'])).toEqual(['14:00 x (×2)', '14:01 x (not a count)'])
+})
+
+test('a cat never comes back below 25, sulking is earned by the session and not by the calendar', () => {
+  expect(returnTrust(60, 0)).toBe(60)
+  expect(returnTrust(60, 2)).toBe(44)
+  expect(returnTrust(60, 4)).toBe(28)
+  expect(returnTrust(60, 5)).toBe(25) // 20 would sulk: the floor is exactly 25
+  expect(returnTrust(60, 400)).toBe(25)
+  expect(returnTrust(10, 0)).toBe(25)
+  expect(returnTrust(90, 1)).toBe(82)
+})
+
+test('work earns the cat round: a green run and a commit add trust, and crossing out of a sulk is remarked on once', () => {
+  const sulky = { ...initial(), trust: 28 }
+  const t = react(sulky, 'test')
+  expect(t.trust).toBe(31)
+  expect(t.log.join(' ')).toMatch(/forgive/i)
+  const c = react({ ...initial(), trust: 26 }, 'commit')
+  expect(c.trust).toBe(30) // exactly the edge: 30 is no longer a sulk
+  expect(c.log.join(' ')).toMatch(/forgive/i)
+  const calm = react({ ...initial(), trust: 60 }, 'test')
+  expect(calm.trust).toBe(63)
+  expect(calm.log.join(' ')).not.toMatch(/forgive/i) // only a cat that was sulking forgives
+  expect(react({ ...initial(), trust: 29 }, 'commit').trust).toBe(33)
+  expect(react({ ...initial(), trust: 99 }, 'commit').trust).toBe(100)
+})
+
+test('the wizard sits beside a reply that is a moment, and not beside the plain ones', () => {
+  expect(wizardFor('Biscuit allows it. Do not stop.')).toBe(true)
+  expect(wizardFor('Pip cast something.')).toBe(true)
+  expect(wizardFor('The pair are hidden.')).toBe(false)
+  expect(wizardFor('The pair are back.')).toBe(true)
+  expect(wizardFor('Usage: /critter sound on | off.')).toBe(false)
+  expect(wizardFor('Reach: party. Feel: warm.\nSound is off.')).toBe(false) // a report is not a moment
+})

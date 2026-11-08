@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.0
+
+- `/critter doctor`: says what is on and what is off (reach, feel, sound, voice, talk, a hidden pair, a narrow window under 110 columns) and the one command that changes each.
+- A damaged store is read as nothing and never as a crash: the cat's memory and the day count are checked and clamped before they are used.
+- The cat comes back at 25 trust at the least: wary, not sulking. A green test run (+3) and a commit (+4) earn trust back, and a cat lifted out of a sulk says so, once.
+- The same diary line twice in a row is one line with a count (`(×6)`), keeping the first time.
+- The wizard beside a `/critter` reply is half the size and sits only beside a moment: not beside `hide`, a usage line or a report.
+
 ## 0.15.0
 
 - A permission question gets the cat's line under it when the call deserves a second read: a recursive delete, a forced push (not `--force-with-lease`), a hard reset, a stranger piped into a shell, sudo, a skipped hook, a dropped table, a world-writable tree, or a secrets file. Everything else gets nothing, and the verdict is never touched.
