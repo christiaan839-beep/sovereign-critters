@@ -311,6 +311,19 @@ test('the scene steps four times a second while anything moves, and once a secon
   expect(cadence({ ...still, mode: 'walk' })).toBe(4) // an idle stroll is slow enough to be seen at once a second
 })
 
+test('the cat has legs and paws, and a walking cat lifts one', () => {
+  const solo = (o: Partial<Scene>) => canvasOf({ ...initial(), cols: 40, cx: -80, kx: 4, kdir: 1, mode: 'loaf' as const, variant: 'orange' as const, ...o }, 40)
+  const feet = (c: string[][]) => c.slice(H - 8).flat().filter(k => k !== '.').length // the bottom eight rows: paws and the legs above them
+  const pale = (c: string[][]) => c.slice(H - 5).flat().filter(k => k === 'b').length // the pale paws
+  const stand = solo({ tick: 0 })
+  expect(feet(stand)).toBeGreaterThan(60)
+  expect(pale(stand)).toBeGreaterThanOrEqual(8)
+  // walking: on the odd beat a front paw is up, so there is less cat at the bottom
+  const up = solo({ mode: 'walk' as const, tick: 1 }); const down = solo({ mode: 'walk' as const, tick: 0 })
+  expect(feet(up)).toBeLessThan(feet(down))
+  expect(pale(up)).toBeLessThan(pale(down))
+})
+
 test('the wizard paces beside the orb while Claude works, and stays inside his frame', () => {
   const s = { ...initial(), cols: 40 }
   // the empty cells left of his leftmost pixel, over all rows: one more when he steps right
