@@ -1,0 +1,8 @@
+{
+  "name": "hot-reload-demo",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "A teaching example for mod authors, not for install: a band that shows what a hot reload keeps. The module's own variable (the time it loaded, in UTC) starts again; the count of prompts, kept in $.state, stays.",
+  "author": { "name": "Sovereign Matrix" },
+  "types": "./types/index.d.ts"
+}

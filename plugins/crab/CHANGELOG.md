@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0
+
+- Redesigned: the crab holds your place. `/crab hold <text>` leaves a one-line note (120 characters at most) for the folder you are in; `/crab` shows it; `/crab drop` puts it down. A small pixel crab of our own, in the pair's clay, carries it in a band above the prompt: "holding: ..." for a note from this session, "you left this: ..." when you come back to the folder in a new session.
+- Nothing is drawn until you give it a note. The band is two lines, never wraps, and is cut with an ellipsis at the width it has.
+- Notes live in the plugin's own store, one per folder, under a short hash of the path (never the path or the name); fifty folders at most, the oldest let go. A store that will not read or write never blocks a session or a prompt.
+- The old hot-reload band, "module's own: loaded ... / $.state: N prompts", is no longer part of the install. It lives on as a teaching example for mod authors in `examples/hot-reload-demo/`.
+
 ## 0.1.0
 
 First release.

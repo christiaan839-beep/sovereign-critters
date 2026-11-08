@@ -15,8 +15,8 @@ ok() { printf 'ok    %s\n' "$*"; }
 command -v claude >/dev/null 2>&1 || { note 'FAIL  the claude CLI is not on PATH'; exit 2; }
 command -v python3 >/dev/null 2>&1 || { note 'FAIL  python3 is not on PATH'; exit 2; }
 
-# 1. validate and test: every plugin must pass both, exactly
-for dir in plugins/*/; do
+# 1. validate and test: every plugin and every example must pass both, exactly
+for dir in plugins/*/ examples/*/; do
   p=${dir%/}
   if claude plugin validate "$p" --strict >"$TMP/v.log" 2>&1; then ok "$p validate --strict"; else bad "$p validate --strict"; sed 's/^/      /' "$TMP/v.log"; fi
   if claude plugin test "$p" >"$TMP/t.log" 2>&1; then ok "$p test ($(grep -Eo '[0-9]+ pass' "$TMP/t.log" | tail -1))"; else bad "$p test"; sed 's/^/      /' "$TMP/t.log" | tail -40; fi

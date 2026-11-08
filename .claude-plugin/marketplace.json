@@ -1,6 +1,6 @@
 {
   "name": "sovereign-critters",
-  "description": "Claude Code mods from Sovereign Matrix: a wizard critter and an orange cat, a build bell, a session diary, and five small mods that show what a mod can do.",
+  "description": "Claude Code mods from Sovereign Matrix: a wizard critter and an orange cat, a build bell, a session diary, a crab that holds your place, and a few small mods that show what a mod can do.",
   "owner": {
     "name": "Sovereign Matrix"
   },
@@ -33,7 +33,7 @@
     {
       "name": "crab",
       "source": "./plugins/crab",
-      "description": "A band that shows what a reload keeps and what it does not."
+      "description": "/crab hold <text>: a small crab carries a note for this folder, and has it for you when you come back."
     },
     {
       "name": "guard",
