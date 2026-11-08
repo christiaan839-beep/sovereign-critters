@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.1
+
+- Fixed: 0.9.0 did not pass `claude plugin validate --strict`: the feel setting was missing from the manifest's types contract. It is declared now.
+
 ## 0.9.0
 
 - A feel dial: `/critter feel calm | warm | playful`. Calm keeps the pair still (they breathe, walk and sleep; no hops, sparks, hearts or sound). Warm is the usual. Playful hops about three times as often. It is kept between sessions, offered by the typeahead and coloured in the prompt box.

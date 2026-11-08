@@ -60,6 +60,8 @@ declare module 'claude-code' {
       names: Shaped<{ cat: string; pip: string }>
       /** Whether the cast chime and the purr play. Off until asked: sound in a shared mod is a choice. */
       sound: Shaped<boolean>
+      /** How lively the pair are: calm (still, silent), warm (the usual) or playful. */
+      feel: Shaped<'calm' | 'warm' | 'playful'>
     }
   }
 }
