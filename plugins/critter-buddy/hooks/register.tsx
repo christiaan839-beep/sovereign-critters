@@ -3,7 +3,7 @@ import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
 import { NAMES_DEFAULT, FEELS, moodLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
-import { dayKey, festiveOf, glassOf, holidayOf, hourSast, phaseOf, seasonOf, skyFor, streakAlive, streakNext, weatherOf } from './world'
+import { nextProp, dayKey, festiveOf, glassOf, holidayOf, hourSast, phaseOf, seasonOf, skyFor, streakAlive, streakNext, weatherOf } from './world'
 import type { Streak } from './world'
 import type { Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
 
@@ -669,10 +669,13 @@ export const register: Register = on => {
     const alone: Scene = { ...s, cols, kx: -80, look: s.look === 'wizard' || s.look === 'done' ? s.look : 'idle' }
     return (
       <Box flexDirection="column">
-        <Text bold>{`${nmS.pip}'s stage · ${stageWord(await $.clock.now(), s.joy)}`}</Text>
-        {vector ? svg(paintSvg(alone, 5), 'The critter alone on a stage, walking and idling') : rowsOf(Text, paint(alone), 's')}
-        <Text dimColor>{`${s.label} · ${s.tools} tools · ${s.skills} skills`}</Text>
-        <Box flexDirection="row">
+        <Box key="head" flexDirection="row" justifyContent="center"><Text bold>{`${nmS.pip}'s stage · ${stageWord(await $.clock.now(), s.joy)}`}</Text></Box>
+        <Box key="art" flexDirection="row" justifyContent="center">
+          {vector ? svg(paintSvg(alone, 5), 'The critter alone on a stage, walking and idling') : <Box flexDirection="column">{rowsOf(Text, paint(alone), 's')}</Box>}
+        </Box>
+        <Box key="status" flexDirection="row" justifyContent="center"><Text dimColor>{`${s.label} · ${s.tools} tools · ${s.skills} skills`}</Text></Box>
+        <Box key="gap"><Text> </Text></Box>
+        <Box key="actions" flexDirection="row" justifyContent="center">
           <Button key="spell" label="cast" hotkey="c" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'spell'))} />
           <Text> </Text>
           <Button key="nap" label="nap" hotkey="n" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'nap'))} />
@@ -694,28 +697,42 @@ export const register: Register = on => {
     const field = Array.from({ length: 9 }, (_, r) =>
       [0, 1, 2].map(l => (s.game.lane === l && s.game.row === r ? (r >= 5 ? ' ▼ ' : ' · ') : '   ')).join('│'),
     )
+    const nowMs = await $.clock.now()
+    const days = s.streak ?? 0
+    const next = nextProp(days)
+    const gap = (k: string) => <Box key={k}><Text> </Text></Box> // air is a spacer row: the desktop does not count margins
     return (
       <Box flexDirection="column">
-        {vector
-          ? svg(paintBigSvg({ ...s, cols: Math.min(60, cols), cdir: 1 }, 8), 'The critter and the cat, large')
-          : portrait.map((runs, i) => (
-              <Text key={`p${i}`}>
-                {runs.map((r, j) => (
-                  <Text key={`q${j}`} color={r.fg}>{r.text}</Text>
-                ))}
-              </Text>
-            ))}
+        <Box key="head" flexDirection="row" justifyContent="center"><Text bold>{`${nm.cat} and ${nm.pip} · ${stageWord(nowMs, s.joy)}`}</Text></Box>
+        <Box key="art" flexDirection="row" justifyContent="center">
+          {vector
+            ? svg(paintBigSvg({ ...s, cols: Math.min(60, cols), cdir: 1 }, 8), 'The critter and the cat, large')
+            : <Box flexDirection="column">{portrait.map((runs, i) => (
+                <Text key={`p${i}`}>
+                  {runs.map((r, j) => (
+                    <Text key={`q${j}`} color={r.fg}>{r.text}</Text>
+                  ))}
+                </Text>
+              ))}</Box>}
+        </Box>
+        <Box key="streak" flexDirection="row" justifyContent="center">
+          <Text dimColor>{days >= 2 ? `day ${days} together${next ? ` · a ${next.prop} in ${next.inDays} day${next.inDays === 1 ? '' : 's'}` : ' · the lamp is lit'}` : 'come back tomorrow and the days begin to count'}</Text>
+        </Box>
+        {gap('g1')}
         <Text bold>{'Moods'}</Text>
         <Text>{moodLine('trust', s.trust)}</Text>
         <Text>{moodLine('joy', s.joy)}</Text>
-        <Text dimColor>{`${s.stats.turns} turns · ${s.tools} tools · ${s.skills} skills · ${s.stats.errors} errors · ${s.stats.pets} pets · ${s.stats.commits} commits · ${s.stats.knocks} knocked off`}</Text>
-        <Box flexDirection="row">
+        <Text dimColor>{`${s.stats.turns} turns · ${s.tools} tools · ${s.skills} skills`}</Text>
+        <Text dimColor>{`${s.stats.errors} errors · ${s.stats.pets} pets · ${s.stats.commits} commits · ${s.stats.knocks} knocked off`}</Text>
+        {gap('g2')}
+        <Box key="actions" flexDirection="row" justifyContent="center">
           <Button key="p" label="pet" hotkey="p" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'pet'))} />
           <Text> </Text>
           <Button key="t" label="treat" hotkey="t" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'treat'))} />
           <Text> </Text>
           <Button key="n" label="nap" hotkey="n" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'nap'))} />
         </Box>
+        {gap('g3')}
         <Text bold>{'Catch the treat'}</Text>
         {s.game.on ? (
           <Box>
@@ -736,6 +753,7 @@ export const register: Register = on => {
         ) : (
           <Button key="play" label="play" onPress={() => update($, scene, (x: Scene): Scene => startGame(x))} />
         )}
+        {gap('g4')}
         <Text bold>{`${nm.cat}'s diary`}</Text>
         {d.length === 0 && <Text dimColor>{`Nothing yet. ${nm.cat} is asleep.`}</Text>}
         {d.slice(-8).map((l, i, all) => {

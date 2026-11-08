@@ -93,6 +93,13 @@ export type Prop = 'yarn' | 'cushion' | 'plant' | 'lamp'
 /** What the cat has earned to keep on the bar: a ball of yarn at 3 days, a cushion at 7, a plant at 14, a lamp at 30. */
 export const propsFor = (days: number): Prop[] => (['yarn', 'cushion', 'plant', 'lamp'] as const).filter((_, i) => days >= [3, 7, 14, 30][i]!)
 
+/** The next prop and how many more days it needs, or undefined once the lamp is earned. */
+export const nextProp = (days: number): { prop: Prop; inDays: number } | undefined => {
+  const all = [['yarn', 3], ['cushion', 7], ['plant', 14], ['lamp', 30]] as const
+  const n = all.find(([, d]) => days < d)
+  return n ? { prop: n[0], inDays: n[1] - Math.max(0, days) } : undefined
+}
+
 // ---- the sky -------------------------------------------------------------------------------------
 const STARS = Array.from({ length: 22 }, (_, i) => {
   const a = Math.imul(i + 1, 2654435761) >>> 0

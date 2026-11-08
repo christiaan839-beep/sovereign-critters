@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12.1
+
+- The corner and the stage are laid out again: the heading, the portrait and the buttons are centred; a line under the portrait says how many days you have come back and what the cat will bring next (`day 5 together · a cushion in 2 days`); the sections are set apart by spacer rows (a margin is lost to the desktop's measure); the stats are two short lines instead of one that ran off the edge. The stage has a status line and its buttons centred under the art.
+
 ## 0.12.0
 
 - The weather sky. The backdrop follows the hour in Johannesburg (night, dawn, day, dusk: the sun sits low at dawn and dusk, the stars come out at dusk) and the season of the southern hemisphere tints the ground. The weather is the session's own, not a forecast: the pair's joy sets it, so errors bring cloud, then rain, then a storm that hides the sun and throws a bolt, and a green test, a commit or a treat clears it. Nothing is fetched.

@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Look, Scene } from '../types'
-import { dayKey, easterOf, festiveOf, holidayOf, hourSast, phaseOf, propsFor, seasonOf, skyFor, streakAlive, streakNext, weatherOf } from '../hooks/world'
+import { nextProp, dayKey, easterOf, festiveOf, holidayOf, hourSast, phaseOf, propsFor, seasonOf, skyFor, streakAlive, streakNext, weatherOf } from '../hooks/world'
 import { PROPS, weekdayOf, cadence, suggest, moodLine, skyOf, stepFeel, FEELS, controlLabels, draftRuns, diaryMarkdown, diaryParts, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
 
 test('the cat sprite is rectangular, sixteen by twenty, in every pose', () => {
@@ -1078,4 +1078,28 @@ test('the greeting says the holiday and the streak, and the night keeps its own 
   expect(quip('greet', s, 9, 0, 5, 'Heritage Day. a braai')).toMatch(/^Heritage Day\. a braai · day 5 together · \/critter$/)
   expect(quip('greet', s, 23, 0, 5, 'Heritage Day. a braai')).toMatch(/night|glass/)
   expect(quip('greet', { ...initial(), streak: 1 }, 9, 0, 1)).not.toMatch(/together/) // a streak of one is not a streak
+})
+
+test('the corner and the stage are centred, with spacer rows, and the corner says the days and the next prop', async ($, on) => {
+  stub(on)
+  expect(nextProp(0)).toEqual({ prop: 'yarn', inDays: 3 })
+  expect(nextProp(5)).toEqual({ prop: 'cushion', inDays: 2 })
+  expect(nextProp(29)).toEqual({ prop: 'lamp', inDays: 1 })
+  expect(nextProp(30)).toBeUndefined()
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const corner = await $.ui.mount({ ...PANE, surface })
+    for (const k of ['head', 'art', 'streak', 'actions']) {
+      const box = (await corner.find({ key: k })) as { props?: Record<string, unknown> } | undefined
+      expect(box?.props).toMatchObject({ flexDirection: 'row', justifyContent: 'center' })
+    }
+    expect(await corner.find({ type: 'Text', text: /come back tomorrow/ })).toBeDefined() // no streak yet
+    for (const k of ['g1', 'g2', 'g3', 'g4']) expect(await corner.find({ key: k })).toBeDefined()
+    await corner.unmount()
+    const stage = await $.ui.mount({ ...PANE, requestId: 'stage', surface })
+    for (const k of ['head', 'art', 'status', 'actions']) {
+      const box = (await stage.find({ key: k })) as { props?: Record<string, unknown> } | undefined
+      expect(box?.props).toMatchObject({ justifyContent: 'center' })
+    }
+    await stage.unmount()
+  }
 })
