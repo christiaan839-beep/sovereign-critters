@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0
+
+- `/diary week` draws a bar for each day, scaled to the busiest, so the week reads at a glance, and names the busiest day (nobody on a tie).
+
 ## 0.2.0
 
 - `/diary week`: the last seven days in Johannesburg, a line a day (tool calls, failures, turns, time Claude worked), the totals and the three busiest tools. `/diary week copy` puts it on the clipboard as markdown. Counts are kept for 14 days, tool names only, so the week survives the 300-line cap.

@@ -54,15 +54,23 @@ export const addTool = (list: readonly Day[], at: number, tool: string, ok: bool
 /** Count one finished turn into its day. Pure. */
 export const addTurn = (list: readonly Day[], at: number, ms: number): Day[] => touch(list, at, d => ({ ...d, turns: d.turns + 1, ms: d.ms + ms }))
 
+/** A bar `n` of `max` long in twelfths of a cell steps, so a quiet day is a sliver and the busiest day fills the card: `▉▉▉▎`. */
+export const barOf = (n: number, max: number, width = 12): string => {
+  if (n <= 0 || max <= 0) return ''
+  const eighths = Math.max(1, Math.round((n / max) * width * 8))
+  return '█'.repeat(Math.floor(eighths / 8)) + ['', '▏', '▎', '▍', '▌', '▋', '▊', '▉'][eighths % 8]
+}
+
 /** The last seven days up to and including `now`, a line a day, then the totals and the three busiest tools. */
 export const weekOf = (list: readonly Day[], now: number): string => {
   const keys = Array.from({ length: 7 }, (_, i) => dayOf(now - (6 - i) * 86_400_000))
   const rows = keys.map(k => list.find(d => d.day === k) ?? emptyDay(k))
   if (rows.every(d => d.tools === 0 && d.turns === 0)) return '# This week\n\nNothing yet.\n'
   const out = ['# This week', '']
+  const peak = Math.max(...rows.map(d => d.tools))
   for (const d of rows) {
     const name = NAMES[(((Math.floor(Date.parse(`${d.day}T00:00:00Z`) / 86_400_000) + 4) % 7) + 7) % 7]
-    out.push(d.tools === 0 && d.turns === 0 ? `- ${name} ${d.day.slice(5)}  quiet` : `- ${name} ${d.day.slice(5)}  ${d.tools} tool call${d.tools === 1 ? '' : 's'}${d.failed ? `, ${d.failed} failed` : ''} · ${d.turns} turn${d.turns === 1 ? '' : 's'} · ${span(d.ms)}`)
+    out.push(d.tools === 0 && d.turns === 0 ? `- ${name} ${d.day.slice(5)}  quiet` : `- ${name} ${d.day.slice(5)}  ${d.tools} tool call${d.tools === 1 ? '' : 's'}${d.failed ? `, ${d.failed} failed` : ''} · ${d.turns} turn${d.turns === 1 ? '' : 's'} · ${span(d.ms)}  ${barOf(d.tools, peak)}`.trimEnd())
   }
   const sum = (f: (d: Day) => number) => rows.reduce((n, d) => n + f(d), 0)
   const by: Record<string, number> = {}
@@ -70,6 +78,8 @@ export const weekOf = (list: readonly Day[], now: number): string => {
   const top = Object.entries(by).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, 3).map(([t, n]) => `${t} ${n}`)
   out.push('', `${sum(d => d.tools)} tool call${sum(d => d.tools) === 1 ? '' : 's'}, ${sum(d => d.failed)} failed, ${sum(d => d.turns)} turn${sum(d => d.turns) === 1 ? '' : 's'}, ${span(sum(d => d.ms))} of Claude working.`)
   if (top.length) out.push(`Busiest: ${top.join(', ')}.`)
+  const best = rows.reduce((a, d) => (d.tools > a.tools ? d : a), rows[0]!)
+  if (best.tools > 0 && rows.filter(d => d.tools === best.tools).length === 1) out.push(`Busiest day: ${NAMES[(((Math.floor(Date.parse(`${best.day}T00:00:00Z`) / 86_400_000) + 4) % 7) + 7) % 7]} ${best.day.slice(5)}, ${best.tools} tool call${best.tools === 1 ? '' : 's'}.`)
   return out.join('\n') + '\n'
 }
 

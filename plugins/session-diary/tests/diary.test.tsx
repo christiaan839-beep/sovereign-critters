@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Entry } from '../types'
-import { addTool, addTurn, dayOf, lineOf, markdownOf, weekOf } from '../hooks/register'
+import { barOf, addTool, addTurn, dayOf, lineOf, markdownOf, weekOf } from '../hooks/register'
 
 // 1_000_000_000_000 ms is 2001-09-09 01:46:40 UTC, so 03:46 in Johannesburg.
 const AT = 1_000_000_000_000
@@ -176,4 +176,22 @@ test('every call and turn lands in its day, and /diary week says them and copies
   expect(done).toMatch(/Copied the week/)
   expect(copied).toContain('# This week')
   expect(copied).toContain('3 tool calls, 1 failed, 1 turn')
+})
+
+test('the week draws a bar a day: the busiest fills the card, a light day is a sliver, a quiet day has none', () => {
+  expect(barOf(0, 10)).toBe('')
+  expect(barOf(10, 10)).toBe('█'.repeat(12))
+  expect(barOf(5, 10)).toBe('█'.repeat(6))
+  expect(barOf(1, 100)).toBe('▏') // never invisible
+  expect(barOf(3, 8)).toBe('████▌') // 4.5 cells
+  let d = addTool([], SUN - 2 * DAY, 'Read', true)
+  d = addTool(d, SUN - 2 * DAY, 'Read', true)
+  d = addTool(d, SUN, 'Bash', false)
+  const w = weekOf(d, SUN)
+  expect(w).toMatch(/- Fri 11-06  2 tool calls · 0 turns · .*█{12}/)
+  expect(w).toMatch(/- Sun 11-08  1 tool call, 1 failed · 0 turns · .*█{6}$/m)
+  expect(w).toContain('Busiest day: Fri 11-06, 2 tool calls.')
+  expect(w).not.toMatch(/Sat 11-07.*█/)
+  const tie = addTool(addTool([], SUN - DAY, 'Read', true), SUN, 'Read', true)
+  expect(weekOf(tie, SUN)).not.toContain('Busiest day') // a tie crowns nobody
 })
