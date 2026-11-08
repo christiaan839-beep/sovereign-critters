@@ -1649,3 +1649,137 @@ test('a treat is a paw, the diary a page, a prop earned a chime, and calm or off
   await run('treat'); await run('diary')
   expect(played).toHaveLength(2) // calm is silent
 })
+
+// ---- 0.20.0: the welcome, the nudge that is taken, and the wizard's two new faces ----
+import { wizardPoseFor, wizardCanvas, welcomeLine } from '../hooks/scene'
+
+test('the welcome is one dim line, in the pair\'s own names, and only until it has been said', () => {
+  expect(welcomeLine(undefined, NAMES_DEFAULT)).toBe('Biscuit and Pip are here. /critter for the controls')
+  expect(welcomeLine(undefined, { cat: 'Rex', pip: 'Zed' })).toBe('Rex and Zed are here. /critter for the controls')
+  expect(welcomeLine(true, NAMES_DEFAULT)).toBeUndefined()
+  expect(welcomeLine('yes', NAMES_DEFAULT)).toBeUndefined() // anything the store holds counts as said: it never nags twice
+})
+
+test('the first greeting carries the welcome once, writes that it was said, and never blocks the greeting', async ($, on) => {
+  stub(on)
+  const written: Record<string, unknown> = {}
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('clock.every', () => ({ value: { cancel: () => undefined } }) as never)
+  on('store.set', (_: unknown, e: { key: string; value: unknown }) => { written[e.key] = e.value; return { value: undefined } as never })
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const ui = await $.ui.mount({ ...row('InfoNotice', { text: 'Sonnet', command: null }), surface: 'terminal' } as never)
+  expect(await ui.find({ type: 'Text', text: /Biscuit and Pip are here\. \/critter for the controls/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /critter-buddy: .* · \/critter/ })).toBeDefined() // the greeting is still there
+  expect(written.welcomed).toBe(true)
+  await ui.unmount()
+})
+
+test('a welcome already said is not said again', async ($, on) => {
+  stub(on)
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.set', () => ({ value: undefined }) as never)
+  on('store.get', (_: unknown, e: { key: string }) => ({ value: e.key === 'welcomed' ? true : undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const ui = await $.ui.mount({ ...row('InfoNotice', { text: 'Sonnet', command: null }, 'r-again'), surface: 'terminal' } as never)
+  expect(await ui.find({ type: 'Text', text: /are here\./ })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('the nudge is stamped when the person takes the line and sends it, not when it is offered', async ($, on) => {
+  stub(on)
+  const written: Record<string, unknown> = {}
+  const offered: string[] = []
+  on('ui.status', () => ({ value: undefined }))
+  on('ui.toast', () => ({ value: undefined }))
+  on('turn.complete', () => ({ text: 'done' }))
+  on('prompt.submit', (_, e: { text: string; inputText: string }) => ({ text: e.text, inputText: e.inputText }) as never)
+  on('model.complete', () => ({ value: { isAnswered: false, text: '', usage: {} } }) as never)
+  on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1_000_000, percent: 10 }, rateLimits: [] } }) as never)
+  on('prompt.suggest', (_: unknown, e: { text: string }) => { offered.push(e.text); return { isShown: true } as never })
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.set', (_: unknown, e: { key: string; value: unknown }) => { written[e.key] = e.value; return { value: undefined } as never })
+  on('clock.every', () => ({ value: { cancel: () => undefined } }) as never)
+  on('store.get', (_: unknown, e: { key: string }) => ({ value: e.key === 'streak' ? { days: 2, last: '2001-09-08' } : undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.turn.complete({ answer: 'done' } as never)
+  expect(offered).toEqual(['/critter corner'])
+  expect(written.nudged).toBeUndefined() // offered is not taken
+  await $.prompt.submit({ text: 'something else', inputText: 'something else' } as never)
+  expect(written.nudged).toBeUndefined() // typing over it is not taking it
+  await $.prompt.submit({ text: '/critter corner', inputText: '/critter corner' } as never)
+  expect(written.nudged).toBe('2001-09-09') // taken: stamped with today
+})
+
+test('the wizard beside a reply has a face for sleep and a face for a spell, and none for plain information', () => {
+  expect(wizardPoseFor('Biscuit and Pip are asleep.')).toBe('asleep')
+  expect(wizardPoseFor('critter-buddy: Rex and Zed are asleep.')).toBe('asleep') // under the engine's prefix, in any names
+  expect(wizardPoseFor('Pip cast something.')).toBe('tipped')
+  expect(wizardPoseFor('Zed cast something.')).toBe('tipped')
+  expect(wizardPoseFor('Biscuit allows it. Do not stop.')).toBe('plain')
+  expect(wizardPoseFor('The pair are hidden.')).toBeUndefined()
+  expect(wizardPoseFor('Usage: /critter sound on | off.')).toBeUndefined()
+  expect(wizardPoseFor('Reach: party.\nSound is off.')).toBeUndefined()
+  expect(wizardPoseFor('Biscuit and Pip are asleep.', false)).toBeUndefined() // a terminal reply gets no wizard at all
+})
+
+test('the asleep wizard has closed eyes, no lightning and a z; the tipped wizard has lifted his hat and smiles', () => {
+  const s = { ...initial(), cols: 40, tick: 3, wt: 8 }
+  const plain = wizardCanvas(s)
+  const asleep = wizardCanvas(s, 'asleep')
+  const tipped = wizardCanvas(s, 'tipped')
+  const count = (c: string[][], keys: string) => c.flat().filter(k => keys.includes(k)).length
+  const firstInked = (c: string[][]) => c.findIndex(r => r.includes('9')) // the first row of the hat itself (the lightning is another thing)
+  expect(count(asleep, 'tu')).toBe(0) // no lightning off the staff while he sleeps
+  expect(count(asleep, 'W')).toBeGreaterThan(count(plain, 'W')) // the z is white
+  expect(asleep.length).toBe(plain.length)
+  expect(asleep.every(r => r.length === WIZARD_COLS)).toBe(true)
+  expect(firstInked(tipped)).toBe(firstInked(plain) - 2) // the hat is lifted by two cells
+  expect(tipped.flat().join('')).not.toBe(plain.flat().join(''))
+  expect(tipped.flat().join('')).not.toBe(asleep.flat().join(''))
+  expect(count(tipped, '9')).toBe(count(plain, '9')) // lifted whole, nothing of the hat lost
+  const leftmost = (c: string[][], key: string) => Math.min(...c.map(r => r.indexOf(key)).filter(x => x >= 0))
+  const lowest = (c: string[][], key: string) => c.map((r, y) => (r.includes(key) ? y : -1)).reduce((m, y) => Math.max(m, y), -1)
+  expect(leftmost(tipped, '8')).toBe(leftmost(plain, '8') + 2) // and nudged forward two cells
+  expect(lowest(tipped, 'h')).toBe(lowest(plain, 'h')) // the staff stays planted: only the hat moves
+  expect(tipped.every(r => r.length === WIZARD_COLS)).toBe(true)
+})
+
+import { windowWidth } from '../hooks/scene'
+
+test('the doctor reports the whole window, not the capped width the band is drawn at', () => {
+  expect(windowWidth(130, 130)).toBe(130)
+  expect(windowWidth(72, 130)).toBe(130) // a pane is open: the body is narrower than the window
+  expect(windowWidth(130, undefined)).toBe(130)
+  expect(windowWidth(undefined, 110)).toBe(110)
+  expect(windowWidth(0, 0)).toBe(80) // nothing known: the usual default
+  expect(windowWidth(undefined, undefined)).toBe(80)
+  expect(doctorLines({ detail: 'party', feel: 'warm', sound: false, voice: '', talk: true, hidden: false, cols: windowWidth(400, 400), surface: 'desktop' }).join(' ')).not.toMatch(/narrow/i)
+})
+
+test('a terminal reply gets no wizard: his picture there is fifteen rows tall, beside one line of words', () => {
+  expect(wizardFor('critter-buddy: Biscuit allows it. Do not stop.', false)).toBe(false)
+  expect(wizardFor('critter-buddy: Biscuit allows it. Do not stop.', true)).toBe(true)
+  expect(wizardFor('critter-buddy: Biscuit allows it. Do not stop.')).toBe(true) // the desktop is the default
+})
+
+test('on the desktop the wizard beside a nap is drawn asleep and beside a spell with his hat tipped; a plain reply keeps the plain one', async ($, on) => {
+  stub(on)
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  const alt = async (text: string) => {
+    const ui = await $.ui.mount({ plugin: 'critter-buddy', component: 'CommandOutput', requestId: 'o1', props: { command: 'critter', text, isErrored: false }, surface: 'desktop' } as never)
+    const found = await ui.find({ type: 'Svg' })
+    const out = JSON.stringify(found)
+    await ui.unmount()
+    return out
+  }
+  expect(await alt('Biscuit and Pip are asleep.')).toMatch(/asleep/)
+  expect(await alt('Pip cast something.')).toMatch(/tipping his hat/)
+  expect(await alt('Biscuit allows it. Do not stop.')).not.toMatch(/asleep|tipping/)
+})

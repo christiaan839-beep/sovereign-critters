@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.19.1
+
+- A first-ever session carries one dim line under the greeting: "Biscuit and Pip are here. /critter for the controls". It is said once, remembered in the store, and never blocks the greeting.
+- The Friday `/diary week` nudge counts as taken when you send the line it offered, not when it was merely shown, so a nudge you ignored comes back.
+- The wizard beside a `/critter nap` reply is drawn asleep (eyes shut, a z, no lightning) and beside `/critter spell` with his hat lifted and tipped forward, smiling. Pixels of our own; unconfirmed until seen in the real window. Plain replies keep the plain wizard, and the terminal still draws none.
+- `/critter doctor` reports the whole window width, not the width the band is capped at.
+- `/critter voice` stays in the command list.
+
 ## 0.19.0
 
 - Three new sounds, each one physical event built from a model and not from a sample (`tools/foley.py`, standard library only, the same bytes every run): a soft double tap for a treat (a pitch-dropped thump on low noise), a page turned for `/critter diary` (filtered noise in three swells with a few fibre crackles), and a small brass bell for a prop earned (inharmonic partials that each fade at their own rate). No music.

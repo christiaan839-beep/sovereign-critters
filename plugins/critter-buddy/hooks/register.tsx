@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, cleanMemory, cleanStreak, doctorLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import { windowWidth, fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, wizardPoseFor, welcomeLine, cleanMemory, cleanStreak, doctorLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
 import { hourSast, dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
 import type { Flight, Streak } from './world'
 import type { SoundName, Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
@@ -54,12 +54,14 @@ const ERR_LINES = [
 ]
 
 let liveCols = 80
+let windowCols = 80 // the whole window, uncapped: the doctor reports this, the band is drawn at liveCols
 let lastSky = '' // the key of the backdrop last drawn: it is redrawn only when the hour, the season, the weather or the lights change
 const flights = new Map<number, Flight>() // the tool calls in flight, each with its own clock: past 20 s the cat goes to the window
 let flightId = 0
 let streak: Streak | undefined
 let turnStartedAt = 0
 let ticker: { cancel: () => void } | undefined
+let offeredNudge: string | undefined // the line sitting dim in the box, until it is sent or replaced
 let greeted: string | undefined // the first notice under the logo carries the greeting; a redraw of it keeps it
 const notes = new Map<string, string>() // what each row placed in the transcript says
 
@@ -214,6 +216,15 @@ export const register: Register = on => {
 
   on('prompt.submit', async ($, e, next) => {
     turnStartedAt = await $.clock.now()
+    try {
+      // the nudge counts as taken when the person sends the very line it offered (Tab, then Enter), not when it was merely shown
+      if (offeredNudge !== undefined && String(e.text ?? '').trim() === offeredNudge) {
+        offeredNudge = undefined // one stamp per offer; anything else sent leaves the dim line standing
+        await $.store.set('nudged', dayKey(turnStartedAt))
+      }
+    } catch {
+      // a stamp that cannot be written means the nudge may come once more; no harm
+    }
     await update($, scene, (s: Scene): Scene => ({ ...s, look: 'wizard', wt: 0, label: 'thinking', tools: 0, idle: 0 })) // the wizard takes the bar for the whole turn: the hat builds while Claude thinks
     return next(e)
   }).catch(($, e, next) => next(e))
@@ -275,8 +286,8 @@ export const register: Register = on => {
       const last = (await $.store.get('nudged')) as string | undefined
       const text = nudgeFor(now, streak!.days, streakBefore, last)
       if (text) {
-        await $.prompt.suggest({ text })
-        if (text === '/diary week') await $.store.set('nudged', dayKey(now))
+        const shown = await $.prompt.suggest({ text })
+        if (shown?.isShown !== false) offeredNudge = text // remembered until the person sends it: only then is it taken
       }
     } catch {
       // a nudge that cannot be shown is no loss
@@ -456,7 +467,7 @@ export const register: Register = on => {
       return { text: f === 'calm' ? 'Calm: the pair only breathe, walk and sleep. No sparks, no sound.' : f === 'playful' ? 'Playful: more hops, more sparks.' : 'Warm: the usual.' }
     }
     if (sub === 'doctor') {
-      return { text: doctorLines({ detail: await read($, detail), feel: await read($, feel), sound: await read($, sound), voice: await read($, voice), talk: await read($, talk), hidden: (await read($, isHidden)) === true, cols: liveCols, surface: e.surface ?? 'terminal' }).join('\n') }
+      return { text: doctorLines({ detail: await read($, detail), feel: await read($, feel), sound: await read($, sound), voice: await read($, voice), talk: await read($, talk), hidden: (await read($, isHidden)) === true, cols: windowCols, surface: e.surface ?? 'terminal' }).join('\n') }
     }
     if (sub === 'stage') {
       await $.ui.open({ id: STAGE, title: 'Stage', focus: true, ...PANE_ASKS.stage })
@@ -507,6 +518,7 @@ export const register: Register = on => {
     // A wide desktop window would spread the pair thin across it: the bar stops at 96 cells, like the film's frame.
     const cols = Math.min(96, e.props.bodyColumns || e.viewport?.columns || 80)
     liveCols = cols
+    windowCols = windowWidth(e.props.bodyColumns, e.viewport?.columns)
     const { Box, Text, Button, face, vector, svg } = kit($.ui.resolve(e), e.surface)
     // Other mods draw here too (usage-line, snoozing-pet): keep their rows beneath ours.
     const others = await next(e)
@@ -661,9 +673,10 @@ export const register: Register = on => {
     if ((await read($, isHidden)) || e.props.isErrored) return next(e)
     const s = await read($, scene)
     const { Box, Text, face, vector, svg } = kit($.ui.resolve(e), e.surface)
+    const pose = wizardPoseFor(String(e.props.text ?? ''), !!vector)
     return (
       <Box flexDirection="row" gap={1} alignItems="flex-end">
-        {wizardFor(String(e.props.text ?? '')) ? <Box>{vector ? svg(paintWizardSvg(s, 2), 'The wizard critter') : rowsOf(Text, paintWizard(s), 'c')}</Box> : null}
+        {pose ? <Box>{vector ? svg(paintWizardSvg(s, 2, pose === 'plain' ? undefined : pose), pose === 'asleep' ? 'The wizard critter, asleep' : pose === 'tipped' ? 'The wizard critter, tipping his hat' : 'The wizard critter') : rowsOf(Text, paintWizard(s, pose === 'plain' ? undefined : pose), 'c')}</Box> : null}
         <Text>{e.props.text}</Text>
       </Box>
     )
@@ -688,6 +701,13 @@ export const register: Register = on => {
     greeted ??= e.requestId
     if (greeted !== e.requestId) return base
     const { Box, Text, face, vector, svg } = kit($.ui.resolve(e), e.surface)
+    let welcome: string | undefined
+    try {
+      welcome = welcomeLine(await $.store.get('welcomed'), await read($, names))
+      if (welcome) await $.store.set('welcomed', true) // said once, and never again
+    } catch {
+      // a welcome that cannot be remembered is shown rather than lost
+    }
     return (
       <Box flexDirection="column">
         {base}
@@ -695,6 +715,7 @@ export const register: Register = on => {
           {face('ok')}
           <Text dimColor>{`critter-buddy: ${named(quip('greet', await read($, scene), hourOf(Date.now()), Date.now(), weekdayOf(Date.now()), holidayOf(Date.now())?.line), await read($, names))}`}</Text>
         </Box>
+        {welcome ? <Text dimColor>{`critter-buddy: ${welcome}`}</Text> : null}
       </Box>
     )
   }).catch(($, e, next) => next(e))

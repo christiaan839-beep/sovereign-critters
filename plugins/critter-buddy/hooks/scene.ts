@@ -54,7 +54,7 @@ export const isAsleep = (s: Scene) => s.look === 'idle' && s.idle > 100
 // three tones of clay lit from the upper left, eyes with a glint, and frames for breathing, blinking, walking, joy and casting.
 // By day it is the wizard of Christiaan's form (a dark purple hat with a gold star, a staff whose orb throws lightning); by night
 // it is the antennae critter whose hat carries a violet bolt. The hat builds up from the brim over `morph` 0 to 1.
-export type CritterPose = { aura: number; kit: 'wizard' | 'sherlock' | 'chef' | 'none'; walk: -1 | 0 | 1; arms: 0 | 1; cast: boolean; blink: boolean; happy: boolean; breath: boolean; morph: number; night: boolean; bolt: 0 | 1 | 2 }
+export type CritterPose = { aura: number; kit: 'wizard' | 'sherlock' | 'chef' | 'none'; walk: -1 | 0 | 1; arms: 0 | 1; cast: boolean; blink: boolean; happy: boolean; breath: boolean; morph: number; night: boolean; bolt: 0 | 1 | 2; tip?: boolean }
 const ghash = (x: number, y: number) => { const v = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return v - Math.floor(v) }
 // the bolt: a zigzag three cells by six, and its mirror; the two cells of its jag are the hot core
 const BOLT: [number, number][][] = [
@@ -104,6 +104,7 @@ const critterGrid = (o: CritterPose): Px => {
   A(12, b - 13, '9', 0.7, 1); A(13, b - 13, '9', 0.72, 1); A(13, b - 12, 'a', 0.74, 1); A(14, b - 12, 'a', 0.76, 1); A(15, b - 12, 'a', 0.78, 1); A(15, b - 11, band, 0.8, 1)
   if (!o.night) for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]] as const) A(9 + dx, b - 7 + dy, dx || dy ? 'e' : 'm', 0.62, 1) // the gold star
   else for (const [c, r] of BOLT[0]!) A(9 + c, b - 10 + r, bolted(c, r) ? 't' : 'j', 0.62, 1) // a violet bolt on the night hat
+  const hatEnd = acc.length // the cells so far are the hat; the staff and the rest come after
   const top = o.cast ? b - 9 : b - 6; const ax = o.cast ? 20 : 21
   for (let y = top + 3; y < 14; y++) A(ax, y, y % 3 === 0 ? 'g' : 'h', 0.3 + (14 - y) / 26, 1) // the staff draws itself up from the hand
   for (let x = ax - 1; x <= ax + 1; x++) A(x, top + 2, 'i', 0.86, 1)
@@ -144,7 +145,9 @@ const critterGrid = (o: CritterPose): Px => {
     for (const [x, y] of o.walk === 0 ? [[25, b], [28, b + 1], [26, b - 1]] as const : [[26, b + 1], [24, b - 1], [28, b]] as const) put(x, y, 'G') // the sparks
   }
   const m = o.morph; const front = 0.14; const sparks: [number, number][] = []
-  for (const [c, r, k, rv, form] of acc) {
+  for (const [i, [c0, r0, k, rv, form]] of acc.entries()) {
+    const lift = o.tip && i < hatEnd // a tipped hat comes off the head, up and a little forward
+    const c = lift ? c0 + 2 : c0; const r = lift ? r0 - 2 : r0
     const shown = form === 1 ? m - rv : rv - m // above 0: this cell belongs to the current form
     if (shown > 0) put(c, r, k)
     if (m > 0 && m < 1 && Math.abs(m - rv) < front) sparks.push([c, r]) // the burning edge of the change
@@ -167,20 +170,22 @@ const critterGrid = (o: CritterPose): Px => {
 const critterCache = new Map<string, Px>()
 const critterPx = (s: Scene, step: 0 | 1): Px => {
   const wiz = s.look === 'wizard'
+  const pose = s.pose // a reply's wizard: asleep, or with his hat tipped
   const o: CritterPose = {
     aura: wiz ? Math.floor(s.tick / 2) % 8 : 0,
     kit: wiz ? 'wizard' : s.look === 'reader' ? 'sherlock' : s.look === 'chef' ? 'chef' : 'none',
-    walk: s.look !== 'coder' && s.look !== 'chef' && !isAsleep(s) ? step : -1,
+    walk: s.look !== 'coder' && s.look !== 'chef' && !isAsleep(s) && !pose ? step : -1,
     arms: s.jt > 0 ? 1 : 0,
-    cast: (wiz && s.wt >= 8) || s.look === 'reader',
-    blink: isAsleep(s) || s.tick % 14 === 0,
-    happy: s.look === 'done',
+    cast: !pose && ((wiz && s.wt >= 8) || s.look === 'reader'),
+    blink: isAsleep(s) || pose === 'asleep' || (!pose && s.tick % 14 === 0),
+    happy: s.look === 'done' || pose === 'tipped',
     breath: s.tick % 16 < 8,
     morph: wiz ? Math.round(Math.min(1, s.wt / 8) * 16) / 16 : 0,
     night: s.form === 'bolt' ? true : s.form === 'gold' ? false : s.night,
-    bolt: wiz && s.wt >= 8 ? ((Math.floor(s.tick / 2) % 2) + 1) as 1 | 2 : 0,
+    tip: pose === 'tipped',
+    bolt: wiz && !pose && s.wt >= 8 ? ((Math.floor(s.tick / 2) % 2) + 1) as 1 | 2 : 0,
   }
-  const key = `${o.kit}${o.aura}${o.walk}${o.arms}${+o.cast}${+o.blink}${+o.happy}${+o.breath}|${o.morph}|${+o.night}${o.bolt}`
+  const key = `${o.kit}${o.aura}${o.walk}${o.arms}${+o.cast}${+o.blink}${+o.happy}${+o.breath}|${o.morph}|${+o.night}${o.bolt}${+!!o.tip}`
   const hit = critterCache.get(key)
   if (hit) return hit
   const made = critterGrid(o)
@@ -584,17 +589,20 @@ export const paint = (s: Scene): Run[][] => {
 
 /** The wizard alone, built and holding his staff, to stand beside the thinking orb: no cat, no cauldron. */
 export const WIZARD_COLS = 32
-const wizardCanvas = (s: Scene): string[][] =>
+export type WizardPose = 'asleep' | 'tipped'
+export const wizardCanvas = (s: Scene, pose?: WizardPose): string[][] =>
   canvasOf(
     {
       // he paces a cell to and fro beside the orb while Claude works, legs stepping, instead of standing like a statue
-      ...s, look: 'wizard', wt: 8, cols: WIZARD_COLS, cx: 1 + (Math.floor(s.tick / 5) % 2), cdir: 1, kx: -40,
+      ...s, look: 'wizard', wt: 8, cols: WIZARD_COLS, cx: pose ? 1 : 1 + (Math.floor(s.tick / 5) % 2), cdir: 1, kx: -40, pose,
       // the sparks of a cast, a finished turn or a pet drift round him; the cup and the treat stay on the bar
-      fx: s.fx.filter(f => f.k === 'spark' || f.k === 'heart' || f.k === 'bubble').map(f => ({ ...f, x: f.x - s.cx + 1 })),
+      fx: pose === 'asleep'
+        ? [{ k: 'z' as const, x: 25, y: 13, vx: 0, vy: 0, life: 9 }, { k: 'z' as const, x: 28, y: 18, vx: 0, vy: 0, life: 9 }] // a sleeper's z, drifting up beside the hat
+        : pose ? [] : s.fx.filter(f => f.k === 'spark' || f.k === 'heart' || f.k === 'bubble').map(f => ({ ...f, x: f.x - s.cx + 1 })),
     },
     WIZARD_COLS,
   )
-export const paintWizard = (s: Scene): Run[][] => runsOf(wizardCanvas(s), colourOf(s))
+export const paintWizard = (s: Scene, pose?: WizardPose): Run[][] => runsOf(wizardCanvas(s, pose), colourOf(s))
 
 // ---- vector art -------------------------------------------------------------
 // The desktop draws text art as a smear (its cells are not two pixels tall), but it draws SVG crisply. The same canvas
@@ -624,7 +632,7 @@ export const svgOf = (canvas: string[][], colour: (k: string) => string, px: num
   return { source, width, height }
 }
 export const paintSvg = (s: Scene, px = 5): Svgd => svgOf(canvasOf(s, Math.max(24, s.cols)), colourOf(s), px)
-export const paintWizardSvg = (s: Scene, px = 5): Svgd => svgOf(wizardCanvas(s), colourOf(s), px)
+export const paintWizardSvg = (s: Scene, px = 5, pose?: WizardPose): Svgd => svgOf(wizardCanvas(s, pose), colourOf(s), px)
 export const paintBigSvg = (s: Scene, px = 8): Svgd => svgOf(portraitCanvas(s), colourOf(s), px)
 /** The five-cell face as nine by five pixels: eyes by what the call did. */
 export const faceSvg = (kind: FaceKind, tick: number, px = 4): Svgd => {
@@ -1067,10 +1075,22 @@ export const foldDiary = (diary: string[], lines: string[]): string[] => {
 }
 
 /** Whether the wizard sits beside a /critter reply: a moment gets him; hiding, a usage line and a multi-line report do not. */
-export const wizardFor = (raw: string): boolean => {
+export const wizardFor = (raw: string, vector = true): boolean => {
+  if (!vector) return false // the terminal draws him in text rows, fifteen tall: too big beside a line of words
   const text = raw.replace(/^critter-buddy: /, '') // the engine prints a reply under its plugin's name
   return !/^The pair are hidden\./.test(text) && !/^Usage:/.test(text) && !text.includes('\n')
 }
+
+/** Which face the wizard wears beside a /critter reply: asleep for a nap, a tipped hat for a spell, plain for a pet or a treat, none where he does not sit. */
+export const wizardPoseFor = (raw: string, vector = true): 'asleep' | 'tipped' | 'plain' | undefined => {
+  if (!wizardFor(raw, vector)) return undefined
+  const text = raw.replace(/^critter-buddy: /, '')
+  return / are asleep\.$/.test(text) ? 'asleep' : / cast something\.$/.test(text) ? 'tipped' : 'plain'
+}
+
+/** The one dim line a first-ever session carries under the greeting; anything in the store means it has been said. */
+export const welcomeLine = (said: unknown, names: { cat: string; pip: string }): string | undefined =>
+  said ? undefined : `${names.cat} and ${names.pip} are here. /critter for the controls`
 
 // ---- habits: what the cat learns of you across sessions, kept as counts and hashes, never as paths or names ----
 export type Habits = { sessions: number; hours: number[]; seen: string[] }
@@ -1139,3 +1159,6 @@ export const statusParts = (label: string, mood: string, usage: string, cols: nu
 /** Every sound the mod owns: a file of the same name in sounds/. paw, paper and chime are built by tools/foley.py from physical models. */
 export const SOUND_NAMES = ['cast', 'purr', 'paw', 'paper', 'chime'] as const
 export type SoundName = (typeof SOUND_NAMES)[number]
+
+/** The whole window's width in cells: the wider of the body and the viewport (an open pane narrows the body, not the window); 80 when neither is known. */
+export const windowWidth = (body?: number, viewport?: number): number => Math.max(body ?? 0, viewport ?? 0) || 80
