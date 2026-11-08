@@ -11,8 +11,6 @@ const off_ = (id: string, version = '1.0.0'): Installed => ({ id: `${id}@${MARKE
 test('the control room knows the eight mods, critter-buddy first, each with a line of its own and the commands that open it', () => {
   expect(MODS.map(m => m.id)).toEqual(['critter-buddy', 'session-diary', 'build-bell', 'guard', 'stunt', 'crab', 'forge', 'everywhere'])
   expect(new Set(MODS.map(m => m.line)).size).toBe(8) // no two alike
-  expect(new Set(MODS.map(m => m.how)).size).toBe(8)
-  for (const m of MODS) { expect(m.how.length).toBeGreaterThan(10); expect(m.how.length).toBeLessThanOrEqual(52) }
   for (const m of MODS) {
     expect(m.line.length).toBeGreaterThan(20)
     expect(m.line.length).toBeLessThanOrEqual(90)
@@ -109,7 +107,7 @@ test('the plain list says each mod\'s state in words and symbols, so it reads wi
 const PROCESS_OK = { exitCode: 0, stderr: '', isStdoutTruncated: false, isStderrTruncated: false }
 const LIST = JSON.stringify([...MODS.map(m => ({ id: `${m.id}@${MARKET}`, version: '1.0.0', enabled: m.id !== 'forge' })), { id: `mods@${MARKET}`, version: '0.1.0', enabled: true }])
 
-const setup = ($: any, on: any, listOut: string = LIST, openHandler: (...a: any[]) => unknown = () => ({ value: { isPlaced: true } })) => {
+const setup = ($: any, on: any, listOut: string = LIST, openHandler: (...a: any[]) => unknown = () => ({ value: { isPlaced: true } }), custom?: (argv: string[]) => unknown) => {
   const ran: string[][] = []
   const commands: { command: string; args: string }[] = []
   on('command.register', () => ({ value: { command: 'mods' } }))
@@ -117,6 +115,8 @@ const setup = ($: any, on: any, listOut: string = LIST, openHandler: (...a: any[
   let doc = JSON.parse(listOut) as { id: string; enabled: boolean }[] // the plugin manager remembers what it was told
   on('process.run', (_: unknown, e: { argv: string[] }) => {
     ran.push([...e.argv])
+    const c = custom?.(e.argv)
+    if (c) return c
     const verb = e.argv[2]
     if (verb === 'disable' || verb === 'enable') doc = doc.map(x => (x.id === e.argv[3] ? { ...x, enabled: verb === 'enable' } : x))
     return { value: { ...PROCESS_OK, stdout: e.argv.includes('list') ? JSON.stringify(doc) : '{"ok":true}' } }
@@ -212,20 +212,28 @@ test('/mods install adds a missing mod from the marketplace, one mod or all of t
   expect(await run($, 'install crab')).toMatch(/crab is already installed/i)
 })
 
-test('the pane lists every mod with its state and a switch, the open buttons, and a close', async ($, on) => {
+test('the pane has a header with the count, refresh and close, and every mod: a titled text card in the terminal and a picture on the desktop, each with its switch', async ($, on) => {
   setup($, on)
   await begin($)
   for (const surface of ['terminal', 'desktop'] as const) {
-    const ui = await $.ui.mount({ plugin: 'mods', component: 'Pane', requestId: 'mods', surface, props: { bodyColumns: 56 } } as never)
-    expect(await ui.find({ type: 'Text', text: /7 of 8 on/ })).toBeDefined()
+    const ui = await $.ui.mount({ plugin: 'mods', component: 'Pane', requestId: 'mods', surface, props: { bodyColumns: 80 } } as never)
+    expect(await ui.find({ type: 'Text', text: 'Your mods · 7 of 8 on' })).toBeDefined()
+    expect(((await ui.find({ key: 'refresh' })) as { props?: { hotkey?: string } } | undefined)?.props?.hotkey).toBe('r')
+    expect(((await ui.find({ key: 'close' })) as { props?: { hotkey?: string } } | undefined)?.props?.hotkey).toBe('q')
     for (const m of MODS) {
-      expect(await ui.find({ type: 'Text', text: new RegExp(m.id) })).toBeDefined()
       expect(await ui.find({ key: `switch-${m.id}` })).toBeDefined()
+      expect(await ui.find({ key: `mod-${m.id}` })).toBeDefined()
+    }
+    if (surface === 'desktop') {
+      expect((await ui.findAll({ type: 'Svg' })).length).toBe(8) // one picture a card
+      expect(await ui.find({ type: 'Text', text: /WHAT'S NEW/ })).toBeUndefined() // the words are in the picture
+    } else {
+      expect(await ui.find({ type: 'Svg' })).toBeUndefined() // no picture in a plain terminal
+      expect(await ui.find({ type: 'Text', text: 'Critter Buddy v1.0.0' })).toBeDefined()
     }
     expect(await ui.find({ key: 'open-critter-buddy-corner' })).toBeDefined()
     expect(await ui.find({ key: 'open-session-diary-postcard' })).toBeDefined()
-    expect(await ui.find({ key: 'open-guard-0' })).toBeUndefined() // nothing to open
-    expect(await ui.find({ key: 'close' })).toBeDefined()
+    expect(await ui.find({ key: 'open-guard-0' })).toBeUndefined()
     await ui.unmount()
   }
 })
@@ -360,14 +368,79 @@ test('the footer says nothing of mods where the plugin manager could not be read
   await again.unmount()
 })
 
-test('each mod is a card with a border, its one-line what, and how to use it; a card of a mod that is on is drawn in the pair\'s clay and one that is off is dim', async ($, on) => {
+test('a terminal card has a border in the pair\'s clay when on and dim when off, a stamp in words, the plain line, the steps and the release notes', async ($, on) => {
   setup($, on)
   await begin($)
-  const ui = await $.ui.mount({ plugin: 'mods', component: 'Pane', requestId: 'mods', surface: 'desktop', props: { bodyColumns: 56 } } as never)
+  const ui = await $.ui.mount({ plugin: 'mods', component: 'Pane', requestId: 'mods', surface: 'terminal', props: { bodyColumns: 80 } } as never)
   const card = async (id: string) => (await ui.find({ key: `mod-${id}` })) as { props?: { borderStyle?: string; borderColor?: string } } | undefined
   expect((await card('crab'))?.props?.borderStyle).toBe('round')
-  expect((await card('crab'))?.props?.borderColor).toBe('#d97757') // on
-  expect((await card('forge'))?.props?.borderColor).toBe('#5d5a55') // off in the stub list
-  for (const m of MODS) expect(await ui.find({ type: 'Text', text: m.how })).toBeDefined()
+  expect((await card('crab'))?.props?.borderColor).toBe('#d97757')
+  expect((await card('forge'))?.props?.borderColor).toBe('#5d5a55')
+  expect(await ui.find({ type: 'Text', text: '[ON DUTY]' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: '[ASLEEP]' })).toBeDefined() // forge is off in the stub list
+  expect(await ui.find({ type: 'Text', text: MODS[0]!.line })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: '1. Switch it on here, then start a new session.' })).toBeDefined()
+  expect((await ui.findAll({ type: 'Text', text: 'HOW TO USE' })).length).toBe(8)
+  expect((await ui.findAll({ type: 'Text', text: 'No release notes found.' })).length).toBe(8) // the stub has no changelogs
+  await ui.unmount()
+})
+
+// ---- the release notes on a card ---------------------------------------------
+
+const CACHE = '/srv/u/.claude/plugins/cache/sovereign-critters'
+const withPaths = (extra: Record<string, string> = {}) => JSON.stringify([
+  ...MODS.map(m => ({ id: `${m.id}@${MARKET}`, version: '1.0.0', enabled: true, installPath: extra[m.id] ?? `${CACHE}/${m.id}/1.0.0` })),
+])
+
+test('each card shows the top entry of that mod\'s own CHANGELOG, read from its install folder with head and no shell', async ($, on) => {
+  const { ran } = setup($, on, withPaths(), undefined, argv => argv[0] === 'head' ? { value: { ...PROCESS_OK, stdout: `# Changelog\n\n## 2.5.0\n\n- **${argv[3]!.split('/').at(-3)} got better.** A second sentence.\n- Another change.\n- Left out.\n\n## 2.4.0\n\n- Old.\n` } } : undefined)
+  await begin($)
+  await run($, '') // opening the control room reads the notes
+  const heads = ran.filter(a => a[0] === 'head')
+  expect(heads).toHaveLength(8)
+  expect(heads[0]).toEqual(['head', '-c', '4000', `${CACHE}/critter-buddy/1.0.0/CHANGELOG.md`])
+  const term = await $.ui.mount({ plugin: 'mods', component: 'Pane', requestId: 'mods', surface: 'terminal', props: { bodyColumns: 80 } } as never)
+  expect(await term.find({ type: 'Text', text: 'v2.5.0' })).toBeDefined()
+  expect(await term.find({ type: 'Text', text: '- crab got better. A second sentence.' })).toBeDefined()
+  expect(await term.find({ type: 'Text', text: '- Left out.' })).toBeUndefined()
+  await term.unmount()
+  const desk = await $.ui.mount({ plugin: 'mods', component: 'Pane', requestId: 'mods', surface: 'desktop', props: { bodyColumns: 80 } } as never)
+  const svgs = (await desk.findAll({ type: 'Svg' })) as { props?: { source?: string } }[]
+  expect(svgs[0]!.props!.source).toContain('critter-buddy got better. A second sentence.')
+  expect(svgs[0]!.props!.source).toContain('v2.5.0')
+  await desk.unmount()
+})
+
+test('a changelog that cannot be read, and a path the plugin manager gave that is not a cache folder, give "No release notes found" and never a command', async ($, on) => {
+  const { ran } = setup($, on, withPaths({ forge: '/etc', crab: `${CACHE}/crab/1.0.0/../../../..` }), undefined, argv => argv[0] === 'head' ? { value: { exitCode: 1, stdout: '', stderr: 'no such file', isStdoutTruncated: false, isStderrTruncated: false } } : undefined)
+  await begin($)
+  await run($, '')
+  expect(ran.filter(a => a[0] === 'head')).toHaveLength(6) // forge and crab were never read: their paths are not trusted
+  expect(ran.some(a => a.join(' ').includes('/etc') || a.join(' ').includes('..'))).toBe(false)
+  const term = await $.ui.mount({ plugin: 'mods', component: 'Pane', requestId: 'mods', surface: 'terminal', props: { bodyColumns: 80 } } as never)
+  expect((await term.findAll({ type: 'Text', text: 'No release notes found.' })).length).toBe(8)
+  await term.unmount()
+})
+
+test('refresh reads the plugin manager and the notes again', async ($, on) => {
+  const { ran } = setup($, on, withPaths())
+  await begin($)
+  const ui = await $.ui.mount({ plugin: 'mods', component: 'Pane', requestId: 'mods', surface: 'terminal', props: { bodyColumns: 80 } } as never)
+  const before = ran.filter(a => a.includes('list')).length
+  await ui.press({ key: 'refresh' })
+  expect(ran.filter(a => a.includes('list')).length).toBe(before + 1)
+  expect(ran.filter(a => a[0] === 'head').length).toBeGreaterThanOrEqual(8)
+  await ui.unmount()
+})
+
+test('on the desktop an on card, an asleep card and a not-installed card are three different pictures, and the stamp words are in them', async ($, on) => {
+  setup($, on, JSON.stringify([{ id: `crab@${MARKET}`, version: '0.2.0', enabled: true }, { id: `forge@${MARKET}`, version: '0.1.0', enabled: false }]))
+  await begin($)
+  const ui = await $.ui.mount({ plugin: 'mods', component: 'Pane', requestId: 'mods', surface: 'desktop', props: { bodyColumns: 80 } } as never)
+  const src = async (id: string) => String(((await ui.find({ key: `mod-${id}` })) as unknown as { children?: unknown }) ? JSON.stringify(await ui.drawn()) : '')
+  const all = await src('crab')
+  expect(all).toContain('ON DUTY')
+  expect(all).toContain('ASLEEP')
+  expect(all).toContain('NOT HERE')
   await ui.unmount()
 })

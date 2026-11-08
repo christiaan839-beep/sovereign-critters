@@ -1,7 +1,8 @@
 import type { Register } from 'claude-code'
 
-import { DIALS, HUB, MODS, SYMBOL, actionFor, cellsOf, fit, installArgv, listLine, parseList, restartNeeded, stateOf, statusWord, toggleArgv } from './catalog'
-import type { Installed, Mod } from './catalog'
+import { cardSvg } from './card-svg'
+import { DEFAULT_STEPS, DIALS, HUB, MODS, STEPS, SYMBOL, actionFor, cellsOf, fit, installArgv, listLine, parseList, parseTopEntry, restartNeeded, stateOf, statusWord, titleOf, toggleArgv, wrap } from './catalog'
+import type { Installed, Mod, Notes } from './catalog'
 
 const PANE = 'mods'
 const CANNOT = 'The control room cannot reach the plugin manager from this session: run `claude plugin` in a terminal instead.'
@@ -9,7 +10,7 @@ const USAGE = 'Usage: /mods [list | on <mod> | off <mod> | install <mod|all> | o
 
 // What the plugin manager last said, and which mods this session loaded. Module variables start over on a reload;
 // session.start reads them again, and the plugin manager is the truth whenever it is asked.
-const S: { list: Installed[] | undefined; loaded: Set<string> } = { list: undefined, loaded: new Set() }
+const S: { list: Installed[] | undefined; loaded: Set<string>; notes: Record<string, Notes | undefined> } = { list: undefined, loaded: new Set(), notes: {} }
 let last = '' // the last thing the control room did, shown at the foot of the pane
 
 const redraw = ($: any) => {
@@ -27,8 +28,20 @@ const readList = async ($: any): Promise<Installed[] | undefined> => {
     return undefined // no plugin manager here (a cloud session, a sandbox): the control room says so and carries on
   }
 }
+/** The newest entry of a mod's own CHANGELOG, read from its install folder with `head` (no shell), or nothing. */
+const readNotes = async ($: any, path: string): Promise<Notes | undefined> => {
+  try {
+    const r = await $.process.run(['head', '-c', '4000', `${path}/CHANGELOG.md`], { timeoutMs: 5000 })
+    return r.exitCode === 0 ? parseTopEntry(String(r.stdout)) : undefined
+  } catch {
+    return undefined
+  }
+}
 const refresh = async ($: any) => {
   S.list = await readList($)
+  const found = await Promise.all(MODS.map(async m => [m.id, S.list?.find(x => x.id === `${m.id}@sovereign-critters`)?.installPath] as const))
+  const notes = await Promise.all(found.map(async ([id, path]) => [id, path ? await readNotes($, path) : undefined] as const))
+  S.notes = Object.fromEntries(notes)
   redraw($)
 }
 const stateNow = (mod: Mod) => stateOf(mod, S.list ?? [])
@@ -138,7 +151,7 @@ export const register: Register = on => {
       const sub = words[0] ?? ''
       if (sub === '') {
         await refresh($)
-        const opened = await $.ui.open({ id: PANE, title: 'Mods', focus: true, closeOnEscape: true, columns: 56, rows: 60 })
+        const opened = await $.ui.open({ id: PANE, title: 'Mods', focus: true, closeOnEscape: true, columns: 80, rows: 80 })
         return say(opened?.isPlaced === false ? `The control room could not open a pane here, so here is the list.\n${lines().join('\n')}` : `The control room is open: ${onCount()} of ${MODS.length} mods on.`)
       }
       if (sub === 'list' && words.length === 1) {
@@ -184,17 +197,21 @@ export const register: Register = on => {
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const { Box, Text, Button } = $.ui.resolve(e)
+    const { Box, Text, Button, Svg } = $.ui.resolve(e)
     const cols = Math.max(24, Number(e.props.bodyColumns) || 56)
     const act = (f: () => Promise<string>) => async () => {
       last = await f()
       redraw($)
     }
+    const vector = e.surface !== 'terminal' && Svg !== undefined
     return (
       <Box flexDirection="column">
         <Box key="head" flexDirection="row" justifyContent="space-between">
-          <Text bold>{S.list ? `Mods · ${onCount()} of ${MODS.length} on` : 'Mods'}</Text>
-          <Button key="close" label="close" hotkey="q" onPress={() => $.ui.close({ id: PANE })} />
+          <Text bold>{S.list ? `Your mods · ${onCount()} of ${MODS.length} on` : 'Your mods'}</Text>
+          <Box flexDirection="row" columnGap={1}>
+            <Button key="refresh" label="refresh" hotkey="r" onPress={act(async () => { await refresh($); return 'Refreshed.' })} />
+            <Button key="close" label="close" hotkey="q" onPress={() => $.ui.close({ id: PANE })} />
+          </Box>
         </Box>
         {S.list ? null : <Text color="#d4a548">{fit(CANNOT, cols)}</Text>}
         <Box key="gap-head"><Text> </Text></Box>
@@ -202,23 +219,43 @@ export const register: Register = on => {
           const s = stateNow(m)
           const need = S.list ? restartNeeded(s.state, S.loaded.has(m.id)) : false
           const toggle = s.state === 'missing' ? 'install' : s.state === 'on' ? '━● on' : '●━ off'
+          const steps = STEPS[m.id] ?? DEFAULT_STEPS
+          const notes = S.notes[m.id]
+          const controls = (
+            <Box key={`controls-${m.id}`} flexDirection="row" columnGap={1}>
+              {S.list ? <Button key={`switch-${m.id}`} label={toggle} onPress={act(() => (s.state === 'missing' ? installMod($, m) : setMod($, m, s.state === 'on' ? 'off' : 'on')))} /> : null}
+              {m.opens.length > 0 && s.state === 'on' ? <Text dimColor>open</Text> : null}
+              {m.opens.length > 0 && s.state === 'on' ? m.opens.map(o => <Button key={`open-${m.id}-${o.label}`} label={o.label} onPress={act(() => openMod($, m, o.label, 'run'))} />) : null}
+            </Box>
+          )
+          if (vector) {
+            // the card is one picture; the buttons that act on it sit directly beneath
+            const c = cardSvg({ id: m.id, title: titleOf(m.id), version: s.version, state: s.state, line: m.line, steps, notes, restart: need })
+            return (
+              <Box key={`mod-${m.id}`} flexDirection="column">
+                <Svg source={c.source} width={c.width} height={c.height} alt={c.alt} />
+                {controls}
+                <Box key={`gap-${m.id}`}><Text> </Text></Box>
+              </Box>
+            )
+          }
           const inner = Math.max(12, cols - 4) // the card's border and padding take four cells
-          const title = fit(`${m.id} ${s.version}`.trim(), Math.max(8, inner - 12))
+          const stamp = s.state === 'on' ? 'ON DUTY' : s.state === 'off' ? 'ASLEEP' : 'NOT HERE'
+          const title = fit(`${titleOf(m.id)} ${s.version ? `v${s.version}` : ''}`.trim(), Math.max(8, inner - 12))
           return (
             <Box key={`mod-${m.id}`} flexDirection="column" borderStyle="round" borderColor={s.state === 'on' ? '#d97757' : '#5d5a55'} paddingX={1}>
               <Box flexDirection="row" justifyContent="space-between">
                 <Text bold={s.state === 'on'} dimColor={s.state !== 'on'}>{`${SYMBOL[s.state]} ${title}`}</Text>
-                {S.list ? <Button key={`switch-${m.id}`} label={toggle} onPress={act(() => (s.state === 'missing' ? installMod($, m) : setMod($, m, s.state === 'on' ? 'off' : 'on')))} /> : null}
+                <Text bold>{`[${stamp}]`}</Text>
               </Box>
-              <Text dimColor>{fit(m.line, inner)}</Text>
-              <Text>{fit(m.how, inner)}</Text>
+              {wrap(m.line, inner).map((l, i) => <Text key={`l${i}`} dimColor>{l}</Text>)}
+              <Text dimColor>HOW TO USE</Text>
+              {steps.flatMap((st, i) => wrap(st, inner - 3).map((l, j) => <Text key={`s${i}-${j}`}>{`${j === 0 ? `${i + 1}. ` : '   '}${l}`}</Text>))}
+              <Text dimColor>WHAT'S NEW</Text>
+              {notes ? <Text>{fit(`v${notes.heading}`, inner)}</Text> : <Text dimColor>No release notes found.</Text>}
+              {(notes?.bullets ?? []).map((b, i) => <Text key={`n${i}`}>{fit(`- ${b}`, inner)}</Text>)}
               {need ? <Text color="#d4a548">{fit(statusWord(s.state, true), inner)}</Text> : null}
-              {m.opens.length > 0 && s.state === 'on' ? (
-                <Box flexDirection="row" columnGap={1}>
-                  <Text dimColor>open</Text>
-                  {m.opens.map(o => <Button key={`open-${m.id}-${o.label}`} label={o.label} onPress={act(() => openMod($, m, o.label, 'run'))} />)}
-                </Box>
-              ) : null}
+              {controls}
             </Box>
           )
         })}

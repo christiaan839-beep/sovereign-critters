@@ -4,22 +4,23 @@ export const MARKET = 'sovereign-critters'
 export const HUB = 'mods'
 
 export type Open = { label: string; command: string; args: string }
-export type Mod = { id: string; line: string; how: string; names: string[]; opens: Open[] }
-export type Installed = { id: string; version: string; enabled: boolean }
+export type Mod = { id: string; line: string; names: string[]; opens: Open[] }
+export type Installed = { id: string; version: string; enabled: boolean; installPath?: string }
 export type State = 'on' | 'off' | 'missing'
 
+// Each `line` below is a plain one-liner in my words, standing in until the founder's own: replace them here and nowhere else.
 /** The eight mods, critter-buddy first. What each opens is a slash command of its own plugin, never a command line. */
 export const MODS: Mod[] = [
-  { id: 'critter-buddy', how: "Type /critter, or press the pair's buttons.", names: ['critter', 'buddy'], line: 'Pip the wizard and Biscuit the cat above your prompt, and a sky that keeps the hour.',
+  { id: 'critter-buddy', names: ['critter', 'buddy'], line: 'A wizard and a cat live above your prompt and react to what Claude does.',
     opens: [{ label: 'corner', command: 'critter', args: 'corner' }, { label: 'stage', command: 'critter', args: 'stage' }] },
-  { id: 'session-diary', how: "Work as usual, then /diary or /diary week.", names: ['diary'], line: 'Every tool call, timed; the week at a glance; the session on a postcard.',
+  { id: 'session-diary', names: ['diary'], line: 'Keeps a diary of everything Claude did, so you can look back at your day.',
     opens: [{ label: 'pane', command: 'diary', args: '' }, { label: 'week', command: 'diary', args: 'week' }, { label: 'postcard', command: 'diary', args: 'postcard' }] },
-  { id: 'build-bell', how: "Nothing to do: it rings when a long command ends.", names: ['bell'], line: 'A bell and a toast when a long command or turn finishes.', opens: [] },
-  { id: 'guard', how: "Nothing to do: it stops a force-push to main.", names: [], line: 'Stops a force-push or a push to main before Bash runs it.', opens: [] },
-  { id: 'stunt', how: "Type /stunt to open it.", names: [], line: 'The critter painted in a pane, a card for each tool call.', opens: [{ label: 'pane', command: 'stunt', args: '' }] },
-  { id: 'crab', how: "Type /crab hold <note>; it waits for you.", names: [], line: 'Holds one note for this folder and has it for you when you come back.', opens: [{ label: 'note', command: 'crab', args: '' }] },
-  { id: 'forge', how: "Ask Claude to count a text exactly.", names: [], line: 'A tool that counts text exactly: characters, words, lines, bytes.', opens: [] },
-  { id: 'everywhere', how: "Type /everywhere to open it.", names: [], line: 'A pane of your three most-used tools, drawn by each app its own way.', opens: [{ label: 'pane', command: 'everywhere', args: '' }] },
+  { id: 'build-bell', names: ['bell'], line: 'Rings a bell when something long finishes, so you can look away.', opens: [] },
+  { id: 'guard', names: [], line: 'Stops Claude pushing code in a risky way before it happens.', opens: [] },
+  { id: 'stunt', names: [], line: 'Draws the critter big, with a little card for each thing Claude does.', opens: [{ label: 'pane', command: 'stunt', args: '' }] },
+  { id: 'crab', names: [], line: 'A small crab that remembers one note for each folder you work in.', opens: [{ label: 'note', command: 'crab', args: '' }] },
+  { id: 'forge', names: [], line: 'Lets Claude count words, letters and lines exactly instead of guessing.', opens: [] },
+  { id: 'everywhere', names: [], line: 'Shows your three most-used tools in a little window on the side.', opens: [{ label: 'pane', command: 'everywhere', args: '' }] },
 ]
 
 /** The look-and-feel dials of the lead mod: each option is one of its own slash commands, fixed here. */
@@ -39,6 +40,60 @@ export const actionFor = (word: string): Mod | undefined => {
   return w ? MODS.find(m => m.id === w || m.names.includes(w)) : undefined
 }
 
+/** The name on a card: the id with dashes turned to spaces, in title case. */
+export const titleOf = (id: string): string => id.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+
+/** What to do to start using each mod, two or three short steps. Replace any of them here; a mod with none gets the default two. */
+export const DEFAULT_STEPS = ['Switch it on here, then start a new session.', 'Type / in the chat box to see its commands.']
+export const STEPS: Record<string, string[]> = {
+  'critter-buddy': ['Switch it on here, then start a new session.', 'Type /critter to see what you can do.', 'Press pet, feed or the corner above the prompt.'],
+  'session-diary': ['Switch it on here, then start a new session.', 'Work as usual, then type /diary.', 'Type /diary week to see the whole week.'],
+  'build-bell': ['Switch it on here, then start a new session.', 'Run something slow and look away: it rings when done.'],
+  guard: ['Switch it on here, then start a new session.', 'Nothing else to do: it works in the background.'],
+  stunt: ['Switch it on here, then start a new session.', 'Type /stunt to open it.'],
+  crab: ['Switch it on here, then start a new session.', 'Type /crab hold and a note to leave one.', 'Come back to the folder later: the crab has it.'],
+  forge: ['Switch it on here, then start a new session.', 'Ask Claude to count a text exactly.'],
+  everywhere: ['Switch it on here, then start a new session.', 'Type /everywhere to open it.'],
+}
+
+/** What a mod's own CHANGELOG says at the top: its newest heading and that entry's first two bullets, cleaned and cut. Release notes, not file times. */
+export type Notes = { heading: string; bullets: string[] }
+export const parseTopEntry = (md: string): Notes | undefined => {
+  const rows = md.split('\n')
+  const i = rows.findIndex(r => /^## /.test(r))
+  if (i < 0) return undefined
+  const bullets: string[] = []
+  for (const r of rows.slice(i + 1)) {
+    if (/^## /.test(r)) break
+    const m = /^- (.*)$/.exec(r)
+    if (!m || bullets.length >= 2) continue
+    const clean = m[1]!.replace(/\*\*/g, '').replace(/`/g, '').replace(/\s+/g, ' ').trim()
+    bullets.push([...clean].length > 110 ? [...clean].slice(0, 109).join('') + '…' : clean)
+  }
+  return { heading: rows[i]!.slice(3).trim(), bullets }
+}
+
+/** An install path is trusted only as this marketplace's cache folder for that mod; it is then read with `head`, never a shell. */
+export const safeInstallPath = (p: unknown, id: string): string | undefined =>
+  typeof p === 'string' && !p.includes('..') && new RegExp(`^/[^\\0\\n\\r]*/plugins/cache/${MARKET}/${id}/[0-9][0-9A-Za-z.+-]*$`).test(p) ? p : undefined
+
+/** Text wrapped at `width` characters on spaces; a word longer than the line is broken. */
+export const wrap = (text: string, width: number): string[] => {
+  const out: string[] = []
+  let line = ''
+  for (let word of text.split(/\s+/).filter(Boolean)) {
+    while (word.length > width) {
+      if (line) { out.push(line); line = '' }
+      out.push(word.slice(0, width)); word = word.slice(width)
+    }
+    if (!line) line = word
+    else if (line.length + 1 + word.length <= width) line += ' ' + word
+    else { out.push(line); line = word }
+  }
+  out.push(line)
+  return out
+}
+
 /** `claude plugin list --json`, read with suspicion: this marketplace's entries only, a bad entry skipped, a bad document empty. */
 export const parseList = (stdout: string): Installed[] => {
   let doc: unknown
@@ -49,7 +104,8 @@ export const parseList = (stdout: string): Installed[] => {
     if (typeof x !== 'object' || x === null) continue
     const r = x as Record<string, unknown>
     if (typeof r.id !== 'string' || !r.id.endsWith(`@${MARKET}`) || typeof r.enabled !== 'boolean') continue
-    out.push({ id: r.id, version: typeof r.version === 'string' ? r.version : '?', enabled: r.enabled })
+    const path = safeInstallPath(r.installPath, r.id.slice(0, r.id.indexOf('@')))
+    out.push({ id: r.id, version: typeof r.version === 'string' ? r.version : '?', enabled: r.enabled, ...(path ? { installPath: path } : {}) })
   }
   return out
 }

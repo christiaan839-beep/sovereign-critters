@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0
+
+- **Index cards.** Each mod in `/mods` is now a card: its name in title case, a version chip, a plain one-line "what it is", "How to use" in two or three short steps, and "What's new", the newest entry of that mod's own CHANGELOG (release notes, not file times). On the desktop each card is one picture: cream paper, ruled lines, typewriter text and a stamp that reads ON DUTY, ASLEEP or NOT HERE, each with its own mark (a tick, a dash, three dots) and border, so the three never differ by colour alone. In a plain terminal the same words sit in a rounded box.
+- The header reads "Your mods · X of Y on", with **refresh** (re-reads the plugin manager and every changelog) and **close**.
+- The switching, the restart notes, the install buttons and the `mods N/N` footer chip are unchanged. The pane is wider (80 columns) to hold the cards.
+- The one-liners and the steps are in my words, in `hooks/catalog.ts` (`line` and `STEPS`), for the founder to replace.
+
 ## 0.3.0
 
 - Each mod is a card: a rounded border in the pair's clay when it is on and dim when it is off, its name and version, one line of what it is, one line of how to use it, a toggle that shows where it stands (`━● on`, `●━ off`; the state is always in a word too), and its open buttons. A change that waits for a restart says so on the card.
