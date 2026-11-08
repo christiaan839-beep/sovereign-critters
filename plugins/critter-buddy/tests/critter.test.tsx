@@ -1612,3 +1612,12 @@ test('the status is one row, whatever the glass says: the mood goes first, then 
   for (const c of [20, 30, 50, 80]) expect(len(statusParts('napping', 'sulking', usage, c))).toBeLessThanOrEqual(c)
   expect(len(statusParts('a label much too long for a narrow window', 'sulking', usage, 12))).toBeLessThanOrEqual(12)
 })
+
+test('the engine prints a reply under the plugin name, and the wizard rule reads through that name', () => {
+  expect(wizardFor('critter-buddy: The pair are hidden.')).toBe(false)
+  expect(wizardFor('critter-buddy: Usage: /critter sound on | off.')).toBe(false)
+  expect(wizardFor('critter-buddy: Reach: party. Feel: warm.\nSound is off.')).toBe(false)
+  expect(wizardFor('critter-buddy: The pair are back.')).toBe(true)
+  expect(wizardFor('critter-buddy: Biscuit allows it. Do not stop.')).toBe(true)
+  expect(wizardFor('another-mod: The pair are hidden.')).toBe(true) // only our own name is read through
+})

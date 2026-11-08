@@ -1067,7 +1067,10 @@ export const foldDiary = (diary: string[], lines: string[]): string[] => {
 }
 
 /** Whether the wizard sits beside a /critter reply: a moment gets him; hiding, a usage line and a multi-line report do not. */
-export const wizardFor = (text: string): boolean => !/^The pair are hidden\./.test(text) && !/^Usage:/.test(text) && !text.includes('\n')
+export const wizardFor = (raw: string): boolean => {
+  const text = raw.replace(/^critter-buddy: /, '') // the engine prints a reply under its plugin's name
+  return !/^The pair are hidden\./.test(text) && !/^Usage:/.test(text) && !text.includes('\n')
+}
 
 // ---- habits: what the cat learns of you across sessions, kept as counts and hashes, never as paths or names ----
 export type Habits = { sessions: number; hours: number[]; seen: string[] }

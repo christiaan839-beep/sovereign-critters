@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.2
+
+- The wizard rule now reads through the plugin name the engine prints before a reply ("critter-buddy: The pair are hidden."), which the real window showed and the 0.16.0 tests had not: with it, `hide`, a usage line and a report no longer get the wizard.
+
 ## 0.18.1
 
 - The band keeps its shape at any width, after a photo of the real window showed two faults: the glass line sat on top of the status and the buttons, and in a narrower window the five buttons wrapped to a second row and clipped the row beneath.
