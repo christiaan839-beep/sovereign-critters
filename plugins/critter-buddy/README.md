@@ -4,8 +4,19 @@ The Sovereign Matrix critter, a wizard version of it, and a tabby cat, living in
 
 ![The critter's day: reading, cooking a build, casting, done](demo.gif)
 
+## What it never does
+
+- It makes no network request and sends no telemetry. State (the scene, the diary, the streak, the habits, your settings) stays in the plugin's own store on this machine.
+- It learns your habits as counts and hashes: the hours you work, and a short hash of each folder, never a path or a name. At most 50 hashes are kept.
+- **One thing does cost tokens:** after each turn the cat may say a line through one small model call (`/critter talk`, on by default). The call carries only numbers (the seconds the turn took and the counts of tools, errors and commits), never a command, a path, a file or a prompt. `/critter talk off` stops it and spends nothing.
+- Sound and speech are off until you ask (`/critter sound on`, `/critter voice on`).
+- `biscuit-looks`, its one agent, can read and search but never edit, and it runs only when you ask it.
+
+## Install
+
 ```
-/plugin install critter-buddy --marketplace christiaan839-beep/sovereign-critters
+/plugin marketplace add christiaan839-beep/sovereign-critters
+/plugin install critter-buddy@sovereign-critters
 ```
 
 Plugins load in a new session.

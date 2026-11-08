@@ -14,10 +14,16 @@ Run it with `claude --plugin-dir .`, save the module, and watch the band: the lo
 
 The terminal and the desktop app.
 
+## What it never does
+
+- It makes no network request and sends no telemetry.
+- It reads nothing from your prompts: it only counts them. The count lives in the plugin's own `$.state` and nowhere else.
+
 ## Install
 
 ```
-/plugin install crab --marketplace christiaan839-beep/sovereign-critters
+/plugin marketplace add christiaan839-beep/sovereign-critters
+/plugin install crab@sovereign-critters
 ```
 
 Plugins load in a new session. To try it from this folder instead: `claude --plugin-dir .`

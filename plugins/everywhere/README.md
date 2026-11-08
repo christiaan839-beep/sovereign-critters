@@ -12,10 +12,16 @@
 
 Only the terminal and the desktop app draw a mod's panes. The VS Code chat panel and `claude -p` run its hooks and draw nothing, so there `/everywhere` answers with the tally in words.
 
+## What it never does
+
+- It records the name of each tool, never its input or output, and counts them in the plugin's own `$.state`.
+- It makes no network request and sends no telemetry.
+
 ## Install
 
 ```
-/plugin install everywhere --marketplace christiaan839-beep/sovereign-critters
+/plugin marketplace add christiaan839-beep/sovereign-critters
+/plugin install everywhere@sovereign-critters
 ```
 
 Plugins load in a new session. To try it from this folder instead: `claude --plugin-dir .`

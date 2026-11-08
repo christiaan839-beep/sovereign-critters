@@ -18,10 +18,16 @@ If the check cannot finish (git fails or times out, or the line cannot be read),
 
 It is **best effort**. A push made by a script or another program (`make`, an npm script, `gh`, an MCP tool), a command built while the line runs, and a git alias in a config file are outside it. It is no substitute for **branch protection on the server**.
 
+## What it never does
+
+- It makes no network request and sends no telemetry. It runs `git` locally to ask where a push would go, and nothing else.
+- It keeps no state.
+
 ## Install
 
 ```
-/plugin install guard --marketplace christiaan839-beep/sovereign-critters
+/plugin marketplace add christiaan839-beep/sovereign-critters
+/plugin install guard@sovereign-critters
 ```
 
 Plugins load in a new session. To try it from this folder instead: `claude --plugin-dir .`

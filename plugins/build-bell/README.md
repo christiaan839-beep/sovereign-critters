@@ -10,9 +10,20 @@ A soft bell and a toast when a long command finishes, so you can look away while
 - The bell is a service-desk strike, synthesised for this plugin (`sounds/bell.wav`): a hammer on brass with an inharmonic ring, and a lighter second tap. It plays with `afplay` on macOS and not at all where there is no player. Set `sound` to `false` for the toast alone.
 - It reads nothing from the command and sends nothing anywhere.
 
+## What it never does
+
+- It reads nothing from the command, the file or the prompt: only whether a call ran long and whether it failed.
+- It makes no network request and sends no telemetry.
+- It keeps no state of its own; its three settings (`minSeconds`, `sound`, `shortTurns`) are yours.
+
+## Install
+
 ```
-/plugin install build-bell --marketplace christiaan839-beep/sovereign-critters
+/plugin marketplace add christiaan839-beep/sovereign-critters
+/plugin install build-bell@sovereign-critters
 ```
+
+## Check
 
 ```
 claude plugin validate . --strict

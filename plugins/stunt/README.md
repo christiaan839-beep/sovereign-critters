@@ -16,10 +16,16 @@ Under it, the words count every call; the total is kept in `$.state`.
 - **Desktop app:** it has no `Raster`, so it gets the words alone.
 - **Nowhere that draws panes:** `/stunt` answers with the count.
 
+## What it never does
+
+- It keeps the name and count of tool calls in the plugin's own `$.state`, never a command, a path or a prompt.
+- It makes no network request and sends no telemetry.
+
 ## Install
 
 ```
-/plugin install stunt --marketplace christiaan839-beep/sovereign-critters
+/plugin marketplace add christiaan839-beep/sovereign-critters
+/plugin install stunt@sovereign-critters
 ```
 
 Plugins load in a new session. To try it from this folder instead: `claude --plugin-dir .`

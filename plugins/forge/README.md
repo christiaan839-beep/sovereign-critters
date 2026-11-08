@@ -18,10 +18,16 @@ A model guesses at these. This counts. `héllo` is 5 characters and 6 bytes, bec
 - It counts the text it is handed. It reads no files and runs nothing.
 - Characters are code points, not grapheme clusters: an emoji built from several code points counts as more than one.
 
+## What it never does
+
+- It reads no file, runs no command and makes no network request: it counts the text it is handed.
+- It keeps nothing: no state, no log.
+
 ## Install
 
 ```
-/plugin install forge --marketplace christiaan839-beep/sovereign-critters
+/plugin marketplace add christiaan839-beep/sovereign-critters
+/plugin install forge@sovereign-critters
 ```
 
 Plugins load in a new session. To try it from this folder instead: `claude --plugin-dir .`

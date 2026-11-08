@@ -20,10 +20,16 @@ It stores tool names and times only. It never reads the command, the file or the
 
 In the pane: `c` copies, `p` copies the postcard, `x` clears, `q` closes.
 
+## What it never does
+
+- It makes no network request and sends no telemetry. The diary and the week stay in the plugin's own `$.state` on this machine.
+- It copies to the clipboard only when you press copy or run a `copy` command.
+
 ## Install
 
 ```
-/plugin install session-diary --marketplace christiaan839-beep/sovereign-critters
+/plugin marketplace add christiaan839-beep/sovereign-critters
+/plugin install session-diary@sovereign-critters
 ```
 
 Plugins load in a new session.
