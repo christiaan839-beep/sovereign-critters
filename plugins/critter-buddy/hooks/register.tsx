@@ -61,6 +61,7 @@ let flightId = 0
 let streak: Streak | undefined
 let turnStartedAt = 0
 let ticker: { cancel: () => void } | undefined
+let postcardOffered = false // the postcard is offered once a session
 let offeredNudge: string | undefined // the line sitting dim in the box, until it is sent or replaced
 let greeted: string | undefined // the first notice under the logo carries the greeting; a redraw of it keeps it
 const notes = new Map<string, string>() // what each row placed in the transcript says
@@ -271,10 +272,12 @@ export const register: Register = on => {
     } catch {
       // a streak that cannot be kept is no loss
     }
+    let sessionMs: number | undefined // how long this session has run, for the postcard
     // How full the glass is: the cat says so once it matters, and the toast comes only on crossing into the last tenth.
     try {
       const u = await $.session.usage()
       const text = usageLine(u.context.percent, u.rateLimits.find((x: { kind: string }) => x.kind === 'five_hour')?.percentUsed)
+      if (Number.isFinite(u.startedAt)) sessionMs = now - u.startedAt
       const was = await read($, usage)
       await update($, usage, () => text)
       if (text.includes(FULL_MARK) && !was.includes(FULL_MARK)) { $.ui.toast(named(text, await read($, names)), { timeoutMs: 5000 }); await speak($, text) }
@@ -284,10 +287,10 @@ export const register: Register = on => {
     // One dim line the person can Tab into the empty box: the corner after a new prop, the week's diary on a Friday afternoon.
     try {
       const last = (await $.store.get('nudged')) as string | undefined
-      const text = nudgeFor(now, streak!.days, streakBefore, last)
+      const text = nudgeFor(now, streak!.days, streakBefore, last, sessionMs, postcardOffered)
       if (text) {
         const shown = await $.prompt.suggest({ text })
-        if (shown?.isShown !== false) offeredNudge = text // remembered until the person sends it: only then is it taken
+        if (shown?.isShown !== false) { offeredNudge = text; if (text === '/diary postcard') postcardOffered = true } // remembered until the person sends it: only then is it taken
       }
     } catch {
       // a nudge that cannot be shown is no loss
@@ -323,6 +326,7 @@ export const register: Register = on => {
   }).catch(($, e, next) => next(e))
 
   on('session.start', async ($, e, next) => {
+    postcardOffered = false; offeredNudge = undefined // a new session offers its own postcard
     // The cat remembers you across sessions: neglect costs trust, petting earns it.
     const now = await $.clock.now()
     const mem = cleanMemory(await Promise.resolve($.store.get('memory')).catch(() => undefined))

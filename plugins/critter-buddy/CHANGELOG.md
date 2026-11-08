@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.20.0
+
+- After a session has run two hours, the cat puts `/diary postcard` dim in the empty prompt box, once per session, for Tab to take. The new-prop corner nudge still comes first and the Friday week after. Needs session-diary 0.4.0 for the command to exist; without it the line is simply a command that is not there.
+
 ## 0.19.1
 
 - A first-ever session carries one dim line under the greeting: "Biscuit and Pip are here. /critter for the controls". It is said once, remembered in the store, and never blocks the greeting.

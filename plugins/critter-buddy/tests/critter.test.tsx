@@ -1211,7 +1211,7 @@ test('a turn that fills the glass says so in the band and toasts once; a streak 
   on('ui.toast', (_: unknown, e: { text: string }) => { toasts.push(e.text); return { value: undefined } })
   on('turn.complete', () => ({ text: 'done' }))
   on('model.complete', () => ({ value: { isAnswered: false, text: '', usage: {} } }) as never)
-  on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1_000_000, percent }, rateLimits: [] } }) as never)
+  on('session.usage', () => ({ value: { startedAt: 1_000_000_000_000, context: { window: 1_000_000, percent }, rateLimits: [] } }) as never)
   on('prompt.suggest', (_: unknown, e: { text: string }) => { offered.push(e.text); return { isShown: true } as never })
   on('command.register', () => ({ value: { command: 'critter' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
@@ -1256,7 +1256,7 @@ test('the turn that earns a prop offers the corner in the box, once, and a turn 
   on('ui.toast', () => ({ value: undefined }))
   on('turn.complete', () => ({ text: 'done' }))
   on('model.complete', () => ({ value: { isAnswered: false, text: '', usage: {} } }) as never)
-  on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1_000_000, percent: 10 }, rateLimits: [] } }) as never)
+  on('session.usage', () => ({ value: { startedAt: 1_000_000_000_000, context: { window: 1_000_000, percent: 10 }, rateLimits: [] } }) as never)
   on('prompt.suggest', (_: unknown, e: { text: string }) => { offered.push(e.text); return { isShown: true } as never })
   on('command.register', () => ({ value: { command: 'critter' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
@@ -1283,7 +1283,7 @@ test('the voice is off until asked, says the big moments in the system voice or 
   on('ui.toast', () => ({ value: undefined }))
   on('turn.complete', () => ({ text: 'done' }))
   on('model.complete', () => ({ value: { isAnswered: false, text: '', usage: {} } }) as never)
-  on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1_000_000, percent: 95 }, rateLimits: [] } }) as never)
+  on('session.usage', () => ({ value: { startedAt: 1_000_000_000_000, context: { window: 1_000_000, percent: 95 }, rateLimits: [] } }) as never)
   on('command.register', () => ({ value: { command: 'critter' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('store.get', () => ({ value: undefined }))
@@ -1697,7 +1697,7 @@ test('the nudge is stamped when the person takes the line and sends it, not when
   on('turn.complete', () => ({ text: 'done' }))
   on('prompt.submit', (_, e: { text: string; inputText: string }) => ({ text: e.text, inputText: e.inputText }) as never)
   on('model.complete', () => ({ value: { isAnswered: false, text: '', usage: {} } }) as never)
-  on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1_000_000, percent: 10 }, rateLimits: [] } }) as never)
+  on('session.usage', () => ({ value: { startedAt: 1_000_000_000_000, context: { window: 1_000_000, percent: 10 }, rateLimits: [] } }) as never)
   on('prompt.suggest', (_: unknown, e: { text: string }) => { offered.push(e.text); return { isShown: true } as never })
   on('command.register', () => ({ value: { command: 'critter' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
@@ -1782,4 +1782,76 @@ test('on the desktop the wizard beside a nap is drawn asleep and beside a spell 
   expect(await alt('Biscuit and Pip are asleep.')).toMatch(/asleep/)
   expect(await alt('Pip cast something.')).toMatch(/tipping his hat/)
   expect(await alt('Biscuit allows it. Do not stop.')).not.toMatch(/asleep|tipping/)
+})
+
+// ---- 0.20.0: the postcard is offered after a long sit ----
+test('a session of two hours offers the postcard in the box, once, and the corner comes before it and the week after', () => {
+  const H = 3_600_000
+  const FRI = Date.UTC(2026, 10, 13, 13) // Friday 15:00 in Johannesburg
+  const WED = FRI - 2 * 86_400_000
+  expect(nudgeFor(WED, 8, 8, undefined, 2 * H)).toBe('/diary postcard')
+  expect(nudgeFor(WED, 8, 8, undefined, 2 * H - 1)).toBeUndefined() // a millisecond short
+  expect(nudgeFor(WED, 8, 8, undefined, 2 * H, true)).toBeUndefined() // already offered this session
+  expect(nudgeFor(WED, 8, 8, undefined, undefined)).toBeUndefined() // no start known: nothing to say
+  expect(nudgeFor(FRI, 7, 6, undefined, 5 * H)).toBe('/critter corner') // a new prop wins
+  expect(nudgeFor(FRI, 2, 2, undefined, 5 * H)).toBe('/diary postcard') // the postcard outranks the week
+  expect(nudgeFor(FRI, 2, 2, undefined, 5 * H, true)).toBe('/diary week') // once offered, the week may follow
+})
+
+test('after a long sit the turn offers the postcard in the box once; a short session offers nothing', async ($, on) => {
+  stub(on)
+  const offered: string[] = []
+  const NOW = 1_000_000_000_000
+  let startedAt = NOW - 3 * 3_600_000 // three hours ago by the stub clock
+  on('ui.status', () => ({ value: undefined }))
+  on('ui.toast', () => ({ value: undefined }))
+  on('turn.complete', () => ({ text: 'done' }))
+  on('model.complete', () => ({ value: { isAnswered: false, text: '', usage: {} } }) as never)
+  on('session.usage', () => ({ value: { startedAt, context: { window: 1_000_000, percent: 10 }, rateLimits: [] } }) as never)
+  on('prompt.suggest', (_: unknown, e: { text: string }) => { offered.push(e.text); return { isShown: true } as never })
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.turn.complete({ answer: 'done' } as never)
+  expect(offered).toEqual(['/diary postcard'])
+  await $.turn.complete({ answer: 'done' } as never)
+  expect(offered).toEqual(['/diary postcard']) // once per session
+  void startedAt
+})
+
+test('a session of one hour offers no postcard', async ($, on) => {
+  stub(on)
+  const offered: string[] = []
+  on('ui.status', () => ({ value: undefined }))
+  on('ui.toast', () => ({ value: undefined }))
+  on('turn.complete', () => ({ text: 'done' }))
+  on('model.complete', () => ({ value: { isAnswered: false, text: '', usage: {} } }) as never)
+  on('session.usage', () => ({ value: { startedAt: 1_000_000_000_000 - 3_600_000, context: { window: 1_000_000, percent: 10 }, rateLimits: [] } }) as never)
+  on('prompt.suggest', (_: unknown, e: { text: string }) => { offered.push(e.text); return { isShown: true } as never })
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.turn.complete({ answer: 'done' } as never)
+  expect(offered).toEqual([])
+})
+
+test('a new session offers its own postcard', async ($, on) => {
+  stub(on)
+  const offered: string[] = []
+  on('ui.status', () => ({ value: undefined }))
+  on('ui.toast', () => ({ value: undefined }))
+  on('turn.complete', () => ({ text: 'done' }))
+  on('model.complete', () => ({ value: { isAnswered: false, text: '', usage: {} } }) as never)
+  on('session.usage', () => ({ value: { startedAt: 1_000_000_000_000 - 3 * 3_600_000, context: { window: 1_000_000, percent: 10 }, rateLimits: [] } }) as never)
+  on('prompt.suggest', (_: unknown, e: { text: string }) => { offered.push(e.text); return { isShown: true } as never })
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.turn.complete({ answer: 'done' } as never)
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.turn.complete({ answer: 'done' } as never)
+  expect(offered).toEqual(['/diary postcard', '/diary postcard'])
 })

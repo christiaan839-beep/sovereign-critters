@@ -179,11 +179,13 @@ export const dueForWait = (flights: Iterable<Flight>, now: number): boolean => {
 export const skyArgsOf = (now: number, joy: number, fails = 0) => ({ phase: phaseOf(hourSast(now)), season: seasonOf(now), weather: weatherOf(joy, fails), festive: festiveOf(now) })
 
 /**
- * The one thing the cat would put in the empty prompt box, dim, for Tab to take: the corner when a prop has just been earned,
- * the week's diary on a Friday afternoon (once a day). `before` is the streak before this turn; `lastNudge` the day key of the last Friday nudge.
+ * The one thing the cat would put in the empty prompt box, dim, for Tab to take: the corner when a prop has just been earned, the
+ * session's postcard after two hours (once a session), the week's diary on a Friday afternoon (once a day). `before` is the streak
+ * before this turn; `lastNudge` the day key of the last Friday nudge; `sessionMs` how long the session has run.
  */
-export const nudgeFor = (now: number, days: number, before: number, lastNudge: string | undefined): string | undefined => {
+export const nudgeFor = (now: number, days: number, before: number, lastNudge: string | undefined, sessionMs?: number, postcardOffered = false): string | undefined => {
   if (days !== before && [3, 7, 14, 30].includes(days)) return '/critter corner'
+  if (sessionMs !== undefined && sessionMs >= 2 * 3_600_000 && !postcardOffered) return '/diary postcard'
   const weekday = ((Math.floor((now + 7_200_000) / 86_400_000) + 4) % 7 + 7) % 7
   if (weekday === 5 && hourSast(now) >= 15 && lastNudge !== dayKey(now)) return '/diary week'
   return undefined
