@@ -87,15 +87,15 @@ export const bandLines = (note: Note, label: string, width: number): { line: str
 
 // ---- the crab: our own drawing, in the pair's clay, a paper held up in one claw -----------------------
 const PX = [
-  'WW......CC',
-  'WW.....CC.',
-  'CCHCCCCCD.',
-  '.CCKCCKCD.',
-  '..CCCCCCD.',
-  '..C.D.D.C.',
+  '.WW.....C.C.',
+  'CCC.....CCC.',
+  '.CHCCCCCCCD.',
+  '..CKCCCCKC..',
+  '..CCCCCCCD..',
+  '.C.C.CC.C.C.',
 ]
 const COLOUR: Record<string, string> = { C: '#d97757', D: '#b9573a', H: '#ec9b78', K: '#141413', W: '#faf9f5' }
-export const CRAB_W = 10
+export const CRAB_W = 12
 
 /** Three text rows of half blocks: two pixel rows to a row, the upper in the foreground, the lower in the background. */
 export const crabRows = (): Run[][] => {

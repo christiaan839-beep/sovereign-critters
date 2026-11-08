@@ -99,14 +99,14 @@ test('the band is two lines that never exceed the width they are given, at every
   expect(bandLines({ text: 'short', at: 1 }, 'holding:', 40).hint).toBe('/crab drop when it is done')
 })
 
-test('the crab is our own drawing: three rows ten cells wide in the pair\'s clay, with a paper in a claw', () => {
+test('the crab is our own drawing: three rows twelve cells wide in the pair\'s clay, with a paper in a claw', () => {
   const rows = crabRows()
   expect(rows).toHaveLength(3)
   for (const row of rows) expect(row.reduce((n, r) => n + cellsOf(r.text), 0)).toBe(CRAB_W)
   const colours = new Set(rows.flat().flatMap(r => [r.fg, r.bg]).filter(Boolean))
   for (const c of colours) expect(['#d97757', '#b9573a', '#ec9b78', '#141413', '#faf9f5']).toContain(c) // the pair's own palette
   expect(colours.has('#faf9f5')).toBe(true) // the paper
-  expect(rows.map(r => r.map(x => x.text).join(''))).toEqual(['██     ▄█▀', '▀█▀▀██▀██ ', '  █▀▀▀▀▀▀ ']) // the drawing, pinned: a change to it is a decision
+  expect(rows.map(r => r.map(x => x.text).join(''))).toEqual(['▄▀▀     █▄█ ', ' ▀▀▀████▀█▀ ', ' ▄▀█▀██▀█▀▄ ']) // the drawing, pinned: a change to it is a decision
   const svg = crabSvg(4)
   expect(svg.width).toBe(CRAB_W * 4)
   expect(svg.height).toBe(6 * 4) // six pixel rows
