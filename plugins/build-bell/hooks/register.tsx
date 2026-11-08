@@ -2,6 +2,8 @@ import type { Register } from 'claude-code'
 
 // A command shorter than this stays quiet: the bell is for the ones you looked away from.
 const DEFAULT_MIN_SECONDS = 20
+// A turn shorter than this makes no sound at all: a one-second answer does not need announcing.
+const TICK_FROM_SECONDS = 5
 
 /** The line the toast shows: how long it ran and whether it failed. Pure, so it can be tested on its own. */
 export const bellLine = (ms: number, failed: boolean): string => {
@@ -16,6 +18,7 @@ export const turnLine = (ms: number): string => bellLine(ms, false).replace('The
 export const register: Register = (on, options) => {
   const minSeconds = typeof options.minSeconds === 'number' && options.minSeconds > 0 ? options.minSeconds : DEFAULT_MIN_SECONDS
   const withSound = options.sound !== false
+  const withTick = options.shortTurns !== false
 
   // A turn that ran long rings too: you looked away from the whole of it, not only from one command.
   let turnStart = 0
@@ -30,6 +33,8 @@ export const register: Register = (on, options) => {
       if (took >= minSeconds * 1000) {
         $.ui.toast(turnLine(took), { timeoutMs: 6000 })
         if (withSound) await $.audio.play({ asset: 'sounds/bell.wav' }, { gain: 0.6 })
+      } else if (took >= TICK_FROM_SECONDS * 1000 && withSound && withTick) {
+        await $.audio.play({ asset: 'sounds/tick.wav' }, { gain: 0.5 }) // a short turn: a soft tick, no toast
       }
     } catch {
       // a bell that cannot ring never holds up the end of a turn

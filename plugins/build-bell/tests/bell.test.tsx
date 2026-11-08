@@ -70,10 +70,28 @@ test('a long turn rings the bell when it ends', async ($, on) => {
   expect(bells).toEqual(['sounds/bell.wav'])
 })
 
-test('a short turn stays quiet, and exactly the threshold rings', async ($, on) => {
-  expect((await turn($, on, 19_999)).bells).toEqual([])
+test('a turn under five seconds stays quiet', async ($, on) => {
+  expect((await turn($, on, 1_000)).bells).toEqual([])
 })
 
 test('exactly twenty seconds is long enough', async ($, on) => {
   expect((await turn($, on, 20_000)).bells).toEqual(['sounds/bell.wav'])
+})
+
+test('a short turn gets a soft tick, no toast; under five seconds, nothing', async ($, on) => {
+  const t = await turn($, on, 6_000)
+  expect(t.bells).toEqual(['sounds/tick.wav'])
+  expect(t.toasts).toEqual([])
+})
+
+test('the tick starts at exactly five seconds, and stops just under twenty', async ($, on) => {
+  expect((await turn($, on, 4_999)).bells).toEqual([])
+})
+
+test('nineteen seconds is still a tick, and five is the first one', async ($, on) => {
+  expect((await turn($, on, 19_999)).bells).toEqual(['sounds/tick.wav'])
+})
+
+test('five seconds exactly ticks', async ($, on) => {
+  expect((await turn($, on, 5_000)).bells).toEqual(['sounds/tick.wav'])
 })

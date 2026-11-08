@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.0
+
+- A short turn (5 seconds up to the threshold) ends with a soft tick. `shortTurns: false` turns it off.
+
 ## 0.3.0
 
 - A turn that runs 20 seconds or more rings the bell and shows a toast when it ends, not only a single command.
