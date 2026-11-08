@@ -4,22 +4,22 @@ export const MARKET = 'sovereign-critters'
 export const HUB = 'mods'
 
 export type Open = { label: string; command: string; args: string }
-export type Mod = { id: string; line: string; names: string[]; opens: Open[] }
+export type Mod = { id: string; line: string; how: string; names: string[]; opens: Open[] }
 export type Installed = { id: string; version: string; enabled: boolean }
 export type State = 'on' | 'off' | 'missing'
 
 /** The eight mods, critter-buddy first. What each opens is a slash command of its own plugin, never a command line. */
 export const MODS: Mod[] = [
-  { id: 'critter-buddy', names: ['critter', 'buddy'], line: 'Pip the wizard and Biscuit the cat above your prompt, and a sky that keeps the hour.',
+  { id: 'critter-buddy', how: "Type /critter, or press the pair's buttons.", names: ['critter', 'buddy'], line: 'Pip the wizard and Biscuit the cat above your prompt, and a sky that keeps the hour.',
     opens: [{ label: 'corner', command: 'critter', args: 'corner' }, { label: 'stage', command: 'critter', args: 'stage' }] },
-  { id: 'session-diary', names: ['diary'], line: 'Every tool call, timed; the week at a glance; the session on a postcard.',
+  { id: 'session-diary', how: "Work as usual, then /diary or /diary week.", names: ['diary'], line: 'Every tool call, timed; the week at a glance; the session on a postcard.',
     opens: [{ label: 'pane', command: 'diary', args: '' }, { label: 'week', command: 'diary', args: 'week' }, { label: 'postcard', command: 'diary', args: 'postcard' }] },
-  { id: 'build-bell', names: ['bell'], line: 'A bell and a toast when a long command or turn finishes.', opens: [] },
-  { id: 'guard', names: [], line: 'Stops a force-push or a push to main before Bash runs it.', opens: [] },
-  { id: 'stunt', names: [], line: 'The critter painted in a pane, a card for each tool call.', opens: [{ label: 'pane', command: 'stunt', args: '' }] },
-  { id: 'crab', names: [], line: 'Holds one note for this folder and has it for you when you come back.', opens: [{ label: 'note', command: 'crab', args: '' }] },
-  { id: 'forge', names: [], line: 'A tool that counts text exactly: characters, words, lines, bytes.', opens: [] },
-  { id: 'everywhere', names: [], line: 'A pane of your three most-used tools, drawn by each app its own way.', opens: [{ label: 'pane', command: 'everywhere', args: '' }] },
+  { id: 'build-bell', how: "Nothing to do: it rings when a long command ends.", names: ['bell'], line: 'A bell and a toast when a long command or turn finishes.', opens: [] },
+  { id: 'guard', how: "Nothing to do: it stops a force-push to main.", names: [], line: 'Stops a force-push or a push to main before Bash runs it.', opens: [] },
+  { id: 'stunt', how: "Type /stunt to open it.", names: [], line: 'The critter painted in a pane, a card for each tool call.', opens: [{ label: 'pane', command: 'stunt', args: '' }] },
+  { id: 'crab', how: "Type /crab hold <note>; it waits for you.", names: [], line: 'Holds one note for this folder and has it for you when you come back.', opens: [{ label: 'note', command: 'crab', args: '' }] },
+  { id: 'forge', how: "Ask Claude to count a text exactly.", names: [], line: 'A tool that counts text exactly: characters, words, lines, bytes.', opens: [] },
+  { id: 'everywhere', how: "Type /everywhere to open it.", names: [], line: 'A pane of your three most-used tools, drawn by each app its own way.', opens: [{ label: 'pane', command: 'everywhere', args: '' }] },
 ]
 
 /** The look-and-feel dials of the lead mod: each option is one of its own slash commands, fixed here. */

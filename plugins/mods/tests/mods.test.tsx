@@ -11,6 +11,8 @@ const off_ = (id: string, version = '1.0.0'): Installed => ({ id: `${id}@${MARKE
 test('the control room knows the eight mods, critter-buddy first, each with a line of its own and the commands that open it', () => {
   expect(MODS.map(m => m.id)).toEqual(['critter-buddy', 'session-diary', 'build-bell', 'guard', 'stunt', 'crab', 'forge', 'everywhere'])
   expect(new Set(MODS.map(m => m.line)).size).toBe(8) // no two alike
+  expect(new Set(MODS.map(m => m.how)).size).toBe(8)
+  for (const m of MODS) { expect(m.how.length).toBeGreaterThan(10); expect(m.how.length).toBeLessThanOrEqual(52) }
   for (const m of MODS) {
     expect(m.line.length).toBeGreaterThan(20)
     expect(m.line.length).toBeLessThanOrEqual(90)
@@ -263,13 +265,13 @@ test('switching a mod on that this session did not load says it needs a restart 
   expect(await run($, 'on forge')).toBe('forge is on. Restart Claude Code to load it.')
 })
 
-test('each switch is labelled by what pressing it does: off for a mod that is on, on for one that is off, install for one that is missing', async ($, on) => {
+test('each switch is drawn as a toggle that shows its state, in a glyph and in a word, and install for a mod that is missing', async ($, on) => {
   setup($, on, JSON.stringify([{ id: `crab@${MARKET}`, version: '0.2.0', enabled: true }, { id: `forge@${MARKET}`, version: '0.1.0', enabled: false }]))
   await begin($)
   const ui = await $.ui.mount({ plugin: 'mods', component: 'Pane', requestId: 'mods', surface: 'terminal', props: { bodyColumns: 56 } } as never)
   const label = async (id: string) => ((await ui.find({ key: `switch-${id}` })) as { props?: { label?: string } } | undefined)?.props?.label
-  expect(await label('crab')).toBe('off')
-  expect(await label('forge')).toBe('on')
+  expect(await label('crab')).toBe('━● on') // the switch shows where it stands: a mod that is on has its knob to the right
+  expect(await label('forge')).toBe('●━ off')
   expect(await label('guard')).toBe('install')
   expect(await ui.find({ key: 'open-crab-note' })).toBeDefined() // on: its pane can be opened
   await ui.unmount()
@@ -290,8 +292,10 @@ test('a long state line is cut to the pane\'s width, restart note and all', asyn
   await begin($)
   await run($, 'off session-diary') // loaded at the start, now off: "off, restart to apply"
   const ui = await $.ui.mount({ plugin: 'mods', component: 'Pane', requestId: 'mods', surface: 'terminal', props: { bodyColumns: 28 } } as never)
-  const title = await ui.find({ type: 'Text', text: /session-diary/ })
-  expect(cellsOf(String((title as { text?: string }).text))).toBeLessThanOrEqual(28 - 11)
+  expect(await ui.find({ type: 'Text', text: 'off, restart to apply' })).toBeDefined() // the card says what a restart will do
+  const titles = (await ui.findAll({ type: 'Text', text: /^[●○–] / })) as { text?: string }[]
+  expect(titles.length).toBe(8)
+  for (const t of titles) expect(cellsOf(String(t.text))).toBeLessThanOrEqual(28 - 4 - 12 + 2) // card border and padding, the switch, and the symbol
   await ui.unmount()
 })
 
@@ -348,4 +352,16 @@ test('the footer says nothing of mods where the plugin manager could not be read
   const again = await $.ui.mount({ plugin: 'mods', component: 'SessionMode', requestId: 'r1', props: { modes: ['mods 3/8'] }, surface: 'terminal' } as never)
   expect((await again.find({ type: 'Text', text: /mods/ }))?.text).toBe('mods 3/8') // a footer that already has the chip is left alone
   await again.unmount()
+})
+
+test('each mod is a card with a border, its one-line what, and how to use it; a card of a mod that is on is drawn in the pair\'s clay and one that is off is dim', async ($, on) => {
+  setup($, on)
+  await begin($)
+  const ui = await $.ui.mount({ plugin: 'mods', component: 'Pane', requestId: 'mods', surface: 'desktop', props: { bodyColumns: 56 } } as never)
+  const card = async (id: string) => (await ui.find({ key: `mod-${id}` })) as { props?: { borderStyle?: string; borderColor?: string } } | undefined
+  expect((await card('crab'))?.props?.borderStyle).toBe('round')
+  expect((await card('crab'))?.props?.borderColor).toBe('#d97757') // on
+  expect((await card('forge'))?.props?.borderColor).toBe('#5d5a55') // off in the stub list
+  for (const m of MODS) expect(await ui.find({ type: 'Text', text: m.how })).toBeDefined()
+  await ui.unmount()
 })

@@ -138,7 +138,7 @@ export const register: Register = on => {
       const sub = words[0] ?? ''
       if (sub === '') {
         await refresh($)
-        const opened = await $.ui.open({ id: PANE, title: 'Mods', focus: true, closeOnEscape: true, columns: 56, rows: 44 })
+        const opened = await $.ui.open({ id: PANE, title: 'Mods', focus: true, closeOnEscape: true, columns: 56, rows: 60 })
         return say(opened?.isPlaced === false ? `The control room could not open a pane here, so here is the list.\n${lines().join('\n')}` : `The control room is open: ${onCount()} of ${MODS.length} mods on.`)
       }
       if (sub === 'list' && words.length === 1) {
@@ -201,22 +201,24 @@ export const register: Register = on => {
         {MODS.map(m => {
           const s = stateNow(m)
           const need = S.list ? restartNeeded(s.state, S.loaded.has(m.id)) : false
-          const label = s.state === 'missing' ? 'install' : s.state === 'on' ? 'off' : 'on'
-          const title = fit(`${SYMBOL[s.state]} ${m.id} ${s.version} ${statusWord(s.state, need)}`.replace(/ {2,}/g, ' '), Math.max(12, cols - 11))
+          const toggle = s.state === 'missing' ? 'install' : s.state === 'on' ? '━● on' : '●━ off'
+          const inner = Math.max(12, cols - 4) // the card's border and padding take four cells
+          const title = fit(`${m.id} ${s.version}`.trim(), Math.max(8, inner - 12))
           return (
-            <Box key={`mod-${m.id}`} flexDirection="column">
+            <Box key={`mod-${m.id}`} flexDirection="column" borderStyle="round" borderColor={s.state === 'on' ? '#d97757' : '#5d5a55'} paddingX={1}>
               <Box flexDirection="row" justifyContent="space-between">
-                <Text bold={s.state === 'on'} dimColor={s.state !== 'on'}>{title}</Text>
-                {S.list ? <Button key={`switch-${m.id}`} label={label} onPress={act(() => (s.state === 'missing' ? installMod($, m) : setMod($, m, s.state === 'on' ? 'off' : 'on')))} /> : null}
+                <Text bold={s.state === 'on'} dimColor={s.state !== 'on'}>{`${SYMBOL[s.state]} ${title}`}</Text>
+                {S.list ? <Button key={`switch-${m.id}`} label={toggle} onPress={act(() => (s.state === 'missing' ? installMod($, m) : setMod($, m, s.state === 'on' ? 'off' : 'on')))} /> : null}
               </Box>
-              <Text dimColor>{fit(m.line, cols)}</Text>
+              <Text dimColor>{fit(m.line, inner)}</Text>
+              <Text>{fit(m.how, inner)}</Text>
+              {need ? <Text color="#d4a548">{fit(statusWord(s.state, true), inner)}</Text> : null}
               {m.opens.length > 0 && s.state === 'on' ? (
                 <Box flexDirection="row" columnGap={1}>
                   <Text dimColor>open</Text>
                   {m.opens.map(o => <Button key={`open-${m.id}-${o.label}`} label={o.label} onPress={act(() => openMod($, m, o.label, 'run'))} />)}
                 </Box>
               ) : null}
-              <Box key={`gap-${m.id}`}><Text> </Text></Box>
             </Box>
           )
         })}
