@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.20.1
+
+- The button rows of the stage and the corner are spaced by a column gap, as the band is, instead of a space between them. In the terminal the stage showed "[ cast   [ nap   [ close ]" with the closing brackets missing (seen by driving a real terminal session).
+
 ## 0.20.0
 
 - After a session has run two hours, the cat puts `/diary postcard` dim in the empty prompt box, once per session, for Tab to take. The new-prop corner nudge still comes first and the Friday week after. Needs session-diary 0.4.0 for the command to exist; without it the line is simply a command that is not there.

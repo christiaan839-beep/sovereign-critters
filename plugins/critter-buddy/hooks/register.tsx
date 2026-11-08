@@ -804,11 +804,9 @@ export const register: Register = on => {
         </Box>
         <Box key="status" flexDirection="row" justifyContent="center"><Text dimColor>{`${s.label} · ${s.tools} tools · ${s.skills} skills`}</Text></Box>
         <Box key="gap"><Text> </Text></Box>
-        <Box key="actions" flexDirection="row" justifyContent="center">
+        <Box key="actions" flexDirection="row" justifyContent="center" columnGap={1}>
           <Button key="spell" label="cast" hotkey="c" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'spell'))} />
-          <Text> </Text>
           <Button key="nap" label="nap" hotkey="n" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'nap'))} />
-          <Text> </Text>
           <Button key="close" label="close" hotkey="q" onPress={() => $.ui.close({ id: STAGE })} />
         </Box>
       </Box>
@@ -854,11 +852,9 @@ export const register: Register = on => {
         <Text dimColor>{`${s.stats.turns} turns · ${s.tools} tools · ${s.skills} skills`}</Text>
         <Text dimColor>{`${s.stats.errors} errors · ${s.stats.pets} pets · ${s.stats.commits} commits · ${s.stats.knocks} knocked off`}</Text>
         {gap('g2')}
-        <Box key="actions" flexDirection="row" justifyContent="center">
+        <Box key="actions" flexDirection="row" justifyContent="center" columnGap={1}>
           <Button key="p" label="pet" hotkey="p" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'pet'))} />
-          <Text> </Text>
           <Button key="t" label="treat" hotkey="t" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'treat')); await ring($, 'paw') }} />
-          <Text> </Text>
           <Button key="n" label="nap" hotkey="n" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'nap'))} />
         </Box>
         {gap('g3')}
@@ -869,13 +865,10 @@ export const register: Register = on => {
             {field.map((line, i) => (
               <Text key={`f${i}`} dimColor={i < 5}>{line}</Text>
             ))}
-            <Box flexDirection="row">
+            <Box flexDirection="row" columnGap={1}>
               <Button key="l0" label="left" hotkey="1" onPress={() => update($, scene, (x: Scene): Scene => catchIn(x, 0))} />
-              <Text> </Text>
               <Button key="l1" label="middle" hotkey="2" onPress={() => update($, scene, (x: Scene): Scene => catchIn(x, 1))} />
-              <Text> </Text>
               <Button key="l2" label="right" hotkey="3" onPress={() => update($, scene, (x: Scene): Scene => catchIn(x, 2))} />
-              <Text> </Text>
               <Button key="stop" label="stop" onPress={() => update($, scene, (x: Scene): Scene => stopGame(x))} />
             </Box>
           </Box>
