@@ -1229,3 +1229,22 @@ test('a turn that fills the glass says so in the band and toasts once; a streak 
   expect(toasts.filter(t => /compact button/.test(t))).toHaveLength(1) // already said: no second toast
   expect(offered).toEqual([]) // day one, a Monday-ish clock: nothing to offer
 })
+
+test('the stage opens wide, see-through and closable with Escape; the corner opens tall; the open button asks the same', async ($, on) => {
+  stub(on)
+  const asked: Record<string, unknown>[] = []
+  on('ui.open', (_: unknown, e: Record<string, unknown>) => { asked.push(e); return { value: undefined } })
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  const run = (args: string) => $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never)
+  await run('stage')
+  await run('corner')
+  expect(asked[0]).toMatchObject({ id: 'stage', columns: 60, rows: 16, backgroundColor: 'transparent', closeOnEscape: true })
+  expect(asked[1]).toMatchObject({ id: 'cat-corner', columns: 56, rows: 30, closeOnEscape: true })
+  expect(asked[1]!.backgroundColor).toBeUndefined() // the corner is text: it keeps its own page
+  const band = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  await band.press({ key: 'corner' })
+  expect(asked[2]).toMatchObject({ id: 'cat-corner', columns: 56, rows: 30 })
+})

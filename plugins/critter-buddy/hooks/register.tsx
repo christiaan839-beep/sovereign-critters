@@ -8,6 +8,11 @@ import type { Flight, Streak } from './world'
 import type { Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
 
 // `shape` tags the stored form: a value an earlier version stored is declined, not misread.
+/** How each pane asks to be seated: the stage wide enough for the pair, see-through so the sky shows behind it, Escape closes it; the corner a little narrower and tall enough for the diary. A request the surface may refuse. */
+export const PANE_ASKS = {
+  stage: { columns: 60, rows: 16, backgroundColor: 'transparent', closeOnEscape: true },
+  corner: { columns: 56, rows: 30, closeOnEscape: true },
+} as const
 const scene = atom({ plugin: 'critter-buddy', key: 'scene' } as const, initial(), { shape: 'scene-5' })
 const isHidden = atom({ plugin: 'critter-buddy', key: 'isHidden' } as const, false, { shape: 'hidden-1' })
 const diary = atom({ plugin: 'critter-buddy', key: 'diary' } as const, [] as string[], { shape: 'diary-1' })
@@ -385,11 +390,11 @@ export const register: Register = on => {
       return { text: f === 'calm' ? 'Calm: the pair only breathe, walk and sleep. No sparks, no sound.' : f === 'playful' ? 'Playful: more hops, more sparks.' : 'Warm: the usual.' }
     }
     if (sub === 'stage') {
-      await $.ui.open({ id: STAGE, title: 'Stage', focus: true })
+      await $.ui.open({ id: STAGE, title: 'Stage', focus: true, ...PANE_ASKS.stage })
       return { text: 'The stage is open: the critter alone, walking and idling.' }
     }
     if (sub === 'corner') {
-      await $.ui.open({ id: PANE, title: 'Cat corner', focus: true })
+      await $.ui.open({ id: PANE, title: 'Cat corner', focus: true, ...PANE_ASKS.corner })
       return { text: 'Cat corner opened.' }
     }
     if (sub === 'diary') {
@@ -456,7 +461,7 @@ export const register: Register = on => {
           <Button key="treat" label={lb.feed} hotkey="t" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'treat'))} />
           <Button key="cast" label={lb.cast} hotkey="c" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'spell')); await ring($, 'cast') }} />
           <Button key="nap" label={lb.nap} hotkey="n" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'nap'))} />
-          <Button key="corner" label={lb.corner} hotkey="k" onPress={() => $.ui.open({ id: PANE, title: 'Cat corner', focus: true })} />
+          <Button key="corner" label={lb.corner} hotkey="k" onPress={() => $.ui.open({ id: PANE, title: 'Cat corner', focus: true, ...PANE_ASKS.corner })} />
         </Box>
         <Box key="gap"><Text> </Text></Box>
         <Box key="others" flexDirection="column">{others}</Box>

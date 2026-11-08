@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.2
+
+- The stage and the corner say how they want to be seated beside the chat: the stage 60 columns wide and see-through, so the day or night sky shows behind the pair; the corner 56 wide and tall enough for the diary. Escape closes either. The surface may grant less; below 110 columns they sit above the prompt as before.
+
 ## 0.13.1
 
 - The demo GIF and the preview poster are drawn again from the mod's own scene and sky code: a working day (reading, cooking, casting, done), then dusk, night and rain, with the ridge and the wisps. The poster shows the Friday greeting, the full glass and the week's bars.
