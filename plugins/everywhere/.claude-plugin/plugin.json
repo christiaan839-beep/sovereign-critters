@@ -1,0 +1,10 @@
+{
+  "name": "everywhere",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "/everywhere opens a pane of the three tools the session called most, drawn by each app from its own elements (a terminal adds a bar for each, in the order the words name them; the Desktop app draws it natively), with a Hide button; the count stays in $.state, and where no app draws the pane, /everywhere answers with it in words.",
+  "author": {
+    "name": "Sovereign Matrix"
+  },
+  "types": "./types/index.d.ts"
+}
