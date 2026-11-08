@@ -5,7 +5,7 @@ import type { Look, Scene } from '../types'
 import { fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, cleanMemory, cleanStreak, doctorLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
 import { hourSast, dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
 import type { Flight, Streak } from './world'
-import type { Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
+import type { SoundName, Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
 
 // `shape` tags the stored form: a value an earlier version stored is declined, not misread.
 /** How each pane asks to be seated: the stage wide enough for the pair, see-through so the sky shows behind it, Escape closes it; the corner a little narrower and tall enough for the diary. A request the surface may refuse. */
@@ -108,7 +108,7 @@ const kit = (els: any, surface: string) => {
 }
 
 /** A short sound, only when the person has turned sound on; a player that is missing never matters. */
-const ring = async ($: any, which: 'cast' | 'purr') => {
+const ring = async ($: any, which: SoundName) => {
   try {
     if ((await read($, feel)) !== 'calm' && (await read($, sound))) await $.audio.play({ asset: `sounds/${which}.wav` }, { gain: 0.5 })
   } catch {
@@ -256,7 +256,7 @@ export const register: Register = on => {
       streakBefore = before
       await update($, scene, (s: Scene): Scene => ({ ...s, streak: streak!.days }))
       if (streak.days !== before && [3, 7, 14, 30].includes(streak.days))
-        { $.ui.toast(named(`${streak.days} days in a row. {cat} brought something for the bar.`, await read($, names)), { timeoutMs: 4000 }); await speak($, `${streak.days} days in a row. {cat} brought something for the bar.`) }
+        { $.ui.toast(named(`${streak.days} days in a row. {cat} brought something for the bar.`, await read($, names)), { timeoutMs: 4000 }); await ring($, 'chime'); await speak($, `${streak.days} days in a row. {cat} brought something for the bar.`) }
     } catch {
       // a streak that cannot be kept is no loss
     }
@@ -419,6 +419,7 @@ export const register: Register = on => {
     if (hit) {
       await update($, scene, (s: Scene): Scene => react(s, hit[0]))
       if (hit[0] === 'pet') await ring($, 'purr')
+      if (hit[0] === 'treat') await ring($, 'paw')
       if (hit[0] === 'spell') await ring($, 'cast')
       return { text: named(hit[1], await read($, names)) }
     }
@@ -466,6 +467,7 @@ export const register: Register = on => {
       return { text: 'Cat corner opened.' }
     }
     if (sub === 'diary') {
+      await ring($, 'paper')
       return { text: diaryMarkdown(await read($, diary), await read($, names)) }
     }
     if (sub === 'lite' || sub === 'full' || sub === 'party') {
@@ -526,7 +528,7 @@ export const register: Register = on => {
         </Box>
         <Box key="controls" flexDirection="row" flexWrap="wrap" alignItems="center" justifyContent="center" columnGap={1}>
           <Button key="pet" label={lb.pet} hotkey="p" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'pet')); await ring($, 'purr') }} />
-          <Button key="treat" label={lb.feed} hotkey="t" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'treat'))} />
+          <Button key="treat" label={lb.feed} hotkey="t" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'treat')); await ring($, 'paw') }} />
           <Button key="cast" label={lb.cast} hotkey="c" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'spell')); await ring($, 'cast') }} />
           <Button key="nap" label={lb.nap} hotkey="n" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'nap'))} />
           <Button key="corner" label={lb.corner} hotkey="k" onPress={() => $.ui.open({ id: PANE, title: 'Cat corner', focus: true, ...PANE_ASKS.corner })} />
@@ -830,7 +832,7 @@ export const register: Register = on => {
         <Box key="actions" flexDirection="row" justifyContent="center">
           <Button key="p" label="pet" hotkey="p" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'pet'))} />
           <Text> </Text>
-          <Button key="t" label="treat" hotkey="t" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'treat'))} />
+          <Button key="t" label="treat" hotkey="t" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'treat')); await ring($, 'paw') }} />
           <Text> </Text>
           <Button key="n" label="nap" hotkey="n" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'nap'))} />
         </Box>

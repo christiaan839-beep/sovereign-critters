@@ -1621,3 +1621,31 @@ test('the engine prints a reply under the plugin name, and the wizard rule reads
   expect(wizardFor('critter-buddy: Biscuit allows it. Do not stop.')).toBe(true)
   expect(wizardFor('another-mod: The pair are hidden.')).toBe(true) // only our own name is read through
 })
+
+import { SOUND_NAMES } from '../hooks/scene'
+
+test('the mod owns five sounds, each named for a file in sounds/ (their quality is checked by tools/check-sounds.py)', () => {
+  expect([...SOUND_NAMES].sort()).toEqual(['cast', 'chime', 'paper', 'paw', 'purr'])
+})
+
+test('a treat is a paw, the diary a page, a prop earned a chime, and calm or off is silence', async ($, on) => {
+  stub(on)
+  const played: string[] = []
+  on('ui.status', () => ({ value: undefined }))
+  on('ui.toast', () => ({ value: undefined }))
+  on('clock.every', () => ({ value: { cancel: () => undefined } }) as never)
+  on('audio.play', (_: unknown, e: { clip: { asset?: string } }) => { played.push(e.clip.asset ?? ''); return { value: undefined } })
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const run = (args: string) => $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never)
+  await run('treat'); await run('diary')
+  expect(played).toEqual([]) // sound is off until asked
+  await run('sound on')
+  await run('treat'); await run('diary')
+  expect(played).toEqual(['sounds/paw.wav', 'sounds/paper.wav'])
+  await run('feel calm')
+  await run('treat'); await run('diary')
+  expect(played).toHaveLength(2) // calm is silent
+})

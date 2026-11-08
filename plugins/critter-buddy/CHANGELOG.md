@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.19.0
+
+- Three new sounds, each one physical event built from a model and not from a sample (`tools/foley.py`, standard library only, the same bytes every run): a soft double tap for a treat (a pitch-dropped thump on low noise), a page turned for `/critter diary` (filtered noise in three swells with a few fibre crackles), and a small brass bell for a prop earned (inharmonic partials that each fade at their own rate). No music.
+- They play only where the others do: after `/critter sound on`, never in calm. The chime for a prop earned is wired but not covered by a test, because a streak milestone cannot be driven in the test kit; the paw and the page are.
+- `tools/check-sounds.py` checks every sound of the mod: 16-bit mono 44.1 kHz, audible, never clipped, no click at either end, a sensible length.
+
 ## 0.18.2
 
 - The wizard rule now reads through the plugin name the engine prints before a reply ("critter-buddy: The pair are hidden."), which the real window showed and the 0.16.0 tests had not: with it, `hide`, a usage line and a report no longer get the wizard.

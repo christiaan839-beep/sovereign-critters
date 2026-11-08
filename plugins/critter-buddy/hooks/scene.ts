@@ -1135,3 +1135,7 @@ export const statusParts = (label: string, mood: string, usage: string, cols: nu
   const last = tries[tries.length - 1]!
   return [label, room >= 2 ? last.slice(0, room - 1) + '…' : '']
 }
+
+/** Every sound the mod owns: a file of the same name in sounds/. paw, paper and chime are built by tools/foley.py from physical models. */
+export const SOUND_NAMES = ['cast', 'purr', 'paw', 'paper', 'chime'] as const
+export type SoundName = (typeof SOUND_NAMES)[number]
