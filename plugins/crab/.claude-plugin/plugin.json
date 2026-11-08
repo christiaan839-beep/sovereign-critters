@@ -1,0 +1,8 @@
+{
+  "name": "crab",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "A band above the prompt (terminal and desktop) that shows what a reload keeps: the module's own variable, the time it loaded in UTC, is new; the count of prompts that entered, kept in $.state, stays.",
+  "author": { "name": "Sovereign Matrix" },
+  "types": "./types/index.d.ts"
+}
