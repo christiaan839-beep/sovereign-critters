@@ -34,6 +34,7 @@ The cat keeps its trust in you across sessions in `$.store`; it falls by 8 for e
 | `/critter stage` | The critter alone on an empty stage, walking and idling. |
 | `/critter corner` | The cat corner pane: portrait, moods, diary and a one-key treat game. |
 | `/critter diary` | What the cat wrote. |
+| (automatic) | The sky: the hour, the season and the session's weather (joy sets it) behind the conversation; the streak and its props (3, 7, 14, 30 days); South African public holidays in the greeting and lights in December; the cat at the window during a call longer than 20 s. Nothing is fetched. |
 | `/critter lite`, `full`, `party` | How far it reaches: lite is the bar, the wizard and the orb; full adds the transcript's rows; party adds every message (default). |
 | `/critter talk on`, `off` | The cat speaks after each turn through one small model call. On by default; `off` keeps the cat quiet and spends nothing. |
 | `/critter cat <coat>` | The cat's coat: `orange` (the default), `ink`, `brown`, `tabby`, `ginger`, `black`, `tuxedo`, `cream`, `grey`, `siamese`, or `pair` (follows day and night). |

@@ -2,7 +2,9 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { NAMES_DEFAULT, FEELS, moodLine, skyOf, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import { NAMES_DEFAULT, FEELS, moodLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import { dayKey, festiveOf, glassOf, holidayOf, hourSast, phaseOf, seasonOf, skyFor, streakAlive, streakNext, weatherOf } from './world'
+import type { Streak } from './world'
 import type { Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
 
 // `shape` tags the stored form: a value an earlier version stored is declined, not misread.
@@ -45,6 +47,10 @@ const ERR_LINES = [
 ]
 
 let liveCols = 80
+let lastSky = '' // the key of the backdrop last drawn: it is redrawn only when the hour, the season, the weather or the lights change
+let running: { since: number; waiting: boolean } | undefined // a tool call in flight; past 20 s the cat goes to the window
+const LONG_CALL = 20_000
+let streak: Streak | undefined
 let turnStartedAt = 0
 let ticker: { cancel: () => void } | undefined
 let greeted: string | undefined // the first notice under the logo carries the greeting; a redraw of it keeps it
@@ -111,7 +117,8 @@ export const register: Register = on => {
       const [look, label] = tool === 'Bash' && BUILD.test(asked) ? (['chef', 'cooking a build'] as [Look, string]) : (LOOKS[tool] ?? (['coder', 'working'] as [Look, string]))
       await update($, scene, (s: Scene): Scene => ({ ...s, look, label, idle: 0, tools: s.tools + 1, skills: s.skills + (tool === 'Skill' ? 1 : 0), ...(tool === 'Skill' ? { jt: 1 } : {}) }))
       $.ui.status(label)
-      const ran = await next(e)
+      running = { since: await $.clock.now(), waiting: false }
+      const ran = await next(e).finally(() => { running = undefined })
       const command = String((e as { command?: unknown }).command ?? '')
       let ev: Reaction | null = null
       if (ran.deny !== undefined) ev = 'deny'
@@ -188,6 +195,16 @@ export const register: Register = on => {
       return r
     })
     $.ui.status(undefined)
+    try {
+      streak = streakNext(streak, dayKey(now))
+      await $.store.set('streak', streak)
+      const before = (await read($, scene)).streak ?? 0
+      await update($, scene, (s: Scene): Scene => ({ ...s, streak: streak!.days }))
+      if (streak.days !== before && [3, 7, 14, 30].includes(streak.days))
+        $.ui.toast(named(`${streak.days} days in a row. {cat} brought something for the bar.`, await read($, names)), { timeoutMs: 4000 })
+    } catch {
+      // a streak that cannot be kept is no loss
+    }
     if ((await read($, talk)) && !(await read($, isHidden))) {
       try {
         const st = await read($, scene)
@@ -230,7 +247,16 @@ export const register: Register = on => {
     // The diary carries across sessions too.
     const kept = (await $.store.get('diaryLog')) as string[] | undefined
     if (Array.isArray(kept)) await update($, diary, (d: string[]) => [...kept.filter(l => typeof l === 'string'), ...d].slice(-200))
-    await setWorld($, isNight(now) ? 'night' : 'day')
+    await update($, world, () => (isNight(now) ? 'night' : 'day'))
+    try {
+      streak = (await $.store.get('streak')) as Streak | undefined
+      const days = streakAlive(streak, dayKey(now))
+      await update($, scene, (s: Scene): Scene => ({ ...s, streak: days }))
+    } catch {
+      // no streak yet: the cat has not counted anything
+    }
+    lastSky = ''
+    await syncSky($, now, (await read($, scene)).joy)
     await $.tool
       .register({
         name: 'cat_diary',
@@ -259,8 +285,13 @@ export const register: Register = on => {
         const written = await update($, diary, (d: string[]) => [...d, ...said.map(l => `${hhmm(t)} ${named(l, nm)}`)].slice(-200))
         await $.store.set('diaryLog', written)
       }
+      if (running && !running.waiting && t - running.since > LONG_CALL) {
+        running.waiting = true
+        await update($, scene, (s: Scene): Scene => react(s, 'wait'))
+      }
+      if (snapshot) await syncSky($, t, (snapshot as Scene).joy)
       if (snapshot && snapshot.tick % 40 === 0) await $.store.set('memory', { trust: snapshot.trust, pets: snapshot.stats.pets, lastSeen: t })
-      if (snapshot && (snapshot.night ? 'night' : 'day') !== (await read($, world))) await setWorld($, snapshot.night ? 'night' : 'day')
+      if (snapshot && (snapshot.night ? 'night' : 'day') !== (await read($, world))) await update($, world, () => (snapshot!.night ? 'night' : 'day'))
     })
     // One command, subcommands inside: the session already has /pet from another mod.
     try {
@@ -366,8 +397,7 @@ export const register: Register = on => {
     }
     if (sub === '' || sub === 'hide' || sub === 'show') {
       const hidden = await update($, isHidden, h => (sub === 'hide' ? true : sub === 'show' ? false : !h))
-      const w = await read($, world)
-      await drawBackdrop($, hidden ? undefined : { id: w, glass: glassFor(w) })
+      if (hidden) { lastSky = ''; await drawBackdrop($, undefined) } else { lastSky = ''; await syncSky($, await $.clock.now(), (await read($, scene)).joy) }
       return { text: hidden ? 'The pair are hidden.' : 'The pair are back.' }
     }
     return { text: 'Usage: /critter [pet | treat | nap | spell | corner | stage | diary | hide | show | lite | full | party | talk on|off | sound on|off | feel calm|warm|playful | wizard auto|gold|bolt | name cat|pip <name> | cat <coat>]' }
@@ -566,7 +596,7 @@ export const register: Register = on => {
         {base}
         <Box flexDirection="row" gap={1}>
           {face('ok')}
-          <Text dimColor>{`critter-buddy: ${named(quip('greet', await read($, scene), hourOf(Date.now()), 0, weekdayOf(Date.now())), await read($, names))}`}</Text>
+          <Text dimColor>{`critter-buddy: ${named(quip('greet', await read($, scene), hourOf(Date.now()), 0, weekdayOf(Date.now()), holidayOf(Date.now())?.line), await read($, names))}`}</Text>
         </Box>
       </Box>
     )
@@ -589,14 +619,37 @@ export const register: Register = on => {
   // ---- the window behind the conversation: cream Day, glass Night with a few stars (the desktop app only) ----
   on('ui.render', { component: 'Backdrop' }, async ($, e, next) => {
     if (e.props.plugin !== 'critter-buddy') return next(e)
-    const sky = skyOf((await read($, world)) === 'night' ? 'night' : 'day')
+    const now = await $.clock.now()
+    const sky = skyFor(skyArgs(now, (await read($, scene)).joy))
     const { Box, Text } = kit($.ui.resolve(e), e.surface)
     return (
       <Box position="absolute" top={0} left={0} width="100%" height="100%" backgroundColor={sky.paper}>
         <Box position="absolute" bottom={0} left={0} width="100%" height="30%" backgroundColor={sky.ground} />
-        <Box position="absolute" top={2} right={6}>
-          <Text color={sky.bodyColor}>{sky.body}</Text>
-        </Box>
+        {!sky.bodyHidden && (
+          <Box position="absolute" top={sky.bodyTop} right={6}>
+            <Text color={sky.bodyColor}>{sky.body}</Text>
+          </Box>
+        )}
+        {sky.clouds.map((c, i) => (
+          <Box key={`c${i}`} position="absolute" top={c.top} left={c.left}>
+            <Text color={sky.cloudColour}>{'▂▄▆██▆▄▂'}</Text>
+          </Box>
+        ))}
+        {sky.rain.map((d, i) => (
+          <Box key={`r${i}`} position="absolute" top={d.top} left={d.left}>
+            <Text color={sky.cloudColour}>{'╲'}</Text>
+          </Box>
+        ))}
+        {sky.bolt && (
+          <Box position="absolute" top={sky.bolt.top} left={sky.bolt.left}>
+            <Text color="#c9a8ff">{'⚡'}</Text>
+          </Box>
+        )}
+        {sky.lights && (
+          <Box position="absolute" top={0} left={0} width="100%">
+            <Text>{Array.from({ length: 60 }, (_, i) => <Text key={`l${i}`} color={['#d97757', '#4fa39a', '#d4a548', '#8f7cc4'][i % 4]}>{i % 2 ? '●' : '○'}</Text>)}</Text>
+          </Box>
+        )}
         {sky.stars.map((st, i) => (
           <Box key={`s${i}`} position="absolute" top={st.top} left={st.left}>
             <Text color={st.big ? '#d4a548' : '#8f7cc4'} dimColor={!st.big}>{st.big ? '✦' : '·'}</Text>
@@ -616,7 +669,7 @@ export const register: Register = on => {
     const alone: Scene = { ...s, cols, kx: -80, look: s.look === 'wizard' || s.look === 'done' ? s.look : 'idle' }
     return (
       <Box flexDirection="column">
-        <Text bold>{`${nmS.pip}'s stage · ${(await read($, world)) === 'night' ? 'night' : 'day'}`}</Text>
+        <Text bold>{`${nmS.pip}'s stage · ${stageWord(await $.clock.now(), s.joy)}`}</Text>
         {vector ? svg(paintSvg(alone, 5), 'The critter alone on a stage, walking and idling') : rowsOf(Text, paint(alone), 's')}
         <Text dimColor>{`${s.label} · ${s.tools} tools · ${s.skills} skills`}</Text>
         <Box flexDirection="row">
@@ -700,19 +753,25 @@ export const register: Register = on => {
   })
 }
 
-// The glass behind the conversation: frosted cream by day, a deep violet tint by night.
-const glassFor = (w: 'day' | 'night') =>
-  w === 'night' ? { blur: 18, opacity: 0.6, tint: '#1c1838' } : { blur: 14, opacity: 0.5, tint: '#faf9f5' }
-
-// Set the world once, when it changes; the desktop draws it, every other surface answers that it did not.
-const setWorld = async ($: any, w: 'day' | 'night') => {
-  await update($, world, () => w)
+// What the backdrop is made of right now: the hour, the season, the session's weather and whether the lights are up.
+const skyArgs = (now: number, joy: number) => ({ phase: phaseOf(hourSast(now)), season: seasonOf(now), weather: weatherOf(joy), festive: festiveOf(now) })
+const stageWord = (now: number, joy: number) => {
+  const a = skyArgs(now, joy)
+  const h = holidayOf(now)
+  return [a.phase, a.season, a.weather === 'clear' ? undefined : a.weather, h?.name].filter(Boolean).join(' · ')
+}
+// Draw the backdrop again only when something it is made of changed; the desktop draws it, every other surface answers that it did not.
+const syncSky = async ($: any, now: number, joy: number) => {
   if ((await read($, isHidden)) === true) return
-  await drawBackdrop($, { id: w, glass: glassFor(w) })
+  const a = skyArgs(now, joy)
+  const key = skyFor(a).key
+  if (key === lastSky) return
+  lastSky = key
+  await drawBackdrop($, { id: key, glass: glassOf(a.phase) })
 }
 
 // Not every host has a backdrop to draw on: a missing or refused call is not the mod's problem.
-const drawBackdrop = async ($: any, arg: { id: string; glass: ReturnType<typeof glassFor> } | undefined) => {
+const drawBackdrop = async ($: any, arg: { id: string; glass: ReturnType<typeof glassOf> } | undefined) => {
   try {
     await $.ui.backdrop(arg)
   } catch {

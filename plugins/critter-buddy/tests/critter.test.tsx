@@ -1,7 +1,8 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Look, Scene } from '../types'
-import { weekdayOf, cadence, suggest, moodLine, skyOf, stepFeel, FEELS, controlLabels, draftRuns, diaryMarkdown, diaryParts, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
+import { dayKey, easterOf, festiveOf, holidayOf, hourSast, phaseOf, propsFor, seasonOf, skyFor, streakAlive, streakNext, weatherOf } from '../hooks/world'
+import { PROPS, weekdayOf, cadence, suggest, moodLine, skyOf, stepFeel, FEELS, controlLabels, draftRuns, diaryMarkdown, diaryParts, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
 
 test('the cat sprite is rectangular, sixteen by twenty, in every pose', () => {
   const base = { ...initial(), cols: 40, cx: -40, kx: 6 }
@@ -989,4 +990,92 @@ test('the stage names whose it is and what hour, and the corner shows the moods 
   expect(await corner.find({ type: 'Text', text: /trust .* · (wary|warming|fond|devoted)/ })).toBeDefined()
   expect(await corner.find({ type: 'Text', text: /joy .* · (flat|content|bright|delighted)/ })).toBeDefined()
   await corner.unmount()
+})
+
+// ---- the world: the hour, the season, the holidays, the session's weather, the streak, the props, the long wait ----
+const sast = (y: number, m: number, d: number, h = 10) => Date.UTC(y, m - 1, d, h - 2) // h is the hour in Johannesburg
+
+test('the hour sets the phase, the month the season (the southern hemisphere\'s), and the day is the Johannesburg day', () => {
+  expect([3, 5, 6, 7, 12, 16, 17, 18, 19, 23].map(phaseOf)).toEqual(['night', 'dawn', 'dawn', 'day', 'day', 'day', 'dusk', 'dusk', 'night', 'night'])
+  expect(hourSast(sast(2026, 11, 8, 23))).toBe(23)
+  expect(dayKey(Date.UTC(2026, 10, 8, 22, 30))).toBe('2026-11-09') // half past midnight in Johannesburg
+  expect([sast(2026, 12, 1), sast(2027, 2, 28), sast(2027, 3, 1), sast(2027, 6, 1), sast(2027, 9, 1), sast(2027, 11, 30)].map(seasonOf)).toEqual(['summer', 'summer', 'autumn', 'winter', 'spring', 'spring'])
+})
+
+test('the public holidays are found, Easter moves, and one on a Sunday is kept on the Monday', () => {
+  expect(easterOf(2027)).toEqual({ m: 3, d: 28 })
+  expect(easterOf(2026)).toEqual({ m: 4, d: 5 })
+  expect(holidayOf(sast(2027, 9, 24))?.key).toBe('heritage')
+  expect(holidayOf(sast(2027, 3, 26))?.key).toBe('good-friday') // two days before Easter Sunday
+  expect(holidayOf(sast(2027, 3, 29))?.key).toBe('family-day')
+  expect(holidayOf(sast(2027, 3, 21))?.key).toBe('human-rights') // a Sunday in 2027
+  expect(holidayOf(sast(2027, 3, 22))?.key).toBe('human-rights') // so Monday is kept too
+  expect(holidayOf(sast(2026, 12, 25))?.line).toMatch(/lights/)
+  expect(holidayOf(sast(2026, 11, 9))).toBeUndefined()
+  expect(festiveOf(sast(2026, 12, 14))).toBe(true)
+  expect(festiveOf(sast(2026, 12, 13))).toBe(false)
+  expect(festiveOf(sast(2027, 1, 1))).toBe(true)
+  expect(festiveOf(sast(2027, 1, 2))).toBe(false)
+})
+
+test('the weather is the pair\'s joy: errors darken it, good news clears it, and no forecast is asked for', () => {
+  expect([80, 60, 59, 45, 44, 25, 24, 0].map(weatherOf)).toEqual(['clear', 'clear', 'cloud', 'cloud', 'rain', 'rain', 'storm', 'storm'])
+  let s = initial()
+  expect(weatherOf(s.joy)).toBe('clear')
+  for (let i = 0; i < 5; i++) s = react(s, 'error')
+  expect(weatherOf(s.joy)).toBe('rain') // five errors: 60 - 30
+  s = react(react(s, 'test'), 'commit')
+  expect(weatherOf(s.joy)).toBe('rain') // 30 + 6 + 8 = 44: not yet
+  s = react(s, 'treat')
+  expect(weatherOf(s.joy)).toBe('cloud') // a treat lifts it the rest of the way
+})
+
+test('the sky is made of the hour, the season, the weather and the lights, and each draws something different', () => {
+  const night = skyFor({ phase: 'night', season: 'winter', weather: 'clear', festive: false })
+  expect(night.stars.length).toBeGreaterThan(10)
+  expect(night.key).toBe('night-winter-clear-plain')
+  const storm = skyFor({ phase: 'night', season: 'summer', weather: 'storm', festive: true })
+  expect(storm.bodyHidden).toBe(true)
+  expect(storm.stars).toHaveLength(0)
+  expect(storm.rain.length).toBeGreaterThan(40)
+  expect(storm.bolt).toBeDefined()
+  expect(storm.lights).toBe(true)
+  const dawn = skyFor({ phase: 'dawn', season: 'spring', weather: 'cloud', festive: false })
+  expect(dawn.bodyTop).toBeGreaterThan(skyFor({ phase: 'day', season: 'spring', weather: 'clear', festive: false }).bodyTop) // the sun is low at dawn
+  expect(dawn.clouds).toHaveLength(3)
+  expect(new Set(['day', 'dawn', 'dusk', 'night'].map(p => skyFor({ phase: p as 'day', season: 'summer', weather: 'clear', festive: false }).paper)).size).toBe(4)
+})
+
+test('the streak grows by one a day, counts a day once, restarts after a missed day, and the props come at 3, 7, 14 and 30', () => {
+  let st = streakNext(undefined, '2026-11-08')
+  expect(st).toEqual({ days: 1, last: '2026-11-08' })
+  expect(streakNext(st, '2026-11-08')).toBe(st)
+  st = streakNext(st, '2026-11-09')
+  expect(st.days).toBe(2)
+  expect(streakNext(st, '2026-11-11')).toEqual({ days: 1, last: '2026-11-11' })
+  expect(streakNext({ days: 5, last: '2026-12-31' }, '2027-01-01').days).toBe(6) // across the year
+  expect(streakAlive(st, '2026-11-09')).toBe(2)
+  expect(streakAlive(st, '2026-11-10')).toBe(2) // yesterday still counts until today is over
+  expect(streakAlive(st, '2026-11-11')).toBe(0) // a missed day ends it
+  expect(streakAlive(undefined, '2026-11-11')).toBe(0)
+  expect([0, 2, 3, 7, 14, 30].map(d => propsFor(d))).toEqual([[], [], ['yarn'], ['yarn', 'cushion'], ['yarn', 'cushion', 'plant'], ['yarn', 'cushion', 'plant', 'lamp']])
+})
+
+test('a streak puts props on the bar behind the pair, and a long call sends the cat to the window', () => {
+  const s = { ...initial(), cols: 96, mode: 'loaf' as const }
+  const bare = canvasOf(s, 96)
+  const dressed = canvasOf({ ...s, streak: 30 }, 96)
+  expect(dressed.flat().filter(k => k !== '.').length).toBeGreaterThan(bare.flat().filter(k => k !== '.').length)
+  for (const p of Object.values(PROPS)) expect(new Set(p.map(r => r.length)).size).toBe(1) // every prop is a clean rectangle
+  const waiting = react(s, 'wait')
+  expect(waiting.mode).toBe('walk')
+  expect(waiting.target).toBe(96 - CAT_W)
+  expect(waiting.log.at(-1)).toMatch(/window/)
+})
+
+test('the greeting says the holiday and the streak, and the night keeps its own lines', () => {
+  const s = { ...initial(), streak: 5 }
+  expect(quip('greet', s, 9, 0, 5, 'Heritage Day. a braai')).toMatch(/^Heritage Day\. a braai · day 5 together · \/critter$/)
+  expect(quip('greet', s, 23, 0, 5, 'Heritage Day. a braai')).toMatch(/night|glass/)
+  expect(quip('greet', { ...initial(), streak: 1 }, 9, 0, 1)).not.toMatch(/together/) // a streak of one is not a streak
 })

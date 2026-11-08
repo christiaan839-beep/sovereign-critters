@@ -1,7 +1,9 @@
 import type { CatMode, CatVariant, Fx, Look, Scene } from '../types'
+import { propsFor } from './world'
+import type { Prop } from './world'
 
 export type Run = { text: string; fg?: string; bg?: string }
-export type Reaction = 'error' | 'test' | 'commit' | 'turn' | 'ask' | 'deny' | 'pet' | 'treat' | 'nap' | 'spell'
+export type Reaction = 'error' | 'test' | 'commit' | 'turn' | 'ask' | 'deny' | 'pet' | 'treat' | 'nap' | 'spell' | 'wait'
 
 export const H = 32 // pixel rows: the 30-pixel cat and the 30-row wizard with his bolt, and a one-pixel outline above and below
 
@@ -192,6 +194,15 @@ const cupPx = (tick: number): Px => {
   const steam = tick % 8 < 4 ? ['..W..W..', '...W..W.'] : ['...W..W.', '..W..W..']
   return [...steam, '.YYYYYY.', 'YWWWWWWY', 'YWBBBBWYY', 'YWBBBBWWY', '.YWWWWY.']
 }
+/** What the cat keeps on the bar once you have come back enough days in a row: our own pixels, drawn behind the pair. */
+export const PROPS: Record<Prop, Px> = {
+  yarn: ['..RR..', '.RRRR.', 'RRHRRR', '.RRRRY', '..RR..'],
+  cushion: ['.TTTTTTTT.', 'TTTGTTTGTT', 'TTTTTTTTTT', '.TTTTTTTT.'],
+  plant: ['..T.T..', '.TTTTT.', '..TTT..', '.TTTTT.', '...B...', '.CCCCC.', '.CDDDC.', '..CCC..'],
+  lamp: ['.GGGG.', 'GGGGGG', 'GmmmmG', '..qq..', '..qq..', '..qq..', '..qq..', '.qqqq.'],
+}
+/** Where each prop stands, counted back from the right edge of the bar. */
+const PROP_AT: Record<Prop, number> = { yarn: 14, cushion: 28, plant: 40, lamp: 50 }
 export const LAPTOP_W = 18
 /** An open laptop seen from the front, flat like the official critter's: a dark screen whose sparks move as it types, a lit edge, a keyboard deck. */
 const laptopPx = (tick: number): Px => {
@@ -383,6 +394,8 @@ export const react = (s: Scene, ev: Reaction, arg = 0): Scene => {
         fx: addFx(s, { k: 'treat', x: s.cx + 5, y: 12, vx: 0, vy: -1, life: 10 }), log: say(s, 'A treat. {pip} is sure it was his.') }
     case 'nap':
       return { ...poke(s, 'loaf'), look: 'idle', label: 'napping', idle: 200, log: say(s, '{cat} and {pip} nap. Do not look at the screen.') }
+    case 'wait': // a long build: the cat walks to the far end of the bar, to the window, and watches
+      return { ...poke(woke, 'walk'), target: Math.max(0, s.cols - CAT_W), log: say(s, 'A long one. {cat} went to the window to wait.') }
     case 'spell':
       return { ...woke, look: 'wizard', label: 'casting', wt: 0, jt: 1, joy: clamp(s.joy + 4), fx: addFx(s, ...sparks(s.cx + 6, 5)),
         log: say(s, '{pip} cast something. Nothing happened. He is delighted.') }
@@ -546,6 +559,7 @@ export const canvasOf = (s: Scene, cols: number): string[][] => {
         phase: s.mode === 'alert' || s.mode === 'swat' || s.tick % 40 > 34 ? 1 : 0, // the tail flicks, and rides up when it is alert
       })
   const facing = s.mode === 'sulk' ? (s.kdir === 1 ? -1 : 1) : s.kdir
+  for (const p of propsFor(s.streak ?? 0)) blit(canvas, PROPS[p], cols - PROP_AT[p], H - 1, false) // behind the pair
   blit(canvas, catPx, s.kx - 1, H - 1 - lift, facing === -1)
   const hop = (JUMP[Math.min(9, s.jt)] ?? 0) * SCALE
   blit(canvas, critterPx(s, stepA), s.cx, H - 1 - hop, s.cdir === -1)
@@ -735,7 +749,7 @@ const WEEKDAY: readonly (readonly string[])[] = [
 export const weekdayOf = (ms: number): number => (((Math.floor((ms + 7_200_000) / 86_400_000) + 4) % 7) + 7) % 7
 
 /** `hour` is the hour in Africa/Johannesburg, 0 to 23. `ms` is only read for the turn line. `weekday` (0 Sunday) tints a daylight greeting. */
-export const quip = (kind: Voice, s: Scene, hour = 12, ms = 0, weekday?: number): string => {
+export const quip = (kind: Voice, s: Scene, hour = 12, ms = 0, weekday?: number, holiday?: string): string => {
   switch (kind) {
     case 'turn':
       if (s.stats.errors > 0 && s.log.some(l => /fail/i.test(l)) && ms < 120_000) return pickBy(TURN_ROUGH, s)
@@ -745,7 +759,9 @@ export const quip = (kind: Voice, s: Scene, hour = 12, ms = 0, weekday?: number)
     case 'greet': {
       const night = hour >= 18 || hour < 5
       const pool = night ? NIGHT : weekday !== undefined && hour < 17 ? WEEKDAY[((weekday % 7) + 7) % 7]! : hour < 11 ? MORNING : hour < 17 ? DAY : EVENING
-      return `${pickBy(pool, s)} · /critter`
+      const days = s.streak ?? 0
+      const streak = days >= 2 ? ` · day ${days} together` : ''
+      return `${holiday && !night ? holiday : pickBy(pool, s)}${streak} · /critter`
     }
     case 'hint':
       return s.look === 'wizard' ? '{pip} is casting' : s.mode === 'sit' ? '{cat} is on the laptop' : s.look === 'idle' && s.idle > 100 ? 'both asleep' : '/critter pet'

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.12.0
+
+- The weather sky. The backdrop follows the hour in Johannesburg (night, dawn, day, dusk: the sun sits low at dawn and dusk, the stars come out at dusk) and the season of the southern hemisphere tints the ground. The weather is the session's own, not a forecast: the pair's joy sets it, so errors bring cloud, then rain, then a storm that hides the sun and throws a bolt, and a green test, a commit or a treat clears it. Nothing is fetched.
+- The streak. Come back to the cat on consecutive days and it keeps count (`day 5 together` in the greeting); at 3, 7, 14 and 30 days it puts a ball of yarn, a cushion, a plant and a lamp on the bar, drawn behind the pair, with a toast the day each arrives. A missed day starts it again. Only the day and the count are kept.
+- Seasons and South African holidays. The public holidays, Easter's included and a Sunday's kept on the Monday, take over the daytime greeting in the cat's voice; the stage title names the holiday and the season; from the 14th of December to New Year's Day a string of lights runs across the top of the window.
+- The long wait. A tool call that runs past 20 seconds (a build, an install, a test run) sends the cat to the far end of the bar, to the window; what the call does at the end (green, failed) moves the pair as before. It works beside build-bell, which rings the bell and shows the toast.
+
 ## 0.11.4
 
 - The band is centred for real: the art, the status line and the buttons are centred across the window. Before, only their vertical alignment was set, so on the desktop everything sat to the left.

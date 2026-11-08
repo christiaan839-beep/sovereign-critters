@@ -42,6 +42,8 @@ export type Scene = {
   game: Game
   stats: Stats
   log: string[]
+  /** Days in a row you came back to the cat; three earns a ball of yarn, seven a cushion, 14 a plant, 30 a lamp. */
+  streak?: number
 }
 
 declare module 'claude-code' {
