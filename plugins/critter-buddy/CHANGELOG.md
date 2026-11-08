@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.1
+
+- The demo GIF and the preview poster are drawn again from the mod's own scene and sky code: a working day (reading, cooking, casting, done), then dusk, night and rain, with the ridge and the wisps. The poster shows the Friday greeting, the full glass and the week's bars.
+
 ## 0.13.0
 
 - The clear-day backdrop has depth: a far ridge along the horizon (the ground tinted toward teal by day, toward violet at night) and three wisps of high thin cloud, instead of one dot and a flat block. A night and a storm keep their own skies.
