@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.2
+
+- Everything on by default: `party` is the starting reach (the bar, the wizard, the orb, the rows and every message). `/critter lite` and `/critter full` still turn it down. (The code change shipped inside 0.11.1; this records it.)
+
 ## 0.11.1
 
 - Fixed: on the desktop the last button (`the corner`) wrapped alone onto a second line, and another mod's row under the bar (crab's) was clipped. The status now has its own line, the five buttons share the next, and the air before other mods' rows is a spacer row instead of margins, which the desktop does not count when it sizes the bar.
