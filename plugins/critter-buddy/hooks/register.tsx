@@ -2,8 +2,8 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { NAMES_DEFAULT, FEELS, moodLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
-import { dayKey, dueForWait, glassOf, holidayOf, nextProp, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
+import { NAMES_DEFAULT, FEELS, moodLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import { dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
 import type { Flight, Streak } from './world'
 import type { Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
 
@@ -22,6 +22,7 @@ const talk = atom({ plugin: 'critter-buddy', key: 'talk' } as const, true as boo
 
 const names = atom({ plugin: 'critter-buddy', key: 'names' } as const, NAMES_DEFAULT as Names, { shape: 'names-1' })
 const feel = atom({ plugin: 'critter-buddy', key: 'feel' } as const, 'warm' as Feel, { shape: 'feel-1' })
+const usage = atom({ plugin: 'critter-buddy', key: 'usage' } as const, '', { shape: 'usage-1' })
 const sound = atom({ plugin: 'critter-buddy', key: 'sound' } as const, false as boolean, { shape: 'sound-1' })
 
 const PANE = 'cat-corner'
@@ -205,6 +206,27 @@ export const register: Register = on => {
         $.ui.toast(named(`${streak.days} days in a row. {cat} brought something for the bar.`, await read($, names)), { timeoutMs: 4000 })
     } catch {
       // a streak that cannot be kept is no loss
+    }
+    // How full the glass is: the cat says so once it matters, and the toast comes only on crossing into the last tenth.
+    try {
+      const u = await $.session.usage()
+      const text = usageLine(u.context.percent, u.rateLimits.find((x: { kind: string }) => x.kind === 'five_hour')?.percentUsed)
+      const was = await read($, usage)
+      await update($, usage, () => text)
+      if (text.includes('compact button') && !was.includes('compact button')) $.ui.toast(named(text, await read($, names)), { timeoutMs: 5000 })
+    } catch {
+      // no usage to read: the cat says nothing about it
+    }
+    // One dim line the person can Tab into the empty box: the corner after a new prop, the week's diary on a Friday afternoon.
+    try {
+      const last = (await $.store.get('nudged')) as string | undefined
+      const text = nudgeFor(now, streak!.days, (await read($, scene)).streak ?? 0, last)
+      if (text) {
+        await $.prompt.suggest({ text })
+        if (text === '/diary week') await $.store.set('nudged', dayKey(now))
+      }
+    } catch {
+      // a nudge that cannot be shown is no loss
     }
     if ((await read($, talk)) && !(await read($, isHidden))) {
       try {
@@ -406,6 +428,7 @@ export const register: Register = on => {
     if (e.props.hasSurvey || (await read($, isHidden))) return next(e)
     const s = await read($, scene)
     const nm = await read($, names)
+    const usageText = await read($, usage)
     // A wide desktop window would spread the pair thin across it: the bar stops at 96 cells, like the film's frame.
     const cols = Math.min(96, e.props.bodyColumns || e.viewport?.columns || 80)
     liveCols = cols
@@ -427,6 +450,7 @@ export const register: Register = on => {
           <Text key="label">{s.label}</Text>
           <Text key="mood" dimColor>{`· cat ${moodOf(s)}`}</Text>
         </Box>
+        {usageText ? <Box key="usage" flexDirection="row" justifyContent="center"><Text dimColor>{named(usageText, nm)}</Text></Box> : null}
         <Box key="controls" flexDirection="row" flexWrap="wrap" alignItems="center" justifyContent="center" columnGap={1}>
           <Button key="pet" label={lb.pet} hotkey="p" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'pet')); await ring($, 'purr') }} />
           <Button key="treat" label={lb.feed} hotkey="t" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'treat'))} />
@@ -622,7 +646,14 @@ export const register: Register = on => {
     const { Box, Text } = kit($.ui.resolve(e), e.surface)
     return (
       <Box position="absolute" top={0} left={0} width="100%" height="100%" backgroundColor={sky.paper}>
-        <Box position="absolute" bottom={0} left={0} width="100%" height="30%" backgroundColor={sky.ground} />
+        <Box position="absolute" bottom={0} left={0} width="100%" height="30%" backgroundColor={sky.ground}>
+          <Box position="absolute" top={-1} left={0} width="100%"><Text color={sky.ridgeColour}>{RIDGE}</Text></Box>
+        </Box>
+        {sky.wisps.map((w, i) => (
+          <Box key={`w${i}`} position="absolute" top={w.top} left={w.left}>
+            <Text color={sky.cloudColour}>{'▁▂▃▃▂▁'}</Text>
+          </Box>
+        ))}
         {!sky.bodyHidden && (
           <Box position="absolute" top={sky.bodyTop} right={6}>
             <Text color={sky.bodyColor}>{sky.body}</Text>

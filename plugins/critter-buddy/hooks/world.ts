@@ -123,6 +123,14 @@ const CLOUD_COLOUR: Record<Phase, Record<Weather, string>> = {
   night: { clear: '#232228', cloud: '#2a2930', rain: '#34343c', storm: '#42424d' },
 }
 
+/** A hex colour moved toward another by `k` (0 to 1). */
+const mix = (a: string, b: string, k: number): string => {
+  const n = (h: string, i: number) => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16)
+  return '#' + [0, 1, 2].map(i => Math.round(n(a, i) + (n(b, i) - n(a, i)) * k).toString(16).padStart(2, '0')).join('')
+}
+/** The far ridge along the horizon: a gentle highveld skyline of two slow swells, one row of blocks, the same every time. */
+export const RIDGE: string = Array.from({ length: 160 }, (_, i) => '▁▂▃▄▅'[Math.max(0, Math.min(4, Math.round(2 + 1.6 * Math.sin(i / 9) + 0.9 * Math.sin(i / 3.7 + 1))))]).join('')
+
 /** The window behind the conversation, from the hour, the season, the session's weather and the holiday. */
 export const skyFor = (o: { phase: Phase; season: Season; weather: Weather; festive: boolean }) => {
   const dark = o.phase === 'night' || o.phase === 'dusk'
@@ -141,6 +149,8 @@ export const skyFor = (o: { phase: Phase; season: Season; weather: Weather; fest
     rain: o.weather === 'rain' ? place(26, 40, 30, 150) : o.weather === 'storm' ? place(60, 40, 30, 150) : ([] as { top: number; left: number }[]),
     bolt: o.weather === 'storm' ? { top: 6, left: 74 } : undefined,
     lights: o.festive,
+    ridgeColour: dark ? mix(GROUND[o.phase][o.season], '#8f7cc4', 0.12) : mix(GROUND[o.phase][o.season], '#4fa39a', 0.14), // the ridge is the ground a shade toward violet at night, toward teal by day
+    wisps: o.weather === 'clear' && !dark ? place(3, 20, 7, 120) : ([] as { top: number; left: number }[]), // a clear day still has high thin cloud
   }
 }
 /** The glass of the desktop window, tinted by the hour. */
@@ -162,3 +172,14 @@ export const dueForWait = (flights: Iterable<Flight>, now: number): boolean => {
 }
 /** What the backdrop is made of at an instant, given the pair's joy: the hour, the season, the weather and whether the lights are up. */
 export const skyArgsOf = (now: number, joy: number) => ({ phase: phaseOf(hourSast(now)), season: seasonOf(now), weather: weatherOf(joy), festive: festiveOf(now) })
+
+/**
+ * The one thing the cat would put in the empty prompt box, dim, for Tab to take: the corner when a prop has just been earned,
+ * the week's diary on a Friday afternoon (once a day). `before` is the streak before this turn; `lastNudge` the day key of the last Friday nudge.
+ */
+export const nudgeFor = (now: number, days: number, before: number, lastNudge: string | undefined): string | undefined => {
+  if (days !== before && [3, 7, 14, 30].includes(days)) return '/critter corner'
+  const weekday = ((Math.floor((now + 7_200_000) / 86_400_000) + 4) % 7 + 7) % 7
+  if (weekday === 5 && hourSast(now) >= 15 && lastNudge !== dayKey(now)) return '/diary week'
+  return undefined
+}

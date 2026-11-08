@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.13.0
+
+- The clear-day backdrop has depth: a far ridge along the horizon (the ground tinted toward teal by day, toward violet at night) and three wisps of high thin cloud, instead of one dot and a flat block. A night and a storm keep their own skies.
+- The cat watches the context window. From half full the band says how full the glass is; at 75% Pip eyes it; at 90% Biscuit sits on the compact button, with one toast on crossing. Near the end of the five-hour window the cat rations treats.
+- One dim nudge in the empty prompt box, for Tab to take: `/critter corner` when a new prop has just been earned, `/diary week` on a Friday afternoon (once a day).
+- The prompt box paints ordinary words too: `@files` in teal, links underlined, `code spans` in gold. The `/critter` commands keep their own colours.
+
 ## 0.12.3
 
 - The greeting has five lines for every weekday and every part of the day, up from two, and picks one a day: a new line tomorrow, the same one on every reopen today. Lines that name the day or the hour still do.

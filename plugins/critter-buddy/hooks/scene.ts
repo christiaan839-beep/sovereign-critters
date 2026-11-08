@@ -794,6 +794,14 @@ export const quip = (kind: Voice, s: Scene, hour = 12, ms = 0, weekday?: number,
   }
 }
 
+/** What the cat says about how full the context window is and how much of the five hours is spent; empty while there is nothing to say. Lines say {cat} and {pip}. */
+export const usageLine = (percent: number | undefined, fiveHour: number | undefined): string => {
+  const p = percent === undefined ? undefined : Math.round(percent)
+  const head = p === undefined || p < 50 ? '' : p < 75 ? `the glass is ${p}% full` : p < 90 ? `{pip} is eyeing the glass · ${p}% full` : `{cat} is sitting on the compact button · ${p}% full`
+  const rate = fiveHour !== undefined && fiveHour >= 85 ? `{cat} is rationing treats · ${Math.round(fiveHour)}% of the five hours gone` : ''
+  return [head, rate].filter(Boolean).join(' · ')
+}
+
 // ---- the typeahead -------------------------------------------------------------
 export type Suggestion = { text: string; label: string; description: string }
 const COATS_LIST = ['orange', 'ink', 'brown', 'tabby', 'ginger', 'black', 'tuxedo', 'cream', 'grey', 'siamese', 'pair']
@@ -842,6 +850,14 @@ const FAMILY: Record<string, { ghost: string; subs?: Record<string, string> }> =
   stunt: { ghost: 'the critter in a pane, a card per call' },
   everywhere: { ghost: 'your three most-used tools' },
 }
+/** Ordinary words get the mod's own colours: an @file in teal, a link underlined, a `code span` in gold. Nothing else is touched. */
+export const plainRuns = (text: string): DraftRun[] => {
+  const out: DraftRun[] = []
+  for (const m of text.matchAll(/(^|\s)(@[\w./-]+)/g)) out.push({ start: m.index! + m[1]!.length, end: m.index! + m[0].length, color: TEAL })
+  for (const m of text.matchAll(/https?:\/\/[^\s)]+/g)) out.push({ start: m.index!, end: m.index! + m[0].length, color: TEAL, underline: true })
+  for (const m of text.matchAll(/`[^`\n]+`/g)) out.push({ start: m.index!, end: m.index! + m[0].length, color: GOLD })
+  return out.sort((a, b) => a.start - b.start)
+}
 export const draftRuns = (text: string, n: Names = NAMES_DEFAULT): DraftRun[] => {
   const fam = /^\/(diary|stunt|everywhere)(?=\s|$)/.exec(text)
   if (fam) {
@@ -857,7 +873,7 @@ export const draftRuns = (text: string, n: Names = NAMES_DEFAULT): DraftRun[] =>
     return out
   }
   const m = /^\/critter(?=\s|$)/.exec(text)
-  if (!m) return []
+  if (!m) return plainRuns(text)
   const out: DraftRun[] = [{ start: 0, end: 8, color: CLAY, bold: true }]
   const words = [...text.matchAll(/\S+/g)].slice(1) // the words after the command
   const sub = words[0]

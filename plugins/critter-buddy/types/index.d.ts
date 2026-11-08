@@ -64,6 +64,8 @@ declare module 'claude-code' {
       sound: Shaped<boolean>
       /** How lively the pair are: calm (still, silent), warm (the usual) or playful. */
       feel: Shaped<'calm' | 'warm' | 'playful'>
+      /** The cat's line about how full the context window is; empty while there is nothing to say. */
+      usage: Shaped<string>
     }
   }
 }

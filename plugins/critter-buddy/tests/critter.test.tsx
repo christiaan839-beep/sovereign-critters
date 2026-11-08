@@ -1,8 +1,8 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Look, Scene } from '../types'
-import { dueForWait, LONG_CALL, skyArgsOf, nextProp, dayKey, easterOf, festiveOf, holidayOf, hourSast, phaseOf, propsFor, seasonOf, skyFor, streakAlive, streakNext, weatherOf } from '../hooks/world'
-import { PROPS, weekdayOf, cadence, suggest, moodLine, skyOf, stepFeel, FEELS, controlLabels, draftRuns, diaryMarkdown, diaryParts, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
+import { nudgeFor, RIDGE, dueForWait, LONG_CALL, skyArgsOf, nextProp, dayKey, easterOf, festiveOf, holidayOf, hourSast, phaseOf, propsFor, seasonOf, skyFor, streakAlive, streakNext, weatherOf } from '../hooks/world'
+import { plainRuns, usageLine, PROPS, weekdayOf, cadence, suggest, moodLine, skyOf, stepFeel, FEELS, controlLabels, draftRuns, diaryMarkdown, diaryParts, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
 
 test('the cat sprite is rectangular, sixteen by twenty, in every pose', () => {
   const base = { ...initial(), cols: 40, cx: -40, kx: 6 }
@@ -1156,4 +1156,76 @@ test('every part of the day has five lines that name their hour, and the weekday
     expect(seen.size).toBe(5)
     for (const l of seen) expect(l.startsWith(days[w]!)).toBe(true)
   }
+})
+
+test('the horizon is a ridge of five heights, and a clear day has high thin cloud while a night and a storm do not', () => {
+  expect(RIDGE.length).toBeGreaterThanOrEqual(150)
+  expect(new Set(RIDGE).size).toBe(5) // the ridge rises and falls through every height, it is not a flat line
+  expect(RIDGE).toBe(RIDGE) // fixed: no chance in it
+  const clearDay = skyFor({ phase: 'day', season: 'spring', weather: 'clear', festive: false })
+  expect(clearDay.wisps).toHaveLength(3)
+  expect(clearDay.ridgeColour).not.toBe(clearDay.ground) // the ridge is seen against the ground
+  expect(skyFor({ phase: 'night', season: 'spring', weather: 'clear', festive: false }).wisps).toHaveLength(0)
+  expect(skyFor({ phase: 'day', season: 'spring', weather: 'storm', festive: false }).wisps).toHaveLength(0)
+  expect(skyFor({ phase: 'dawn', season: 'winter', weather: 'clear', festive: false }).wisps).toHaveLength(3)
+})
+
+test('the cat says how full the glass is only once it matters, and the five-hour window when it is nearly spent', () => {
+  expect(usageLine(undefined, undefined)).toBe('')
+  expect(usageLine(49, 10)).toBe('') // under half: nothing to say
+  expect(usageLine(50, 10)).toBe('the glass is 50% full')
+  expect(usageLine(62, 10)).toBe('the glass is 62% full')
+  expect(usageLine(80, 10)).toBe('{pip} is eyeing the glass · 80% full')
+  expect(usageLine(93, 10)).toBe('{cat} is sitting on the compact button · 93% full')
+  expect(usageLine(20, 91)).toBe('{cat} is rationing treats · 91% of the five hours gone')
+  expect(usageLine(95, 90)).toBe('{cat} is sitting on the compact button · 95% full · {cat} is rationing treats · 90% of the five hours gone')
+})
+
+test('the box carries one dim nudge: the corner on a new prop, the week on a Friday afternoon, once a day', () => {
+  const FRI_15 = Date.UTC(2026, 10, 13, 13) // Friday 15:00 in Johannesburg
+  expect(nudgeFor(FRI_15 - 3 * 3_600_000, 2, 2, undefined)).toBeUndefined() // Friday noon: too early
+  expect(nudgeFor(FRI_15, 2, 2, undefined)).toBe('/diary week')
+  expect(nudgeFor(FRI_15, 2, 2, '2026-11-13')).toBeUndefined() // already said today
+  expect(nudgeFor(FRI_15 + DAY_MS, 2, 2, undefined)).toBeUndefined() // Saturday
+  expect(nudgeFor(FRI_15, 7, 6, '2026-11-13')).toBe('/critter corner') // a new prop wins, and is not limited to Fridays
+  expect(nudgeFor(FRI_15 - 2 * DAY_MS, 14, 13, undefined)).toBe('/critter corner')
+  expect(nudgeFor(FRI_15 - 2 * DAY_MS, 8, 8, undefined)).toBeUndefined() // not a milestone, not a Friday
+})
+
+test('ordinary words are painted: files in teal, links underlined, code in gold, the rest left alone', () => {
+  const text = 'fix @src/app.ts, see https://example.com/x and `npm test`'
+  const runs = plainRuns(text)
+  expect(runs.map(r => text.slice(r.start, r.end))).toEqual(['@src/app.ts,'.slice(0, -1), 'https://example.com/x', '`npm test`'])
+  expect(runs.map(r => r.color)).toEqual(['#4fa39a', '#4fa39a', '#d4a548'])
+  expect(runs[1]!.underline).toBe(true)
+  expect(plainRuns('an email a@b.com is not a file')).toEqual([]) // an @ inside a word is not a mention
+  expect(plainRuns('')).toEqual([])
+})
+
+test('a turn that fills the glass says so in the band and toasts once; a streak milestone offers the corner in the box', async ($, on) => {
+  stub(on)
+  const toasts: string[] = []
+  const offered: string[] = []
+  let percent = 40
+  on('ui.status', () => ({ value: undefined }))
+  on('ui.toast', (_: unknown, e: { text: string }) => { toasts.push(e.text); return { value: undefined } })
+  on('turn.complete', () => ({ text: 'done' }))
+  on('model.complete', () => ({ value: { isAnswered: false, text: '', usage: {} } }) as never)
+  on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1_000_000, percent }, rateLimits: [] } }) as never)
+  on('prompt.suggest', (_: unknown, e: { text: string }) => { offered.push(e.text); return { isSuggested: true } as never })
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.turn.complete({ answer: 'done' } as never)
+  const band = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await band.find({ type: 'Text', text: /glass/ })).toBeUndefined() // 40%: nothing to say
+  percent = 93
+  await $.turn.complete({ answer: 'done' } as never)
+  await band.redraw()
+  expect(await band.find({ type: 'Text', text: /sitting on the compact button · 93% full/ })).toBeDefined()
+  expect(toasts.filter(t => /compact button/.test(t))).toHaveLength(1)
+  await $.turn.complete({ answer: 'done' } as never)
+  expect(toasts.filter(t => /compact button/.test(t))).toHaveLength(1) // already said: no second toast
+  expect(offered).toEqual([]) // day one, a Monday-ish clock: nothing to offer
 })
