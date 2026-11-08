@@ -869,11 +869,11 @@ test('the band puts its status on one line and its buttons on the next, and uses
   for (const surface of ['desktop', 'terminal'] as const) {
     const ui = await $.ui.mount({ ...BAND, surface })
     const status = (await ui.find({ key: 'status' })) as { props?: Record<string, unknown> } | undefined
-    expect(status?.props).toMatchObject({ flexDirection: 'row', alignItems: 'center' })
+    expect(status?.props).toMatchObject({ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' })
     expect(await ui.find({ type: 'Text', text: /^ready$/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /^· cat / })).toBeDefined()
     const bar = (await ui.find({ key: 'controls' })) as { props?: Record<string, unknown> } | undefined
-    expect(bar?.props).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' })
+    expect(bar?.props).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' })
     expect(bar?.props?.marginTop).toBeUndefined() // a margin is lost to the desktop's measure and clips the row beneath
     expect(bar?.props?.marginBottom).toBeUndefined()
     const others = (await ui.find({ key: 'others' })) as { props?: Record<string, unknown> } | undefined

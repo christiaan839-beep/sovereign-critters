@@ -389,17 +389,17 @@ export const register: Register = on => {
     return (
       <Box flexDirection="column">
         {vector ? (
-          <Box flexDirection="column">
-            {svg(paintSvg({ ...s, cols }, 5), 'The critter and the tabby cat on the bar')}
+          <Box key="art" flexDirection="column">
+            <Box flexDirection="row" justifyContent="center">{svg(paintSvg({ ...s, cols }, 5), 'The critter and the tabby cat on the bar')}</Box>
             <Text> </Text>
           </Box>
         ) : rowsOf(Text, rows, 'r')}
         {/* the status on its own line, one row of buttons under it; air is a spacer row, not a margin, because the desktop does not count margins when it sizes this region and would clip the row beneath */}
-        <Box key="status" flexDirection="row" alignItems="center" columnGap={1}>
+        <Box key="status" flexDirection="row" alignItems="center" justifyContent="center" columnGap={1}>
           <Text key="label">{s.label}</Text>
           <Text key="mood" dimColor>{`· cat ${moodOf(s)}`}</Text>
         </Box>
-        <Box key="controls" flexDirection="row" flexWrap="wrap" alignItems="center" columnGap={1}>
+        <Box key="controls" flexDirection="row" flexWrap="wrap" alignItems="center" justifyContent="center" columnGap={1}>
           <Button key="pet" label={lb.pet} hotkey="p" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'pet')); await ring($, 'purr') }} />
           <Button key="treat" label={lb.feed} hotkey="t" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'treat'))} />
           <Button key="cast" label={lb.cast} hotkey="c" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'spell')); await ring($, 'cast') }} />

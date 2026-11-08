@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.4
+
+- The band is centred for real: the art, the status line and the buttons are centred across the window. Before, only their vertical alignment was set, so on the desktop everything sat to the left.
+
 ## 0.11.3
 
 - The cat talks by default: one small model call after each turn, a line from the cat in the transcript. `/critter talk off` keeps it quiet and spends nothing. Sound is still the founder's to switch on (`/critter sound on`).
