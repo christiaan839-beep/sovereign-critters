@@ -1,9 +1,10 @@
 {
   "name": "build-bell",
-  "version": "0.1.0",
-  "description": "A soft bell and a toast when a long command finishes, so you can look away while a build, an install or a test run goes. It says how long it took and whether it failed. Quiet for anything short.",
+  "version": "0.2.0",
+  "description": "A counter-bell strike and a toast when a long command finishes, so you can look away while a build, an install or a test run goes. It says how long it took and whether it failed. Quiet for anything short.",
   "author": {
     "name": "Sovereign Matrix"
   },
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "icon": "./.claude-plugin/icon.png"
 }
