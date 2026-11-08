@@ -3,7 +3,7 @@ import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
 import { windowWidth, fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, wizardPoseFor, isQuiet, motionTick, welcomeLine, cleanMemory, cleanStreak, doctorLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
-import { hourSast, dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, RIDGE_FAR, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
+import { hourSast, dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, RIDGE_FAR, thinkingOf, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
 import type { Flight, Streak } from './world'
 import type { SoundName, Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
 
@@ -240,6 +240,11 @@ export const register: Register = on => {
       // a stamp that cannot be written means the nudge may come once more; no harm
     }
     await update($, scene, (s: Scene): Scene => ({ ...s, look: 'wizard', wt: 0, label: 'thinking', tools: 0, idle: 0 })) // the wizard takes the bar for the whole turn: the hat builds while Claude thinks
+    try {
+      await syncSky($, turnStartedAt, await read($, scene)) // the sky warms the moment a prompt goes in
+    } catch {
+      // a sky that cannot warm is no loss
+    }
     return next(e)
   }).catch(($, e, next) => next(e))
 
@@ -273,6 +278,11 @@ export const register: Register = on => {
       return r
     })
     $.ui.status(undefined)
+    try {
+      await syncSky($, now, await read($, scene)) // and settles when the turn ends
+    } catch {
+      // a sky that cannot settle is no loss
+    }
     let streakBefore = 0 // the streak as it stood before this turn: the nudge needs it after the scene has moved on
     try {
       streak = streakNext(streak, dayKey(now))
@@ -756,7 +766,8 @@ export const register: Register = on => {
   on('ui.render', { component: 'Backdrop' }, async ($, e, next) => {
     if (e.props.plugin !== 'critter-buddy') return next(e)
     const now = await $.clock.now()
-    const sky = skyFor(skyArgs(now, (await read($, scene)).joy, (await read($, scene)).fails))
+    const seen = await read($, scene)
+    const sky = skyFor(skyArgs(now, seen.joy, seen.fails, thinkingOf(seen)))
     const { Box, Text } = kit($.ui.resolve(e), e.surface)
     return (
       <Box position="absolute" top={0} left={0} width="100%" height="100%" backgroundColor={sky.paper}>
@@ -918,9 +929,9 @@ const stageWord = (now: number, joy: number, fails = 0) => {
   return [a.phase, a.season, a.weather === 'clear' ? undefined : a.weather, h?.name].filter(Boolean).join(' · ')
 }
 // Draw the backdrop again only when something it is made of changed; the desktop draws it, every other surface answers that it did not.
-const syncSky = async ($: any, now: number, s: { joy: number; fails?: number }) => {
+const syncSky = async ($: any, now: number, s: { joy: number; fails?: number; look: string; label: string }) => {
   if ((await read($, isHidden)) === true) return
-  const a = skyArgs(now, s.joy, s.fails)
+  const a = skyArgs(now, s.joy, s.fails, thinkingOf(s))
   const key = skyFor(a).key
   if (key === lastSky) return
   lastSky = key

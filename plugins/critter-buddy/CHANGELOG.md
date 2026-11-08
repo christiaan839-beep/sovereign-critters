@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.23.0
+
+- **The sky answers you.** While Claude is thinking, the desktop backdrop's paper and ground warm a little (6% toward the sun or moon's colour: seen, never loud), and settle when the turn ends. Stars, clouds and rain keep their places.
+
 ## 0.22.1
 
 - On the desktop the pair's picture is set against the right edge of the band, not centred, so the wizard stands above the right side of the prompt box (from the founder's photo of the real window, where the pair sat in the middle). The buttons stay centred.

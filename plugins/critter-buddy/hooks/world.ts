@@ -140,13 +140,17 @@ export const RIDGE: string = Array.from({ length: 400 }, (_, i) => '▁▂▃▄
 export const RIDGE_FAR: string = Array.from({ length: 400 }, (_, i) => '▁▂▃▄▅'[Math.max(0, Math.min(4, Math.round(2 + 1.5 * Math.sin(i / 14 + 2) + 0.8 * Math.sin(i / 5.3 + 0.5))))]).join('')
 
 /** The window behind the conversation, from the hour, the season, the session's weather and the holiday. */
-export const skyFor = (o: { phase: Phase; season: Season; weather: Weather; festive: boolean }) => {
+/** True while the wizard is thinking: the turn is under way and nothing else has taken the bar. */
+export const thinkingOf = (s: { look: string; label: string }): boolean => s.look === 'wizard' && s.label === 'thinking'
+
+export const skyFor = (o: { phase: Phase; season: Season; weather: Weather; festive: boolean; glow?: boolean }) => {
   const dark = o.phase === 'night' || o.phase === 'dusk'
+  const warm = (c: string): string => (o.glow ? mix(c, o.phase === 'night' ? '#efe4c4' : o.phase === 'dusk' ? '#e0875f' : '#d4a548', 0.06) : c) // while Claude thinks the light warms a little
   const cloudy = o.weather !== 'clear'
   return {
-    key: `${o.phase}-${o.season}-${o.weather}-${o.festive ? 'lights' : 'plain'}`,
-    paper: PAPER[o.phase],
-    ground: GROUND[o.phase][o.season],
+    key: `${o.phase}-${o.season}-${o.weather}-${o.festive ? 'lights' : 'plain'}${o.glow ? '-glow' : ''}`,
+    paper: warm(PAPER[o.phase]),
+    ground: warm(GROUND[o.phase][o.season]),
     body: dark && o.phase === 'night' ? '☾' : '●',
     bodyColor: o.phase === 'night' ? '#efe4c4' : o.phase === 'dusk' ? '#e0875f' : o.phase === 'dawn' ? '#eeb07f' : '#d4a548',
     bodyTop: o.phase === 'day' ? 2 : 8, // the sun is low at dawn and dusk
@@ -181,7 +185,7 @@ export const dueForWait = (flights: Iterable<Flight>, now: number): boolean => {
   return due
 }
 /** What the backdrop is made of at an instant, given the pair's joy: the hour, the season, the weather and whether the lights are up. */
-export const skyArgsOf = (now: number, joy: number, fails = 0) => ({ phase: phaseOf(hourSast(now)), season: seasonOf(now), weather: weatherOf(joy, fails), festive: festiveOf(now) })
+export const skyArgsOf = (now: number, joy: number, fails = 0, glow = false) => ({ phase: phaseOf(hourSast(now)), season: seasonOf(now), weather: weatherOf(joy, fails), festive: festiveOf(now), glow })
 
 /**
  * The one thing the cat would put in the empty prompt box, dim, for Tab to take: the corner when a prop has just been earned, the

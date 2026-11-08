@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Look, Scene } from '../types'
-import { nudgeFor, RIDGE, RIDGE_FAR, dueForWait, LONG_CALL, skyArgsOf, nextProp, dayKey, easterOf, festiveOf, holidayOf, hourSast, phaseOf, propsFor, seasonOf, skyFor, streakAlive, streakNext, weatherOf } from '../hooks/world'
+import { thinkingOf, nudgeFor, RIDGE, RIDGE_FAR, dueForWait, LONG_CALL, skyArgsOf, nextProp, dayKey, easterOf, festiveOf, holidayOf, hourSast, phaseOf, propsFor, seasonOf, skyFor, streakAlive, streakNext, weatherOf } from '../hooks/world'
 import { homeOf, FULL_MARK, cleanVoice, riskLine, stepLine, plainRuns, usageLine, PROPS, weekdayOf, cadence, suggest, moodLine, skyOf, stepFeel, FEELS, controlLabels, draftRuns, diaryMarkdown, diaryParts, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
 
 test('the cat sprite is rectangular, sixteen by twenty, in every pose', () => {
@@ -1119,7 +1119,8 @@ test('a call past 20 seconds is due once, each call in flight keeps its own cloc
   expect(dueForWait([a, b], 1000 + LONG_CALL + 5)).toBe(false) // a is not counted twice, b is not yet long
   expect(dueForWait([a, b], 1000 + 2 * LONG_CALL + 1)).toBe(true) // b is long on its own clock
   expect(dueForWait([], 5)).toBe(false)
-  expect(skyArgsOf(Date.UTC(2026, 10, 8, 10), 10)).toEqual({ phase: 'day', season: 'spring', weather: 'storm', festive: false })
+  expect(skyArgsOf(Date.UTC(2026, 10, 8, 10), 10)).toEqual({ phase: 'day', season: 'spring', weather: 'storm', festive: false, glow: false })
+  expect(skyArgsOf(Date.UTC(2026, 10, 8, 10), 10, 0, true).glow).toBe(true)
 })
 
 test('the backdrop draws the session weather: a low-spirited pair gets rain and no sun, a happy one a clear sky', async ($, on) => {
@@ -2150,4 +2151,60 @@ test('on the desktop the pair\'s picture is set against the right edge of the ba
   const art = (await ui.find({ key: 'art-row' })) as { props?: { justifyContent?: string } } | undefined
   expect(art?.props?.justifyContent).toBe('flex-end')
   await ui.unmount()
+})
+
+// ---- 0.23.0: the sky answers you ----
+test('while Claude is thinking the sky glows: its key changes, paper and ground warm a little, and nothing else moves', () => {
+  const calm = skyFor({ phase: 'day', season: 'spring', weather: 'clear', festive: false })
+  const glow = skyFor({ phase: 'day', season: 'spring', weather: 'clear', festive: false, glow: true })
+  expect(calm.key).toBe('day-spring-clear-plain')
+  expect(glow.key).toBe('day-spring-clear-plain-glow')
+  for (const phase of ['day', 'dawn', 'dusk', 'night'] as const) for (const weather of ['clear', 'cloud', 'rain', 'storm'] as const) {
+    const a = skyFor({ phase, season: 'summer', weather, festive: false })
+    const b = skyFor({ phase, season: 'summer', weather, festive: false, glow: true })
+    const dPaper = Math.abs(lum(b.paper) - lum(a.paper))
+    const dGround = Math.abs(lum(b.ground) - lum(a.ground))
+    expect(dPaper).toBeGreaterThan(0.004) // seen
+    expect(dPaper).toBeLessThan(0.05) // and quiet
+    expect(dGround).toBeGreaterThan(0.004)
+    expect(dGround).toBeLessThan(0.05)
+    expect(b.rain).toEqual(a.rain) // the weather and the stars keep their places
+    expect(b.stars).toEqual(a.stars)
+    expect(b.clouds).toEqual(a.clouds)
+  }
+})
+
+test('only a wizard who is thinking makes the sky glow', () => {
+  expect(thinkingOf({ ...initial(), look: 'wizard', label: 'thinking' })).toBe(true)
+  expect(thinkingOf({ ...initial(), look: 'wizard', label: 'casting' })).toBe(false)
+  expect(thinkingOf({ ...initial(), look: 'idle', label: 'thinking' })).toBe(false)
+  expect(thinkingOf({ ...initial(), look: 'done', label: 'done, 3 tools' })).toBe(false)
+})
+
+test('the drawn backdrop warms while a turn is under way and settles when it ends', async ($, on) => {
+  stub(on)
+  on('prompt.submit', (_, e: { text: string; inputText: string }) => ({ text: e.text, inputText: e.inputText }) as never)
+  on('turn.complete', () => ({ text: 'done' }))
+  on('ui.status', () => ({ value: undefined }))
+  on('ui.toast', () => ({ value: undefined }))
+  on('model.complete', () => ({ value: { isAnswered: false, text: '', usage: {} } }) as never)
+  on('session.usage', () => ({ value: { startedAt: 1_000_000_000_000, context: { window: 1_000_000, percent: 10 }, rateLimits: [] } }) as never)
+  on('prompt.suggest', () => ({ isShown: true }) as never)
+  on('clock.every', () => ({ value: { cancel: () => undefined } }) as never)
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  const paper = async () => {
+    const ui = await $.ui.mount({ ...row('Backdrop', { id: 'x', plugin: 'critter-buddy', glass: { blur: 14, opacity: 0.5 } }), surface: 'desktop' } as never)
+    const root = (await ui.find({ type: 'Box' })) as { props?: { backgroundColor?: string } } | undefined
+    await ui.unmount()
+    return root?.props?.backgroundColor
+  }
+  const calm = await paper()
+  await $.prompt.submit({ text: 'hello', inputText: 'hello' } as never)
+  const warm = await paper()
+  expect(warm).not.toBe(calm) // thinking: the paper has warmed
+  await $.turn.complete({ answer: 'done' } as never)
+  expect(await paper()).toBe(calm) // and settled
 })
