@@ -1,29 +1,37 @@
 name: check
+
 on:
   push:
   pull_request:
 
+# A read-only token: nothing here writes to the repository.
 permissions:
   contents: read
 
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  plugin:
+  preflight:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        plugin: [critter-buddy, build-bell, session-diary, forge, stunt, crab, guard, everywhere]
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
+
+      # Pinned to the version the plugins were last verified against; bump it on purpose, in its own commit.
       - name: Install the Claude Code CLI
         run: npm install -g @anthropic-ai/claude-code@2.1.319
-      - name: Validate the marketplace
-        run: claude plugin validate . --strict
-      - name: Validate and test ${{ matrix.plugin }}
-        working-directory: plugins/${{ matrix.plugin }}
-        run: |
-          claude plugin validate . --strict
-          claude plugin test .
+
+      # Validates and tests the root and all eight plugins, checks the sounds, and scans for home paths, model ids,
+      # secret-shaped strings, emails and merge markers. Exits non-zero on any real failure.
+      - name: Preflight
+        run: bash tools/preflight.sh
