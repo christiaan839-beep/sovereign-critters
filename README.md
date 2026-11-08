@@ -16,7 +16,7 @@ Start a new session afterwards: plugins load at start-up.
 | Plugin | What it is |
 | --- | --- |
 | [`critter-buddy`](plugins/critter-buddy) | The wizard, the cat, faces on every tool row, a stage, a diary the model can read, and a Day and Night backdrop. |
-| [`build-bell`](plugins/build-bell) | A soft bell and a toast when a long command finishes. |
+| [`build-bell`](plugins/build-bell) | A counter-bell strike and a toast when a long command finishes. |
 | [`session-diary`](plugins/session-diary) | /diary: every tool call with its time, a line for each turn, and a copy-as-markdown button. Names and times only. |
 | [`forge`](plugins/forge) | A tool that counts text exactly: characters, words, lines and UTF-8 bytes. |
 | [`stunt`](plugins/stunt) | /stunt: the critter painted in a pane, with a card for each of the last 40 tool calls. |

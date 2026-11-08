@@ -8,12 +8,12 @@
     {
       "name": "critter-buddy",
       "source": "./plugins/critter-buddy",
-      "description": "The wizard, the cat, faces on every tool row, a stage, a diary the model can read, and a Day and Night backdrop."
+      "description": "The wizard, the cat, a stage, names, a cast chime and a purr, a diary the model can read, and a Day and Night backdrop."
     },
     {
       "name": "build-bell",
       "source": "./plugins/build-bell",
-      "description": "A soft bell and a toast when a long command finishes."
+      "description": "A counter-bell strike and a toast when a long command finishes."
     },
     {
       "name": "session-diary",
