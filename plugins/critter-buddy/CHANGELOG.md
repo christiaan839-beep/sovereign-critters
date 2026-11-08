@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.22.1
+
+- On the desktop the pair's picture is set against the right edge of the band, not centred, so the wizard stands above the right side of the prompt box (from the founder's photo of the real window, where the pair sat in the middle). The buttons stay centred.
+
 ## 0.22.0
 
 - **The wizard keeps to the right**, above the right side of the prompt box, and the cat has everything to the left of him. He paces up to ten cells (fewer in a narrow band, none at 62 cells, the least that holds both); under 62 cells the two share the bar as before. A scene left from an older session glides into place two cells a tick instead of jumping.

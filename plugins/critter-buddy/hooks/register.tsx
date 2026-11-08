@@ -546,7 +546,7 @@ export const register: Register = on => {
       <Box flexDirection="column">
         {vector ? (
           <Box key="art" flexDirection="column">
-            <Box flexDirection="row" justifyContent="center">{svg(paintSvg({ ...s, cols }, 5), 'The critter and the tabby cat on the bar')}</Box>
+            <Box key="art-row" flexDirection="row" justifyContent="flex-end">{svg(paintSvg({ ...s, cols }, 5), 'The critter and the tabby cat on the bar')}</Box>
             <Text> </Text>
           </Box>
         ) : rowsOf(Text, rows, 'r')}

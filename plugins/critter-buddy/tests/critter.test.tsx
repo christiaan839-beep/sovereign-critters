@@ -2139,3 +2139,15 @@ test('the cat glides in from the wrong side two cells a tick, follows close on t
   let w: Scene = { ...initial(), cols: 120, cx: home.lo, kx: home.catMax - 1, mode: 'walk', mt: 5, target: 110, look: 'chef' }
   for (let i = 0; i < 6; i++) { w = stepFeel({ ...w, idle: 0 }, 'warm'); expect(w.kx).toBeLessThanOrEqual(home.catMax) }
 })
+
+test('on the desktop the pair\'s picture is set against the right edge of the band, so the wizard is above the right side of the prompt box', async ($, on) => {
+  stub(on)
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop', props: { ...BAND.props, bodyColumns: 125 } } as never)
+  const art = (await ui.find({ key: 'art-row' })) as { props?: { justifyContent?: string } } | undefined
+  expect(art?.props?.justifyContent).toBe('flex-end')
+  await ui.unmount()
+})
