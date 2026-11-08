@@ -2255,3 +2255,76 @@ test('the welcome reads the room: plain before noon, dry in the afternoon, deadp
   expect(welcomeLine(true, n, 12)).toBeUndefined() // said once, never again
   expect(welcomeLine(undefined, { cat: 'Mog', pip: 'Wick' }, 12)).toBe('Mog has inspected the premises. Wick says the idea was his.')
 })
+
+import { TINTS, tintOf } from '../hooks/world'
+
+test('every folder leans its own quiet colour: the same folder always the same, and the six colours all get used', () => {
+  expect(TINTS.map(t => t.name)).toEqual(['clay', 'teal', 'gold', 'violet', 'sage', 'slate'])
+  expect(tintOf('/work/alpha')).toBe(tintOf('/work/alpha'))
+  const seen = new Set(Array.from({ length: 60 }, (_, i) => tintOf(`/work/project-${i}`)))
+  expect([...seen].sort()).toEqual([0, 1, 2, 3, 4, 5])
+  for (const n of seen) expect(Number.isInteger(n) && n >= 0 && n < TINTS.length).toBe(true)
+  expect(tintOf('')).toBeGreaterThanOrEqual(0) // an unknown folder still gets a colour
+})
+
+test('a tint leans the sky a little, never repaints it: ground more than paper, key changes, no tint is exactly the old sky', () => {
+  const base = { phase: 'day', season: 'spring', weather: 'clear', festive: false } as const
+  const none = skyFor(base)
+  const teal = skyFor({ ...base, tint: 1 })
+  const clay = skyFor({ ...base, tint: 0 })
+  expect(none.key).not.toMatch(/-t\d/)
+  expect(teal.key).toMatch(/-t1$/)
+  expect(teal.key).not.toBe(clay.key)
+  expect(teal.paper).not.toBe(none.paper)
+  expect(teal.ground).not.toBe(none.ground)
+  expect(teal.ground).not.toBe(clay.ground)
+  // the lean is small: no channel of the paper moves by more than 4% of the range, and the ground by no more than 11%
+  const ch = (h: string) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16))
+  const far = (a: string, b: string) => Math.max(...ch(a).map((v, i) => Math.abs(v - ch(b)[i]!))) / 255
+  expect(far(teal.paper, none.paper)).toBeLessThan(0.04)
+  expect(far(teal.ground, none.ground)).toBeLessThan(0.11)
+  expect(far(teal.ground, none.ground)).toBeGreaterThan(0.01)
+  expect(skyFor({ ...base, tint: undefined }).ground).toBe(none.ground)
+})
+
+test('/critter tint puts the folder\'s own colour in the sky or takes it out, and the doctor says which', async ($, on) => {
+  stub(on)
+  on('ui.status', () => ({ value: undefined }))
+  on('ui.toast', () => ({ value: undefined }))
+  on('clock.every', () => ({ value: { cancel: () => undefined } }) as never)
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/work/alpha', surface: 'desktop', isInteractive: true })
+  const run = async (args: string) => JSON.stringify(await $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never))
+  const name = TINTS[tintOf('/work/alpha')]!.name
+  expect(await run('doctor')).toMatch(new RegExp(`Tint: the sky leans ${name} here`)) // on by default
+  expect(await run('tint maybe')).toMatch(/Usage: \/critter tint on \| off/)
+  expect(await run('tint off')).toMatch(/plain/i)
+  expect(await run('doctor')).toMatch(/Tint: off/)
+  expect(await run('tint on')).toMatch(new RegExp(name))
+  expect(await run('doctor')).toMatch(new RegExp(`leans ${name}`))
+})
+
+test('a tint switched off stays off when the mod reloads', async ($, on) => {
+  stub(on)
+  kept.set('critter-buddy.tint', { value: { shape: 'tint-1', value: false }, version: 1 })
+  on('ui.status', () => ({ value: undefined }))
+  on('ui.toast', () => ({ value: undefined }))
+  on('clock.every', () => ({ value: { cancel: () => undefined } }) as never)
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/work/alpha', surface: 'desktop', isInteractive: true })
+  const out = JSON.stringify(await $.command.run({ command: 'critter', args: 'doctor', origin: { kind: 'composer' }, presentation: {} } as never))
+  expect(out).toMatch(/Tint: off/)
+})
+
+import { tintFor } from '../hooks/world'
+
+test('the sky uses a folder\'s colour only while the tint is on', () => {
+  expect(tintFor(true, 3)).toBe(3)
+  expect(tintFor(true, 0)).toBe(0) // clay is index 0: zero is a colour, not nothing
+  expect(tintFor(false, 3)).toBeUndefined()
+  expect(tintFor(true, undefined)).toBeUndefined()
+})

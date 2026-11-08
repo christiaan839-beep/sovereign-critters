@@ -3,7 +3,7 @@ import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
 import { windowWidth, fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, wizardPoseFor, isQuiet, motionTick, welcomeLine, cleanMemory, cleanStreak, doctorLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
-import { SKY_CHOICES, hourSast, dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, RIDGE_FAR, thinkingOf, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
+import { TINTS, tintOf, tintFor, SKY_CHOICES, hourSast, dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, RIDGE_FAR, thinkingOf, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
 import type { Flight, SkyChoice, Streak } from './world'
 import type { SoundName, Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
 
@@ -29,6 +29,7 @@ const names = atom({ plugin: 'critter-buddy', key: 'names' } as const, NAMES_DEF
 const feel = atom({ plugin: 'critter-buddy', key: 'feel' } as const, 'warm' as Feel, { shape: 'feel-1' })
 const usage = atom({ plugin: 'critter-buddy', key: 'usage' } as const, '', { shape: 'usage-1' })
 const sky = atom({ plugin: 'critter-buddy', key: 'sky' } as const, 'auto' as SkyChoice, { shape: 'sky-1' })
+const tint = atom({ plugin: 'critter-buddy', key: 'tint' } as const, true as boolean, { shape: 'tint-1' })
 const voice = atom({ plugin: 'critter-buddy', key: 'voice' } as const, '', { shape: 'voice-1' })
 const sound = atom({ plugin: 'critter-buddy', key: 'sound' } as const, false as boolean, { shape: 'sound-1' })
 
@@ -379,6 +380,8 @@ export const register: Register = on => {
       // no streak yet: the cat has not counted anything
     }
     skyPickLive = await read($, sky)
+    folderTint = tintOf(e.cwd ?? '')
+    skyTintLive = tintFor(await read($, tint), folderTint)
     lastSky = ''
     await syncSky($, now, await read($, scene))
     await Promise.resolve($.agent.register(LOOKS_AGENT)).catch(() => undefined) // a build without agents keeps the rest
@@ -417,7 +420,7 @@ export const register: Register = on => {
     })
     // One command, subcommands inside: the session already has /pet from another mod.
     try {
-      await $.command.register({ name: 'critter', description: 'The pair above your prompt: pet, treat, nap, spell, corner, diary, doctor, sky auto|dawn|day|dusk|night, stage, hide, show, lite|full|party, talk on|off, sound on|off, voice on|off|<name>, feel calm|warm|playful|still, wizard auto|gold|bolt, name cat|pip <name>, cat <coat>' })
+      await $.command.register({ name: 'critter', description: 'The pair above your prompt: pet, treat, nap, spell, corner, diary, doctor, sky auto|dawn|day|dusk|night, tint on|off, stage, hide, show, lite|full|party, talk on|off, sound on|off, voice on|off|<name>, feel calm|warm|playful|still, wizard auto|gold|bolt, name cat|pip <name>, cat <coat>' })
     } catch {
       $.ui.log('critter-buddy: /critter is taken by another plugin; the buttons above the prompt still work')
     }
@@ -496,7 +499,7 @@ export const register: Register = on => {
       return { text: f === 'still' ? 'Still: nothing moves, and there is no sound. /critter feel warm brings them back.' : f === 'calm' ? 'Calm: the pair only breathe, walk and sleep. No sparks, no sound.' : f === 'playful' ? 'Playful: more hops, more sparks.' : 'Warm: the usual.' }
     }
     if (sub === 'doctor') {
-      return { text: doctorLines({ detail: await read($, detail), feel: await read($, feel), sound: await read($, sound), voice: await read($, voice), talk: await read($, talk), hidden: (await read($, isHidden)) === true, cols: windowCols, sky: await read($, sky), surface: e.surface ?? 'terminal' }).join('\n') }
+      return { text: doctorLines({ detail: await read($, detail), feel: await read($, feel), sound: await read($, sound), voice: await read($, voice), talk: await read($, talk), hidden: (await read($, isHidden)) === true, cols: windowCols, sky: await read($, sky), tint: (await read($, tint)) ? TINTS[folderTint ?? 0]!.name : '', surface: e.surface ?? 'terminal' }).join('\n') }
     }
     if (sub === 'sky') {
       const pick = SKY_CHOICES.find(x => x === arg)
@@ -506,6 +509,14 @@ export const register: Register = on => {
       lastSky = ''
       await syncSky($, await $.clock.now(), await read($, scene))
       return { text: pick === 'auto' ? 'The sky follows the hour again.' : `The sky is held at ${pick}. /critter sky auto lets the hour decide.` }
+    }
+    if (sub === 'tint') {
+      if (arg !== 'on' && arg !== 'off') return { text: 'Usage: /critter tint on | off. On, the sky behind the chat leans a quiet colour of its own for each folder; off keeps it plain.' }
+      await update($, tint, () => arg === 'on')
+      skyTintLive = tintFor(arg === 'on', folderTint)
+      lastSky = ''
+      await syncSky($, await $.clock.now(), await read($, scene))
+      return { text: arg === 'on' ? `The sky leans ${TINTS[folderTint ?? 0]!.name} in this folder.` : 'The sky is plain again.' }
     }
     if (sub === 'stage') {
       await $.ui.open({ id: STAGE, title: 'Stage', focus: true, ...PANE_ASKS.stage })
@@ -544,7 +555,7 @@ export const register: Register = on => {
       if (hidden) { lastSky = ''; await drawBackdrop($, undefined) } else { lastSky = ''; await syncSky($, await $.clock.now(), await read($, scene)) }
       return { text: hidden ? 'The pair are hidden.' : 'The pair are back.' }
     }
-    return { text: 'Usage: /critter [pet | treat | nap | spell | corner | stage | diary | doctor | sky auto|dawn|day|dusk|night | hide | show | lite | full | party | talk on|off | sound on|off | voice on|off|<name> | feel calm|warm|playful|still | wizard auto|gold|bolt | name cat|pip <name> | cat <coat>]' }
+    return { text: 'Usage: /critter [pet | treat | nap | spell | corner | stage | diary | doctor | sky auto|dawn|day|dusk|night | tint on|off | hide | show | lite | full | party | talk on|off | sound on|off | voice on|off|<name> | feel calm|warm|playful|still | wizard auto|gold|bolt | name cat|pip <name> | cat <coat>]' }
   })
 
   // ---- the band above the prompt: the pair on the bar, and three things to press ----
@@ -934,7 +945,9 @@ export const register: Register = on => {
 
 // What the backdrop is made of right now: the hour, the season, the session's weather and whether the lights are up.
 let skyPickLive: SkyChoice = 'auto' // the held phase, mirrored from the atom so the drawing code reads it without an await
-const skyArgs = (now: number, joy: number, fails = 0, glow = false) => skyArgsOf(now, joy, fails, glow, skyPickLive)
+let skyTintLive: number | undefined // this folder's colour, or nothing while the tint is off
+let folderTint: number | undefined // the colour of this session's folder, kept so the tint can be switched back on
+const skyArgs = (now: number, joy: number, fails = 0, glow = false) => skyArgsOf(now, joy, fails, glow, skyPickLive, skyTintLive)
 const stageWord = (now: number, joy: number, fails = 0) => {
   const a = skyArgs(now, joy, fails)
   const h = holidayOf(now)

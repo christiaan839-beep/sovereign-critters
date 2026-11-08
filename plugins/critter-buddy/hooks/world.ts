@@ -143,14 +143,27 @@ export const RIDGE_FAR: string = Array.from({ length: 400 }, (_, i) => '▁▂�
 /** True while the wizard is thinking: the turn is under way and nothing else has taken the bar. */
 export const thinkingOf = (s: { look: string; label: string }): boolean => s.look === 'wizard' && s.label === 'thinking'
 
-export const skyFor = (o: { phase: Phase; season: Season; weather: Weather; festive: boolean; glow?: boolean }) => {
+/** The six quiet colours a folder can lean its sky toward: the studio's own four and two calm ones. */
+export const TINTS = [
+  { name: 'clay', hex: '#d97757' }, { name: 'teal', hex: '#4fa39a' }, { name: 'gold', hex: '#d4a548' },
+  { name: 'violet', hex: '#8f7cc4' }, { name: 'sage', hex: '#8aa17a' }, { name: 'slate', hex: '#6f86a6' },
+] as const
+/** Which tint a folder leans: a hash of its path picks one of six, so the same folder is always the same colour. The path itself is never kept. */
+export const tintOf = (cwd: string): number => {
+  let h = 0x811c9dc5
+  for (let i = 0; i < cwd.length; i++) h = Math.imul(h ^ cwd.charCodeAt(i), 0x01000193) >>> 0
+  return h % TINTS.length
+}
+export const skyFor = (o: { phase: Phase; season: Season; weather: Weather; festive: boolean; glow?: boolean; tint?: number }) => {
+  const lean = (c: string, k: number): string => (o.tint === undefined ? c : mix(c, TINTS[o.tint]!.hex, k)) // a folder's colour, a little
+  const ground0 = lean(GROUND[o.phase][o.season], 0.1)
   const dark = o.phase === 'night' || o.phase === 'dusk'
   const warm = (c: string): string => (o.glow ? mix(c, o.phase === 'night' ? '#efe4c4' : o.phase === 'dusk' ? '#e0875f' : '#d4a548', 0.06) : c) // while Claude thinks the light warms a little
   const cloudy = o.weather !== 'clear'
   return {
-    key: `${o.phase}-${o.season}-${o.weather}-${o.festive ? 'lights' : 'plain'}${o.glow ? '-glow' : ''}`,
-    paper: warm(PAPER[o.phase]),
-    ground: warm(GROUND[o.phase][o.season]),
+    key: `${o.phase}-${o.season}-${o.weather}-${o.festive ? 'lights' : 'plain'}${o.glow ? '-glow' : ''}${o.tint === undefined ? '' : `-t${o.tint}`}`,
+    paper: warm(lean(PAPER[o.phase], 0.035)),
+    ground: warm(ground0),
     body: dark && o.phase === 'night' ? '☾' : '●',
     bodyColor: o.phase === 'night' ? '#efe4c4' : o.phase === 'dusk' ? '#e0875f' : o.phase === 'dawn' ? '#eeb07f' : '#d4a548',
     bodyTop: o.phase === 'day' ? 2 : 8, // the sun is low at dawn and dusk
@@ -162,8 +175,8 @@ export const skyFor = (o: { phase: Phase; season: Season; weather: Weather; fest
     bolt: o.weather === 'storm' ? { top: 6, left: 74 } : undefined,
     lights: o.festive,
     // two ridges, each the ground a shade toward violet at night and toward teal by day: the near one stronger, the far one faint
-    ridgeColour: dark ? mix(GROUND[o.phase][o.season], '#8f7cc4', 0.3) : mix(GROUND[o.phase][o.season], '#4fa39a', 0.22),
-    ridgeFarColour: dark ? mix(GROUND[o.phase][o.season], '#8f7cc4', 0.15) : mix(GROUND[o.phase][o.season], '#4fa39a', 0.1),
+    ridgeColour: dark ? mix(ground0, '#8f7cc4', 0.3) : mix(ground0, '#4fa39a', 0.22),
+    ridgeFarColour: dark ? mix(ground0, '#8f7cc4', 0.15) : mix(ground0, '#4fa39a', 0.1),
     wisps: o.weather === 'clear' && !dark ? place(3, 20, 7, 120) : ([] as { top: number; left: number }[]), // a clear day still has high thin cloud
   }
 }
@@ -188,7 +201,7 @@ export const dueForWait = (flights: Iterable<Flight>, now: number): boolean => {
 /** The sky the person may choose: the hour decides (auto), or one phase held, day and night. */
 export const SKY_CHOICES = ['auto', 'dawn', 'day', 'dusk', 'night'] as const
 export type SkyChoice = (typeof SKY_CHOICES)[number]
-export const skyArgsOf = (now: number, joy: number, fails = 0, glow = false, pick: SkyChoice = 'auto') => ({ phase: pick === 'auto' ? phaseOf(hourSast(now)) : pick, season: seasonOf(now), weather: weatherOf(joy, fails), festive: festiveOf(now), glow })
+export const skyArgsOf = (now: number, joy: number, fails = 0, glow = false, pick: SkyChoice = 'auto', tint?: number) => ({ tint, phase: pick === 'auto' ? phaseOf(hourSast(now)) : pick, season: seasonOf(now), weather: weatherOf(joy, fails), festive: festiveOf(now), glow })
 
 /**
  * The one thing the cat would put in the empty prompt box, dim, for Tab to take: the corner when a prop has just been earned, the
@@ -202,3 +215,6 @@ export const nudgeFor = (now: number, days: number, before: number, lastNudge: s
   if (weekday === 5 && hourSast(now) >= 15 && lastNudge !== dayKey(now)) return '/diary week'
   return undefined
 }
+
+/** The tint the sky actually uses: this folder's colour when the tint is on, nothing when it is off. */
+export const tintFor = (on: boolean, folder: number | undefined): number | undefined => (on ? folder : undefined)

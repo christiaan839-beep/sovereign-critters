@@ -1075,11 +1075,12 @@ export const cleanStreak = (raw: unknown): { days: number; last: string } | unde
 
 export const MIN_COLS = 110
 export type DoctorInput = {
-  detail: string; feel: string; sound: boolean; voice: string; talk: boolean; hidden: boolean; cols: number; surface: string; sky?: string
+  detail: string; feel: string; sound: boolean; voice: string; talk: boolean; hidden: boolean; cols: number; surface: string; sky?: string; tint?: string
 }
 /** /critter doctor: what is on, what is off and the one command that changes it. */
 export const doctorLines = (d: DoctorInput): string[] => {
   const out = [`Reach: ${d.detail}. Feel: ${d.feel}. Surface: ${d.surface}, ${d.cols} columns.`]
+  if (d.tint !== undefined) out.push(d.tint ? `Tint: the sky leans ${d.tint} here. /critter tint off keeps it plain.` : 'Tint: off. /critter tint on lets this folder lean its own colour.')
   if (d.sky) out.push(d.sky === 'auto' ? 'Sky: auto, it follows the hour. /critter sky night holds a phase.' : `Sky: held at ${d.sky}. /critter sky auto lets the hour decide.`)
   if (d.hidden) out.push('The pair are hidden: /critter show brings them back.')
   if (d.cols < MIN_COLS) out.push(`The window is narrow (${d.cols} columns); the stage and the corner want ${MIN_COLS}.`)

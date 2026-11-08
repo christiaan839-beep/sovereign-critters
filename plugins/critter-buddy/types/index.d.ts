@@ -76,6 +76,8 @@ declare module 'claude-code' {
       voice: Shaped<string>
       /** The phase of the day the backdrop is held at, or auto for the hour. */
       sky: Shaped<'auto' | 'dawn' | 'day' | 'dusk' | 'night'>
+      /** Whether the sky leans a quiet colour of its own for this folder. */
+      tint: Shaped<boolean>
     }
   }
 }

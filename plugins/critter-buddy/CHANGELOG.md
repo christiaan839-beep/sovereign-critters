@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.25.0
+
+- Every folder leans its own quiet colour in the sky behind the chat: one of six (clay, teal, gold, violet, sage, slate), picked by a hash of the folder's path, so the same folder is always the same colour and you can tell projects apart by the light behind them. The lean is small: the ground moves by about a tenth and the paper by under four hundredths, and the path itself is never stored.
+- `/critter tint on | off` switches it; it is on by default and stays as you leave it across a reload. `/critter doctor` says which colour this folder leans.
+
 ## 0.24.0
 
 - `/critter sky auto | dawn | day | dusk | night` changes the background behind the chat: a named phase holds that sky, and `auto` lets the hour in Johannesburg decide again. `/critter doctor` says which. Desktop only: other surfaces have no backdrop.
