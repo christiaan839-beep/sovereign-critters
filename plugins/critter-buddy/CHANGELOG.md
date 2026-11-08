@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1
+
+- Fixed: on the desktop the critter's feet and the laptop touched the label row under the bar. A clear row now sits beneath the picture.
+- The footer says what is happening ("reading", "running a command") and no longer repeats the plugin's name.
+- The finished wizard has three motes of purple light drifting round his hat and staff.
+
 ## 0.6.0
 
 - `/critter stage` opens a stage: the critter alone on an empty screen, walking and idling as your session runs, with cast, nap and close buttons. On the desktop it is crisp vector art; in a terminal, cell art.

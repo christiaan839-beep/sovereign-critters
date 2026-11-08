@@ -150,6 +150,26 @@ test('/critter stage opens a stage with the critter alone on it, on every surfac
   await desk.unmount()
 })
 
+test('a finished wizard has motes of light drifting round him, and only he does', () => {
+  const solo = (o: Partial<Scene>) => canvasOf({ ...initial(), cols: 40, cx: 3, kx: -60, kdir: 1, ...o }, 40)
+  const motes = (c: string[][]) => c.flat().filter(k => k === 'v').length
+  const a = solo({ look: 'wizard', wt: 8, tick: 0 }); const b = solo({ look: 'wizard', wt: 8, tick: 2 })
+  expect(motes(a)).toBeGreaterThanOrEqual(1)
+  expect(a.map(r => r.join(''))).not.toEqual(b.map(r => r.join(''))) // they drift
+  expect(motes(a)).toBeLessThanOrEqual(3) // three motes, no more
+  expect(motes(solo({ look: 'idle', tick: 0 }))).toBe(0)
+})
+
+test('the footer says what is happening, and does not repeat the plugin name', async ($, on) => {
+  stub(on)
+  const said: (string | undefined)[] = []
+  on('tool.call', () => ({ result: 'ok' }) as never)
+  on('ui.status', (_: unknown, e: { text?: string }) => { said.push(e.text); return { value: undefined } })
+  await $.tool.call({ tool: 'Read' } as never)
+  expect(said).toContain('reading')
+  expect(said.some(x => /critter/i.test(x ?? ''))).toBe(false)
+})
+
 test('the wizard paces beside the orb while Claude works, and stays inside his frame', () => {
   const s = { ...initial(), cols: 40 }
   // the empty cells left of his leftmost pixel, over all rows: one more when he steps right

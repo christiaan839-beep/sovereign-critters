@@ -105,7 +105,7 @@ export const register: Register = on => {
       const asked = String((e as { command?: unknown }).command ?? '')
       const [look, label] = tool === 'Bash' && BUILD.test(asked) ? (['chef', 'cooking a build'] as [Look, string]) : (LOOKS[tool] ?? (['coder', 'working'] as [Look, string]))
       await update($, scene, (s: Scene): Scene => ({ ...s, look, label, idle: 0, tools: s.tools + 1, skills: s.skills + (tool === 'Skill' ? 1 : 0), ...(tool === 'Skill' ? { jt: 1 } : {}) }))
-      $.ui.status(`critter: ${label}`)
+      $.ui.status(label)
       const ran = await next(e)
       const command = String((e as { command?: unknown }).command ?? '')
       let ev: Reaction | null = null
@@ -325,7 +325,12 @@ export const register: Register = on => {
     const rows = paint({ ...s, cols })
     return (
       <Box flexDirection="column">
-        {vector ? svg(paintSvg({ ...s, cols }, 5), 'The critter and the tabby cat on the bar') : rowsOf(Text, rows, 'r')}
+        {vector ? (
+          <Box flexDirection="column">
+            {svg(paintSvg({ ...s, cols }, 5), 'The critter and the tabby cat on the bar')}
+            <Text> </Text>
+          </Box>
+        ) : rowsOf(Text, rows, 'r')}
         <Box flexDirection="row">
           <Text dimColor>{`${s.label} · cat ${moodOf(s)} `}</Text>
           <Button key="pet" label="pet" hotkey="p" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'pet'))} />

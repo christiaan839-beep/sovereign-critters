@@ -52,7 +52,7 @@ export const isAsleep = (s: Scene) => s.look === 'idle' && s.idle > 100
 // three tones of clay lit from the upper left, eyes with a glint, and frames for breathing, blinking, walking, joy and casting.
 // By day it is the wizard of Christiaan's form (a dark purple hat with a gold star, a staff whose orb throws lightning); by night
 // it is the antennae critter whose hat carries a violet bolt. The hat builds up from the brim over `morph` 0 to 1.
-export type CritterPose = { kit: 'wizard' | 'sherlock' | 'chef' | 'none'; walk: -1 | 0 | 1; arms: 0 | 1; cast: boolean; blink: boolean; happy: boolean; breath: boolean; morph: number; night: boolean; bolt: 0 | 1 | 2 }
+export type CritterPose = { aura: number; kit: 'wizard' | 'sherlock' | 'chef' | 'none'; walk: -1 | 0 | 1; arms: 0 | 1; cast: boolean; blink: boolean; happy: boolean; breath: boolean; morph: number; night: boolean; bolt: 0 | 1 | 2 }
 const ghash = (x: number, y: number) => { const v = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return v - Math.floor(v) }
 // the bolt: a zigzag three cells by six, and its mirror; the two cells of its jag are the hot core
 const BOLT: [number, number][][] = [
@@ -154,6 +154,10 @@ const critterGrid = (o: CritterPose): Px => {
     for (const [c, r] of cellsB) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) if (!on.has(`${c + dx},${r + dy}`)) put(x0 + c + dx, y0 + r + dy, 'u')
     for (const [c, r] of cellsB) put(x0 + c, y0 + r, bolted(c, r) ? 't' : 'r')
   }
+  if (o.kit === 'wizard' && m >= 1) { // motes of light drift round the hat and the staff, three of them, a few cells apart
+    const MOTES: [number, number][] = [[3, -9], [16, -12], [1, -4], [19, -6], [8, -15], [22, -3], [12, -14], [5, -11]]
+    for (let i = 0; i < 3; i++) { const [mc, mr] = MOTES[(o.aura + i * 3) % MOTES.length]!; if (!cells.has(`${mc},${mr + b}`)) put(mc, mr + b, i === 0 ? 'v' : 'r') }
+  }
   const rows: string[] = []
   for (let r = CRIT_ROW0; r <= 13; r++) rows.push(Array.from({ length: 30 }, (_, c) => cells.get(`${c},${r}`) ?? '.').join(''))
   return rows
@@ -162,6 +166,7 @@ const critterCache = new Map<string, Px>()
 const critterPx = (s: Scene, step: 0 | 1): Px => {
   const wiz = s.look === 'wizard'
   const o: CritterPose = {
+    aura: wiz ? Math.floor(s.tick / 2) % 8 : 0,
     kit: wiz ? 'wizard' : s.look === 'reader' ? 'sherlock' : s.look === 'chef' ? 'chef' : 'none',
     walk: s.look !== 'coder' && s.look !== 'chef' && !isAsleep(s) ? step : -1,
     arms: s.jt > 0 ? 1 : 0,
@@ -173,7 +178,7 @@ const critterPx = (s: Scene, step: 0 | 1): Px => {
     night: s.night,
     bolt: wiz && s.wt >= 8 ? ((Math.floor(s.tick / 2) % 2) + 1) as 1 | 2 : 0,
   }
-  const key = `${o.kit}${o.walk}${o.arms}${+o.cast}${+o.blink}${+o.happy}${+o.breath}|${o.morph}|${+o.night}${o.bolt}`
+  const key = `${o.kit}${o.aura}${o.walk}${o.arms}${+o.cast}${+o.blink}${+o.happy}${+o.breath}|${o.morph}|${+o.night}${o.bolt}`
   const hit = critterCache.get(key)
   if (hit) return hit
   const made = critterGrid(o)
