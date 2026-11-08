@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.0
+
+- The greeting under the logo knows the weekday in Johannesburg (Monday is not agreed to yet, Friday suspects the weekend). The night keeps its own lines.
+
 ## 0.10.0
 
 - The prompt box paints the family too: `/diary` (with `copy` and `clear`), `/stunt` and `/everywhere`, each with a dim ghost line saying what it does.

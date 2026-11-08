@@ -721,8 +721,21 @@ const DAY = ['{pip} is at the orb', 'daylight. {cat} took the warm spot']
 const EVENING = ['evening. {pip} lit the lamp', '{cat} is awake now, as promised']
 const NIGHT = ['night shift. antennae out', 'the glass is dark. {pip} keeps the orb lit']
 
-/** `hour` is the hour in Africa/Johannesburg, 0 to 23. `ms` is only read for the turn line. */
-export const quip = (kind: Voice, s: Scene, hour = 12, ms = 0): string => {
+// The weekday only colours a daylight greeting; the night keeps its own lines. 0 is Sunday.
+const WEEKDAY: readonly (readonly string[])[] = [
+  ['sunday. {pip} keeps the orb low', 'sunday. {cat} is not working, you are'],
+  ['monday. {cat} has not agreed to it yet', 'monday. {pip} brought a list'],
+  ['tuesday. {cat} is settled in', 'tuesday. {pip} polished the orb'],
+  ['wednesday. the middle, says {pip}', 'wednesday. {cat} checked the clock twice'],
+  ['thursday. {pip} can smell friday', 'thursday. {cat} is pacing himself'],
+  ['friday. {pip} suspects the weekend', 'friday. {cat} has one eye on the door'],
+  ['saturday. {cat} is not working, you are', 'saturday. {pip} lit the orb anyway'],
+]
+/** The weekday in Africa/Johannesburg (UTC+2, no daylight saving), 0 for Sunday, from epoch milliseconds. */
+export const weekdayOf = (ms: number): number => (((Math.floor((ms + 7_200_000) / 86_400_000) + 4) % 7) + 7) % 7
+
+/** `hour` is the hour in Africa/Johannesburg, 0 to 23. `ms` is only read for the turn line. `weekday` (0 Sunday) tints a daylight greeting. */
+export const quip = (kind: Voice, s: Scene, hour = 12, ms = 0, weekday?: number): string => {
   switch (kind) {
     case 'turn':
       if (s.stats.errors > 0 && s.log.some(l => /fail/i.test(l)) && ms < 120_000) return pickBy(TURN_ROUGH, s)
@@ -730,7 +743,8 @@ export const quip = (kind: Voice, s: Scene, hour = 12, ms = 0): string => {
     case 'ask':
       return s.trust < 30 ? '{cat} is watching you decide, and has opinions' : s.skills > 2 ? '{pip} would cast it, if asked' : '{cat} is watching you decide'
     case 'greet': {
-      const pool = hour >= 18 || hour < 5 ? NIGHT : hour < 11 ? MORNING : hour < 17 ? DAY : EVENING
+      const night = hour >= 18 || hour < 5
+      const pool = night ? NIGHT : weekday !== undefined && hour < 17 ? WEEKDAY[((weekday % 7) + 7) % 7]! : hour < 11 ? MORNING : hour < 17 ? DAY : EVENING
       return `${pickBy(pool, s)} · /critter`
     }
     case 'hint':

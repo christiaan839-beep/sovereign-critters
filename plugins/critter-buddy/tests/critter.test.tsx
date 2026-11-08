@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Look, Scene } from '../types'
-import { cadence, suggest, moodLine, skyOf, stepFeel, FEELS, controlLabels, draftRuns, diaryMarkdown, diaryParts, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
+import { weekdayOf, cadence, suggest, moodLine, skyOf, stepFeel, FEELS, controlLabels, draftRuns, diaryMarkdown, diaryParts, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
 
 test('the cat sprite is rectangular, sixteen by twenty, in every pose', () => {
   const base = { ...initial(), cols: 40, cx: -40, kx: 6 }
@@ -389,6 +389,15 @@ test('the voice follows what happened and the hour, and the same scene always sa
   expect(quip('greet', s, 8)).toMatch(/morning/)
   expect(quip('greet', s, 23)).toMatch(/night|glass/)
   expect(quip('greet', s, 17)).toMatch(/evening|awake/)
+  // 2026-11-08 10:00 UTC is a Sunday, 12:00 in Johannesburg; the next day is Monday
+  const SUN = Date.UTC(2026, 10, 8, 10)
+  expect(weekdayOf(SUN)).toBe(0)
+  expect(weekdayOf(SUN + 86_400_000)).toBe(1)
+  expect(weekdayOf(Date.UTC(2026, 10, 8, 22, 30))).toBe(1) // 00:30 Monday in Johannesburg
+  expect(quip('greet', s, 8, 0, 1)).toMatch(/monday/)
+  expect(quip('greet', s, 12, 0, 5)).toMatch(/friday/)
+  expect(quip('greet', s, 23, 0, 5)).toMatch(/night|glass/) // the night keeps its own lines
+  expect(quip('greet', s, 17, 0, 5)).toMatch(/evening|awake/) // the weekday tints the day, not the evening
   expect(quip('turn', s, 12, 3_000)).toBe(quip('turn', { ...s }, 12, 3_000))
   const next = react(s, 'turn', 3_000)
   expect(quip('turn', next, 12, 3_000)).not.toBe('')

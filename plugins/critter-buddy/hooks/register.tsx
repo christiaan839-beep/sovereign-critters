@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { NAMES_DEFAULT, FEELS, moodLine, skyOf, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import { NAMES_DEFAULT, FEELS, moodLine, skyOf, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
 import type { Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
 
 // `shape` tags the stored form: a value an earlier version stored is declined, not misread.
@@ -563,7 +563,7 @@ export const register: Register = on => {
         {base}
         <Box flexDirection="row" gap={1}>
           {face('ok')}
-          <Text dimColor>{`critter-buddy: ${named(quip('greet', await read($, scene), hourOf(Date.now())), await read($, names))}`}</Text>
+          <Text dimColor>{`critter-buddy: ${named(quip('greet', await read($, scene), hourOf(Date.now()), 0, weekdayOf(Date.now())), await read($, names))}`}</Text>
         </Box>
       </Box>
     )
