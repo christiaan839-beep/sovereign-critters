@@ -394,17 +394,20 @@ export const register: Register = on => {
             <Text> </Text>
           </Box>
         ) : rowsOf(Text, rows, 'r')}
-        {/* one centred line that wraps in a narrow window, with air above, and the usage rows of other mods held clear beneath */}
-        <Box key="controls" flexDirection="row" alignItems="center" flexWrap="wrap" columnGap={1} marginTop={1}>
+        {/* the status on its own line, one row of buttons under it; air is a spacer row, not a margin, because the desktop does not count margins when it sizes this region and would clip the row beneath */}
+        <Box key="status" flexDirection="row" alignItems="center" columnGap={1}>
           <Text key="label">{s.label}</Text>
           <Text key="mood" dimColor>{`· cat ${moodOf(s)}`}</Text>
+        </Box>
+        <Box key="controls" flexDirection="row" flexWrap="wrap" alignItems="center" columnGap={1}>
           <Button key="pet" label={lb.pet} hotkey="p" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'pet')); await ring($, 'purr') }} />
           <Button key="treat" label={lb.feed} hotkey="t" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'treat'))} />
           <Button key="cast" label={lb.cast} hotkey="c" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'spell')); await ring($, 'cast') }} />
           <Button key="nap" label={lb.nap} hotkey="n" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'nap'))} />
           <Button key="corner" label={lb.corner} hotkey="k" onPress={() => $.ui.open({ id: PANE, title: 'Cat corner', focus: true })} />
         </Box>
-        <Box key="others" flexDirection="column" marginTop={1}>{others}</Box>
+        <Box key="gap"><Text> </Text></Box>
+        <Box key="others" flexDirection="column">{others}</Box>
       </Box>
     )
   })

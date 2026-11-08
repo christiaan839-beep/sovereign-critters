@@ -863,15 +863,22 @@ test("the diary is read as markdown: a time in code, the line plain, the newest 
   expect(diaryMarkdown(['09:00 `code` and *stars*'], NAMES_DEFAULT)).toContain('\\`code\\` and \\*stars\\*') // a line cannot break the markdown
 })
 
-// ---- the band's controls: aligned, wrapping, and clear of the usage lines beneath ----
-test('the band keeps its label and buttons on one centred line that wraps, with air above and below', async ($, on) => {
+// ---- the band's controls: a status line, one row of buttons, and no margins (the desktop does not count them) ----
+test('the band puts its status on one line and its buttons on the next, and uses spacer rows, never margins', async ($, on) => {
   stub(on)
   for (const surface of ['desktop', 'terminal'] as const) {
     const ui = await $.ui.mount({ ...BAND, surface })
-    const bar = (await ui.find({ key: 'controls' })) as { props?: Record<string, unknown> } | undefined
-    expect(bar?.props).toMatchObject({ alignItems: 'center', flexWrap: 'wrap', marginTop: 1 })
-    expect(await ui.find({ type: 'Text', text: /^ready$/ })).toBeDefined() // the label is its own run, apart from the mood
+    const status = (await ui.find({ key: 'status' })) as { props?: Record<string, unknown> } | undefined
+    expect(status?.props).toMatchObject({ flexDirection: 'row', alignItems: 'center' })
+    expect(await ui.find({ type: 'Text', text: /^ready$/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /^· cat / })).toBeDefined()
+    const bar = (await ui.find({ key: 'controls' })) as { props?: Record<string, unknown> } | undefined
+    expect(bar?.props).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' })
+    expect(bar?.props?.marginTop).toBeUndefined() // a margin is lost to the desktop's measure and clips the row beneath
+    expect(bar?.props?.marginBottom).toBeUndefined()
+    const others = (await ui.find({ key: 'others' })) as { props?: Record<string, unknown> } | undefined
+    expect(others?.props?.marginTop).toBeUndefined()
+    expect(await ui.find({ key: 'gap' })).toBeDefined() // a whole row of air before other mods' rows
     await ui.unmount()
   }
 })
