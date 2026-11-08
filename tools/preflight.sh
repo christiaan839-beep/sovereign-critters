@@ -50,6 +50,7 @@ scan 'absolute home paths' '(/Users/[A-Za-z0-9._-]+|/home/[a-z][a-z0-9._-]+|C:\\
 scan 'model ids' 'claude-(opus|sonnet|haiku|fable)-[0-9]'
 scan 'secret-shaped strings' '(sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|xox[abprs]-[A-Za-z0-9-]{10,}|AIza[0-9A-Za-z_-]{35}|-----BEGIN [A-Z ]*PRIVATE KEY-----)'
 scan 'email addresses' '[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}' 'a@b\.com|noreply@anthropic\.com|git@github\.com:'
+scan 'event text in a workflow expression' '\$\{\{[^}]*(github\.event|github\.head_ref|github\.actor)' 
 scan 'merge markers' '^(<<<<<<< |>>>>>>> |=======$)'
 
 note
