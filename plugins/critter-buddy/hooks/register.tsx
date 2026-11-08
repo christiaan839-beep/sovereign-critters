@@ -2,8 +2,8 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { foldDiary, returnTrust, wizardFor, cleanMemory, cleanStreak, doctorLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
-import { dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
+import { cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, cleanMemory, cleanStreak, doctorLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import { hourSast, dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
 import type { Flight, Streak } from './world'
 import type { Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
 
@@ -319,6 +319,14 @@ export const register: Register = on => {
       const days = mem.lastSeen ? Math.max(0, Math.floor((now - mem.lastSeen) / DAY)) : 0
       const trust = returnTrust(mem.trust, days)
       await update($, scene, (s: Scene): Scene => ({ ...s, trust, log: [...s.log, days >= 1 ? `You are back after ${days} day${days === 1 ? '' : 's'}. I am fine.` : 'Back already. Good.'] }))
+    }
+    // The cat learns your habits: counts and hashes only, and at most one remark a session.
+    try {
+      const got = recordSession(cleanHabits(await Promise.resolve($.store.get('habits')).catch(() => undefined)), e.cwd ?? '', hourSast(now))
+      await Promise.resolve($.store.set('habits', got.habits)).catch(() => undefined)
+      if (got.line) await update($, scene, (s: Scene): Scene => ({ ...s, log: [...s.log, got.line!] }))
+    } catch {
+      // a cat that cannot learn a habit still greets you
     }
     // The diary carries across sessions too.
     const kept = (await Promise.resolve($.store.get('diaryLog')).catch(() => undefined)) as string[] | undefined

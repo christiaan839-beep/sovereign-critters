@@ -1515,3 +1515,74 @@ test('a run of failures with no green between darkens the sky by itself, and a g
   expect(a.weather).toBe('rain')
   expect(skyArgsOf(Date.UTC(2026, 10, 8, 10), 80).weather).toBe('clear')
 })
+
+import { cleanHabits, recordSession } from '../hooks/scene'
+
+test('the cat keeps habits, not paths: a folder is remembered as a hash, and garbage in the store is nothing', () => {
+  const first = recordSession(undefined, '/work/alpha', 10)
+  expect(first.line).toBeUndefined() // the very first session has nothing to compare with
+  expect(first.habits.sessions).toBe(1)
+  expect(first.habits.hours[10]).toBe(1)
+  expect(first.habits.hours).toHaveLength(24)
+  expect(JSON.stringify(first.habits)).not.toMatch(/work|alpha/)
+  expect(recordSession(first.habits, '/work/alpha', 11).line).toBeUndefined() // a known folder is not news
+  expect(recordSession(first.habits, '/work/alpha', 11).habits.sessions).toBe(2)
+  expect(recordSession(first.habits, '/work/beta', 11).line).toMatch(/new folder/i)
+  expect(cleanHabits(first.habits)).toEqual(first.habits)
+  for (const bad of [undefined, null, 'x', [], { sessions: 1 }, { sessions: -1, hours: Array(24).fill(0), seen: [] }, { sessions: 1, hours: [1, 2], seen: [] }, { sessions: 1, hours: Array(24).fill(0), seen: [3] }]) expect(cleanHabits(bad)).toBeUndefined()
+  // the list of folders is capped at 50: the oldest is forgotten
+  let h = first.habits
+  for (let i = 0; i < 60; i++) h = recordSession(h, `/work/f${i}`, 10).habits
+  expect(h.seen).toHaveLength(50)
+  expect(recordSession(h, '/work/alpha', 10).line).toMatch(/new folder/i) // alpha fell off the end
+})
+
+test('a habit is remarked on every eighth session once three in five come in the same part of the day', () => {
+  const at = (night: number, total: number) => {
+    let h = recordSession(undefined, '/w', 23).habits // session 1, at night
+    const hours = Array.from({ length: total - 1 }, (_, i) => (i + 1 < night ? 23 : 12))
+    let line: string | undefined
+    for (const hr of hours) { const r = recordSession(h, '/w', hr); h = r.habits; line = r.line }
+    return { line, sessions: h.sessions }
+  }
+  expect(at(5, 8)).toEqual({ line: expect.stringMatching(/night/i), sessions: 8 }) // 5 of 8 = 62.5%
+  expect(at(4, 8).line).toBeUndefined() // 4 of 8 = 50%
+  expect(at(5, 7).line).toBeUndefined() // not the eighth
+  expect(at(5, 9).line).toBeUndefined()
+  expect(at(10, 16).line).toMatch(/night/i) // 10 of 16 = 62.5%, the sixteenth
+  expect(at(9, 16).line).toBeUndefined() // 9 of 16 = 56%
+  // a new folder outranks the habit on the same day
+  let h = recordSession(undefined, '/w', 23).habits
+  for (let i = 0; i < 6; i++) h = recordSession(h, '/w', 23).habits
+  expect(recordSession(h, '/elsewhere', 23).line).toMatch(/new folder/i) // the eighth, but news comes first
+})
+
+test('a session in a folder the cat has not seen is remarked on, and the habits are written back as hashes', async ($, on) => {
+  stub(on)
+  const written: Record<string, unknown> = {}
+  on('ui.status', () => ({ value: undefined }))
+  on('ui.toast', () => ({ value: undefined }))
+  on('clock.every', () => ({ value: { cancel: () => undefined } }) as never)
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.set', (_: unknown, e: { key: string; value: unknown }) => { written[e.key] = e.value; return { value: undefined } as never })
+  on('store.get', (_: unknown, e: { key: string }) => ({ value: e.key === 'habits' ? { sessions: 3, hours: Array(24).fill(0).map((_, i) => (i === 10 ? 3 : 0)), seen: [] } : undefined }))
+  await $.session.start({ cwd: '/somewhere/new', surface: 'terminal', isInteractive: true })
+  const habits = written.habits as { sessions: number; seen: string[] }
+  expect(habits.sessions).toBe(4)
+  expect(habits.seen).toHaveLength(1)
+  expect(JSON.stringify(habits)).not.toMatch(/somewhere/)
+  const scene = kept.get('critter-buddy.scene')?.value as { value: Scene } | undefined
+  expect(scene?.value.log.join(' ')).toMatch(/new folder/i)
+})
+
+test('the habit line fires at exactly three in five, and a store that holds too many folders is cut to fifty', () => {
+  let h = recordSession(undefined, '/w', 23).habits
+  let line: string | undefined
+  for (let i = 1; i < 40; i++) { const r = recordSession(h, '/w', i < 24 ? 23 : 12); h = r.habits; line = r.line } // 24 of 40 at night: exactly 60%
+  expect(h.sessions).toBe(40)
+  expect(line).toMatch(/night/i)
+  const big = { sessions: 5, hours: Array(24).fill(0), seen: Array.from({ length: 60 }, (_, i) => `h${i}`) }
+  expect(cleanHabits(big)?.seen).toHaveLength(50)
+  expect(cleanHabits(big)?.seen[0]).toBe('h10') // the oldest ten go
+})

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.18.0
+
+- The cat learns your habits across sessions, kept as counts and hashes: the hours you come at and a short hash of each folder (the last 50), never a path or a name, and nothing leaves the plugin's own store.
+- A folder she has not seen gets one line ("A new folder. Biscuit is inspecting the corners."). Every eighth session, if three in five fall in the same part of the day, she remarks on it in her own dry way. A new folder outranks the habit, there is at most one remark a session, and the very first session says nothing.
+
 ## 0.17.0
 
 - The sky follows a failing streak as well as the cat's joy: errors in a row with no green test or commit between them cloud the sky at two, rain at three and storm at five. A green run or a commit clears the count; a treat does not. The worse of the joy and the streak wins, and the sky never brightens because of a streak.

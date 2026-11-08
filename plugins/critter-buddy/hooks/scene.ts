@@ -1068,3 +1068,43 @@ export const foldDiary = (diary: string[], lines: string[]): string[] => {
 
 /** Whether the wizard sits beside a /critter reply: a moment gets him; hiding, a usage line and a multi-line report do not. */
 export const wizardFor = (text: string): boolean => !/^The pair are hidden\./.test(text) && !/^Usage:/.test(text) && !text.includes('\n')
+
+// ---- habits: what the cat learns of you across sessions, kept as counts and hashes, never as paths or names ----
+export type Habits = { sessions: number; hours: number[]; seen: string[] }
+const SEEN_MAX = 50
+/** A folder is remembered by a short hash of its path, so the store holds no path and no name. */
+const hashOf = (s: string): string => {
+  let h = 0x811c9dc5
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 0x01000193) >>> 0
+  return h.toString(36)
+}
+export const cleanHabits = (raw: unknown): Habits | undefined => {
+  if (!isObj(raw) || !Number.isInteger(raw.sessions) || (raw.sessions as number) < 0) return undefined
+  const hours = raw.hours
+  if (!Array.isArray(hours) || hours.length !== 24 || !hours.every(n => Number.isInteger(n) && n >= 0)) return undefined
+  const seen = raw.seen
+  if (!Array.isArray(seen) || !seen.every(x => typeof x === 'string')) return undefined
+  return { sessions: raw.sessions as number, hours: hours as number[], seen: (seen as string[]).slice(-SEEN_MAX) }
+}
+const PARTS: { name: string; hours: (h: number) => boolean; line: string }[] = [
+  { name: 'night', hours: h => h >= 19 || h < 5, line: 'Night again. {cat} has stopped pretending this is unusual.' },
+  { name: 'dawn', hours: h => h >= 5 && h < 7, line: 'Early again. {cat} has not forgiven the hour, only learned it.' },
+  { name: 'day', hours: h => h >= 7 && h < 17, line: 'Daylight again. {cat} suspects you are well rested and disapproves.' },
+  { name: 'dusk', hours: h => h >= 17 && h < 19, line: 'Evening again. {cat} sits where the last of the light falls.' },
+]
+/** One more session at this hour in this folder: the new habits, and the one line the cat has about it, if any. A new folder outranks a habit. */
+export const recordSession = (prev: Habits | undefined, cwd: string, hour: number): { habits: Habits; line?: string } => {
+  const h = Math.min(23, Math.max(0, Math.floor(hour)))
+  const base: Habits = prev ?? { sessions: 0, hours: Array(24).fill(0), seen: [] }
+  const id = hashOf(cwd)
+  const known = base.seen.includes(id)
+  const hours = base.hours.map((n, i) => (i === h ? n + 1 : n))
+  const habits: Habits = { sessions: base.sessions + 1, hours, seen: known ? base.seen : [...base.seen, id].slice(-SEEN_MAX) }
+  if (!prev) return { habits }
+  if (!known) return { habits, line: 'A new folder. {cat} is inspecting the corners.' }
+  if (habits.sessions % 8 === 0) {
+    const top = PARTS.map(p => ({ p, n: hours.reduce((a, c, i) => (p.hours(i) ? a + c : a), 0) })).sort((a, b) => b.n - a.n)[0]!
+    if (top.n * 5 >= habits.sessions * 3) return { habits, line: top.p.line }
+  }
+  return { habits }
+}
