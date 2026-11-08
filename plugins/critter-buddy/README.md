@@ -5,10 +5,10 @@ The Sovereign Matrix critter, a wizard version of it, and a tabby cat, living in
 ![The critter's day: reading, cooking a build, casting, done](demo.gif)
 
 ```
-/plugin install critter-buddy --marketplace <owner>/<repo>
+/plugin install critter-buddy --marketplace christiaan839-beep/sovereign-critters
 ```
 
-(Fill in the marketplace that lists it. Plugins load in a new session.)
+Plugins load in a new session.
 
 ## What you get
 
@@ -20,6 +20,8 @@ The Sovereign Matrix critter, a wizard version of it, and a tabby cat, living in
 | End of a turn | A line from the diary and a quip that depends on how long it took and whether anything failed. |
 | Footer, hint, greeting | The cat's mood among the modes, a hint that follows what is happening, a greeting that follows the hour in Johannesburg. |
 | Desktop backdrop | Cream by day, dark glass with a few stars by night (18:00 to 05:59, Africa/Johannesburg). |
+| The prompt box | Type `/critter` and the command turns clay, a word it knows turns teal, a stray one is underlined in gold, and a dim line after a finished word says what it does. The typeahead offers the words and the coats. |
+| The diary | `/critter diary` and the cat corner show it newest first, the time in teal, the latest line at full strength. |
 | The model | A `cat_diary` tool, so Claude can read what the cat wrote. |
 
 The cat keeps its trust in you across sessions in `$.store`; it falls by 8 for each day you are away.

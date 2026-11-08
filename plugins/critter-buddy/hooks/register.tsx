@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { NAMES_DEFAULT, cadence, suggest, catchIn, cleanName, named, faceRuns, faceSvg, initial, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import { NAMES_DEFAULT, cadence, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
 import type { Names, FaceKind, Reaction, Run, Svgd } from './scene'
 
 // `shape` tags the stored form: a value an earlier version stored is declined, not misread.
@@ -173,7 +173,14 @@ export const register: Register = on => {
     } catch {
       // a decorative reaction never holds up the prompt
     }
-    return next(e)
+    const r = await next(e)
+    // the draft is painted in the answer itself, so the colours always sit on the characters they were made for
+    try {
+      const runs = draftRuns(r.text, await read($, names))
+      return runs.length ? { ...r, decorations: [...(r.decorations ?? []), ...runs] } : r
+    } catch {
+      return r // a colour that cannot be worked out is no loss
+    }
   })
 
   on('turn.complete', async ($, e, next) => {
@@ -335,8 +342,7 @@ export const register: Register = on => {
       return { text: 'Cat corner opened.' }
     }
     if (sub === 'diary') {
-      const d = await read($, diary)
-      return { text: d.length ? d.slice(-12).join('\n') : 'The diary is empty. The cat was asleep.' }
+      return { text: diaryMarkdown(await read($, diary), await read($, names)) }
     }
     if (sub === 'lite' || sub === 'full' || sub === 'party') {
       await update($, detail, () => sub as Detail)
@@ -620,6 +626,7 @@ export const register: Register = on => {
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const s = await read($, scene)
     const d = await read($, diary)
+    const nm = await read($, names)
     const { Box, Text, Button, face, vector, svg } = kit($.ui.resolve(e), e.surface)
     const cols = e.props.bodyColumns || 40
     const portrait = paintBig({ ...s, cols: Math.min(60, cols), cdir: 1 })
@@ -668,11 +675,18 @@ export const register: Register = on => {
         ) : (
           <Button key="play" label="play" onPress={() => update($, scene, (x: Scene): Scene => startGame(x))} />
         )}
-        <Text bold>{'Diary'}</Text>
-        {d.length === 0 && <Text dimColor>{'Nothing happened yet. The cat is asleep.'}</Text>}
-        {d.slice(-8).map((l, i) => (
-          <Text key={`d${i}`} dimColor>{l}</Text>
-        ))}
+        <Text bold>{`${nm.cat}'s diary`}</Text>
+        {d.length === 0 && <Text dimColor>{`Nothing yet. ${nm.cat} is asleep.`}</Text>}
+        {d.slice(-8).map((l, i, all) => {
+          const { time, text } = diaryParts(l)
+          const newest = i === all.length - 1 // the latest line reads at full strength, the rest recede
+          return (
+            <Text key={`d${i}`} dimColor={!newest}>
+              <Text color="#4fa39a" dimColor={!newest}>{time ? `${time}  ` : ''}</Text>
+              {text}
+            </Text>
+          )
+        })}
       </Box>
     )
   })

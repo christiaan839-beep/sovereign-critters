@@ -762,6 +762,62 @@ export const suggest = (text: string, cursor: number, n: Names = NAMES_DEFAULT):
   return list.filter(r => r.text.startsWith(typed.toLowerCase()) && r.text !== typed)
 }
 
+
+// ---- the prompt box: the draft, painted as it is typed ---------------------------
+export type DraftRun = { start: number; end: number; color?: string; bold?: boolean; underline?: boolean; dimColor?: boolean; virtualText?: string }
+const CLAY = '#d97757'
+const TEAL = '#4fa39a'
+const GOLD = '#d4a548'
+/** What each /critter word does, in the pair's voice; the ghost line after a finished word. */
+const WORDS = (n: Names): Record<string, string> => ({
+  pet: `${n.cat} allows it`, treat: `${n.pip} is sure it is his`, cast: `${n.pip} casts something`, spell: `${n.pip} casts something`, nap: 'both of them sleep',
+  stage: 'the critter alone on a stage', corner: `${n.cat}'s corner`, diary: `what ${n.cat} wrote`, hide: 'out of sight', show: 'back again',
+  lite: 'the bar, the wizard, the orb', full: 'and the rows of the transcript', party: 'and every message',
+  cat: 'choose a coat', wizard: 'choose the wizard', name: 'rename them', sound: 'chime and purr', talk: `let ${n.cat} speak`,
+})
+const ARGS: Record<string, string[]> = { cat: COATS_LIST, wizard: ['auto', 'gold', 'bolt'], sound: ['on', 'off'], talk: ['on', 'off'], name: ['cat', 'pip'] }
+/**
+ * Runs to paint over a /critter draft: the command in clay, a word it knows in teal, a stray word underlined in gold, and a dim
+ * ghost line after a finished word saying what it does. Pure: the draft in, runs out. Any other draft is left alone.
+ */
+export const draftRuns = (text: string, n: Names = NAMES_DEFAULT): DraftRun[] => {
+  const m = /^\/critter(?=\s|$)/.exec(text)
+  if (!m) return []
+  const out: DraftRun[] = [{ start: 0, end: 8, color: CLAY, bold: true }]
+  const words = [...text.matchAll(/\S+/g)].slice(1) // the words after the command
+  const sub = words[0]
+  if (!sub) return out
+  const word = sub[0].toLowerCase()
+  const known = word in WORDS(n)
+  const at = sub.index!
+  out.push(known ? { start: at, end: at + sub[0].length, color: TEAL } : { start: at, end: at + sub[0].length, color: GOLD, underline: true })
+  const arg = words[1]
+  if (known && arg && ARGS[word]) {
+    const a = arg[0].toLowerCase()
+    const ok = ARGS[word]!.includes(a) || word === 'name'
+    out.push(ok ? { start: arg.index!, end: arg.index! + arg[0].length, color: TEAL } : { start: arg.index!, end: arg.index! + arg[0].length, color: GOLD, underline: true })
+    if (word === 'cat' && ok && words.length === 2) out.push({ start: text.length, end: text.length, dimColor: true, virtualText: ` · ${n.cat} in ${a}` })
+  } else if (known && words.length === 1 && !ARGS[word]) out.push({ start: text.length, end: text.length, dimColor: true, virtualText: ` · ${WORDS(n)[word]}` })
+  return out
+}
+
+// ---- the diary, as markdown -------------------------------------------------------
+export const diaryParts = (line: string): { time: string; text: string } => {
+  const m = /^(\d{2}:\d{2})\s+(.*)$/.exec(line)
+  return m ? { time: m[1]!, text: m[2]! } : { time: '', text: line }
+}
+const plainMd = (s: string) => s.replace(/([\\`*_~[\]<>#])/g, '\\$1')
+/** The last twelve lines, newest first, a time in code; a line cannot break the markdown it sits in. */
+export const diaryMarkdown = (lines: string[], n: Names = NAMES_DEFAULT): string => {
+  const head = `**${n.cat}'s diary**`
+  if (!lines.length) return `${head}\n\nNothing yet. ${n.cat} was asleep.`
+  const shown = lines.slice(-12).reverse().map(l => {
+    const { time, text } = diaryParts(l)
+    return time ? `- \`${time}\` ${plainMd(text)}` : `- ${plainMd(text)}`
+  })
+  return `${head} · ${lines.length} line${lines.length === 1 ? '' : 's'}\n\n${shown.join('\n')}`
+}
+
 // ---- cadence -------------------------------------------------------------------
 /**
  * How many clock beats pass between one step of the scene and the next. While anything moves (work, a cast, a jump, a falling

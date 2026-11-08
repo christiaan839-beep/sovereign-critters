@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Look, Scene } from '../types'
-import { cadence, suggest, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
+import { cadence, suggest, draftRuns, diaryMarkdown, diaryParts, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
 
 test('the cat sprite is rectangular, sixteen by twenty, in every pose', () => {
   const base = { ...initial(), cols: 40, cx: -40, kx: 6 }
@@ -609,7 +609,7 @@ test('the model can read the cat\'s diary, and the diary command says what is in
   expect(ran.result).toMatch(/diary is empty/)
   const said = async (args: string) =>
     (await $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never)) as { text?: string }
-  expect((await said('diary')).text).toMatch(/empty/)
+  expect((await said('diary')).text).toMatch(/Biscuit's diary\*\*\n\nNothing yet/)
   expect((await said('lite')).text).toMatch(/Lite/)
   expect((await said('full')).text).toMatch(/Full/)
   expect((await said('party')).text).toMatch(/Party/)
@@ -639,7 +639,7 @@ test('the cat corner draws moods, the diary and the game, and the pet button wor
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...PANE, surface })
     expect(await ui.find({ type: 'Text', text: /trust/ })).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: /Nothing happened yet/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /Nothing yet\. Biscuit is asleep/ })).toBeDefined()
     expect(await ui.find({ key: 'play' })).toBeDefined()
     await ui.press({ key: 'p' })
     await ui.unmount()
@@ -794,4 +794,61 @@ test('a taken command name does not stop the mod from starting', async ($, on) =
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect(await ui.find({ key: 'pet' })).toBeDefined()
   await ui.unmount()
+})
+
+// ---- the prompt box: the draft is painted as it is typed ----
+test('a /critter draft is painted: the command in clay, a real word in teal, a stray word underlined in gold, and the word explained', () => {
+  const draft = (t: string) => draftRuns(t, NAMES_DEFAULT)
+  expect(draft('hello there')).toEqual([]) // other drafts are left alone
+  expect(draft('/critterish')).toEqual([])
+  const pet = draft('/critter pet')
+  expect(pet[0]).toMatchObject({ start: 0, end: 8, color: '#d97757', bold: true })
+  expect(pet[1]).toMatchObject({ start: 9, end: 12, color: '#4fa39a' })
+  expect(pet[2]).toMatchObject({ start: 12, end: 12, dimColor: true })
+  expect(pet[2]!.virtualText).toBe(' · Biscuit allows it') // the ghost line says what the word does
+  const typo = draft('/critter petty')
+  expect(typo[1]).toMatchObject({ start: 9, end: 14, color: '#d4a548', underline: true })
+  expect(typo.some(r => r.virtualText)).toBe(false)
+  expect(draft('/critter')[0]).toMatchObject({ start: 0, end: 8 }) // the bare command is clay and has no ghost
+  expect(draft('/critter').length).toBe(1)
+  // arguments: a coat is teal, a wrong coat is gold, and the ghost follows the group
+  const coat = draft('/critter cat siamese')
+  expect(coat[2]).toMatchObject({ start: 13, end: 20, color: '#4fa39a' })
+  expect(coat.at(-1)!.virtualText).toBe(' · Biscuit in siamese')
+  expect(draft('/critter cat purple')[2]).toMatchObject({ color: '#d4a548', underline: true })
+  // the draft's own names follow the person's renames
+  expect(draft('/critter treat').at(-1)!.virtualText).toContain('Pip')
+  expect(draftRuns('/critter treat', { cat: 'Mog', pip: 'Wick' }).at(-1)!.virtualText).toContain('Wick')
+  // leading whitespace is not a command, and a long draft stays within its text
+  expect(draft('  /critter pet')).toEqual([])
+  for (const r of draft('/critter name cat Biscuit the Great')) expect(r.end).toBeLessThanOrEqual('/critter name cat Biscuit the Great'.length)
+})
+
+test('the prompt edit answer carries the paint, and a failing paint never holds up the keystroke', async ($, on) => {
+  stub(on)
+  on('prompt.edit', (_, e: { text: string; cursor: number }) => ({ text: e.text, cursor: e.cursor }))
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const out = (await $.prompt.edit({ text: '/critter pet', inputText: '/critter pet', cursor: 12, start: 12, end: 12 } as never)) as { text: string; decorations?: { color?: string }[] }
+  expect(out.text).toBe('/critter pet')
+  expect(out.decorations?.[0]?.color).toBe('#d97757')
+  const plain = (await $.prompt.edit({ text: 'fix the bug', inputText: 'fix the bug', cursor: 11, start: 11, end: 11 } as never)) as { decorations?: unknown[] }
+  expect(plain.decorations ?? []).toEqual([]) // an ordinary prompt is not touched
+})
+
+// ---- the diary ----
+test("the diary is read as markdown: a time in code, the line plain, the newest first, and the header says whose it is", () => {
+  expect(diaryParts('09:14 Biscuit allows it.')).toEqual({ time: '09:14', text: 'Biscuit allows it.' })
+  expect(diaryParts('09:14  two spaces')).toEqual({ time: '09:14', text: 'two spaces' })
+  expect(diaryParts('no time here')).toEqual({ time: '', text: 'no time here' })
+  const md = diaryMarkdown(['08:01 first', '09:14 second', 'plain'], NAMES_DEFAULT)
+  expect(md.split('\n')[0]).toBe("**Biscuit's diary** · 3 lines")
+  expect(md).toContain('- `09:14` second')
+  expect(md).toContain('- plain')
+  expect(md.indexOf('second')).toBeLessThan(md.indexOf('first')) // newest first
+  expect(diaryMarkdown([], NAMES_DEFAULT)).toBe("**Biscuit's diary**\n\nNothing yet. Biscuit was asleep.")
+  expect(diaryMarkdown(Array.from({ length: 30 }, (_, i) => `10:${String(i).padStart(2, '0')} l${i}`), NAMES_DEFAULT).split('\n').filter(l => l.startsWith('- ')).length).toBe(12)
+  expect(diaryMarkdown(['09:00 `code` and *stars*'], NAMES_DEFAULT)).toContain('\\`code\\` and \\*stars\\*') // a line cannot break the markdown
 })

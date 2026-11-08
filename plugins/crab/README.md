@@ -2,13 +2,13 @@
 
 ![crab: A reload keeps what you keep.](preview.png)
 
-A band above the prompt (terminal and desktop) that shows what a reload keeps: the module's own variable, the time it loaded in UTC, is new; the count of prompts that entered, kept in $.state, stays.
+A band above the prompt, on the terminal and the desktop, that shows what a hot reload keeps. The module's own variable (the time it loaded, in UTC) starts again; the count of prompts, kept in `$.state`, stays.
 
 ## What it does
 
 A band above the prompt shows two things side by side: the time the module loaded (a variable in the module itself), and the number of prompts that entered this session (kept in `$.state`).
 
-Run it with `claude --plugin-dir mods/crab`, save the module, and watch the band: the load time is new, the count stays. That is the whole lesson of hot reload for a mod.
+Run it with `claude --plugin-dir .`, save the module, and watch the band: the load time is new, the count stays. That is the whole lesson of hot reload for a mod.
 
 ## Where it draws
 

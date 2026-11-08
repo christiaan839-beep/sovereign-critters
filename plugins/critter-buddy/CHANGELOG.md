@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.0
+
+- The prompt box is painted as you type: `/critter` in clay, a word it knows in teal, a stray word underlined in gold, and a dim ghost line after a finished word saying what it does. It rides on the `prompt.edit` answer, so the colours always sit on the characters they were made for. Other drafts are left alone.
+- The diary reads as markdown (`/critter diary`): newest first, the time in code, a line cannot break the markdown. In the cat corner the time is teal and only the latest line is at full strength; the heading uses the cat's own name.
+
 ## 0.7.2
 
 - The cauldron beside the wizard is gone. It stood on top of the cat. The wizard casts alone.
