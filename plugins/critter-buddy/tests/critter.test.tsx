@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Look, Scene } from '../types'
-import { cadence, suggest, controlLabels, draftRuns, diaryMarkdown, diaryParts, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
+import { cadence, suggest, stepFeel, FEELS, controlLabels, draftRuns, diaryMarkdown, diaryParts, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
 
 test('the cat sprite is rectangular, sixteen by twenty, in every pose', () => {
   const base = { ...initial(), cols: 40, cx: -40, kx: 6 }
@@ -877,4 +877,49 @@ test('the buttons say what is true now: a sulking cat is made up with, a casting
   const nap = (await ui.find({ key: 'nap' })) as { props?: { hotkey?: string; label?: string } } | undefined
   expect(nap?.props).toMatchObject({ hotkey: 'n', label: 'nap' })
   await ui.unmount()
+})
+
+// ---- the feel dial ----
+test('calm keeps the pair still, warm is the usual, playful hops more; the feel only changes how they move', () => {
+  expect(FEELS).toEqual(['calm', 'warm', 'playful'])
+  const run = (feel: 'calm' | 'warm' | 'playful', n = 4000) => {
+    let s: Scene = { ...initial(), cols: 60, look: 'idle', idle: 0 }
+    let hops = 0
+    for (let i = 0; i < n; i++) {
+      const was = s.jt
+      s = { ...stepFeel(s, feel), idle: Math.min(s.idle + 1, 60) } // kept awake: the idle clock never reaches sleep
+      if (was === 0 && s.jt > 0) hops++
+    }
+    return hops
+  }
+  const [calm, warm, playful] = [run('calm'), run('warm'), run('playful')]
+  expect(calm).toBe(0)
+  expect(warm).toBeGreaterThan(0)
+  expect(playful).toBeGreaterThan(warm)
+  // warm is the plain step, bit for bit
+  const base = { ...initial(), cols: 60 }
+  expect(stepFeel(base, 'warm')).toEqual(step(base))
+  // calm lets no spark or heart live, however they were made, and keeps the z of a sleeper
+  const hot = react({ ...initial(), cols: 60 }, 'pet')
+  expect(hot.fx.some(f => f.k === 'heart')).toBe(true)
+  const cooled = stepFeel(hot, 'calm')
+  expect(cooled.fx.some(f => f.k === 'heart' || f.k === 'spark')).toBe(false)
+  expect(stepFeel(react({ ...initial(), cols: 60 }, 'spell'), 'playful').fx.some(f => f.k === 'spark')).toBe(true)
+})
+
+test('/critter feel sets the dial, says so, offers its words, and calm silences sound', async ($, on) => {
+  stub(on)
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const said = async (args: string) => ((await $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never)) as { text?: string }).text ?? ''
+  expect(await said('feel')).toMatch(/Usage: \/critter feel calm \| warm \| playful/)
+  expect(await said('feel loud')).toMatch(/Usage/)
+  expect(await said('feel calm')).toMatch(/Calm/)
+  expect(await said('feel playful')).toMatch(/Playful/)
+  expect(suggest('/critter feel ', 14).map(r => r.text)).toEqual(['calm', 'warm', 'playful'])
+  expect(suggest('/critter ', 9).map(r => r.text)).toContain('feel')
+  expect(draftRuns('/critter feel calm', NAMES_DEFAULT)[2]).toMatchObject({ color: '#4fa39a' })
+  expect(draftRuns('/critter feel loud', NAMES_DEFAULT)[2]).toMatchObject({ color: '#d4a548', underline: true })
 })

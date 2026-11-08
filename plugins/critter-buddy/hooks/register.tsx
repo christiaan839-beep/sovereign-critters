@@ -2,8 +2,8 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { NAMES_DEFAULT, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
-import type { Names, FaceKind, Reaction, Run, Svgd } from './scene'
+import { NAMES_DEFAULT, FEELS, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import type { Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
 
 // `shape` tags the stored form: a value an earlier version stored is declined, not misread.
 const scene = atom({ plugin: 'critter-buddy', key: 'scene' } as const, initial(), { shape: 'scene-5' })
@@ -19,6 +19,7 @@ const world = atom({ plugin: 'critter-buddy', key: 'world' } as const, 'day' as 
 const talk = atom({ plugin: 'critter-buddy', key: 'talk' } as const, false as boolean, { shape: 'talk-1' })
 
 const names = atom({ plugin: 'critter-buddy', key: 'names' } as const, NAMES_DEFAULT as Names, { shape: 'names-1' })
+const feel = atom({ plugin: 'critter-buddy', key: 'feel' } as const, 'warm' as Feel, { shape: 'feel-1' })
 const sound = atom({ plugin: 'critter-buddy', key: 'sound' } as const, false as boolean, { shape: 'sound-1' })
 
 const PANE = 'cat-corner'
@@ -104,7 +105,7 @@ const STARS = Array.from({ length: 22 }, (_, i) => {
 /** A short sound, only when the person has turned sound on; a player that is missing never matters. */
 const ring = async ($: any, which: 'cast' | 'purr') => {
   try {
-    if (await read($, sound)) await $.audio.play({ asset: `sounds/${which}.wav` }, { gain: 0.5 })
+    if ((await read($, feel)) !== 'calm' && (await read($, sound))) await $.audio.play({ asset: `sounds/${which}.wav` }, { gain: 0.5 })
   } catch {
     // no player, no sound: the picture is enough
   }
@@ -253,10 +254,11 @@ export const register: Register = on => {
       if (beat % cadence(await read($, scene)) !== 0) return // still: the picture has not changed, so it is not redrawn
       const t = await $.clock.now()
       const nm = await read($, names)
+      const feelNow = await read($, feel)
       let said: string[] = []
       let snapshot: Scene | undefined
       await update($, scene, (s: Scene): Scene => {
-        const n = { ...step({ ...s, cols: liveCols }), night: isNight(t) }
+        const n = { ...stepFeel({ ...s, cols: liveCols }, feelNow), night: isNight(t) }
         said = n.log
         snapshot = n
         return { ...n, log: [] }
@@ -270,7 +272,7 @@ export const register: Register = on => {
     })
     // One command, subcommands inside: the session already has /pet from another mod.
     try {
-      await $.command.register({ name: 'critter', description: 'The pair above your prompt: pet, treat, nap, spell, corner, diary, stage, hide, show, lite|full|party, talk on|off, sound on|off, wizard auto|gold|bolt, name cat|pip <name>, cat <coat>' })
+      await $.command.register({ name: 'critter', description: 'The pair above your prompt: pet, treat, nap, spell, corner, diary, stage, hide, show, lite|full|party, talk on|off, sound on|off, feel calm|warm|playful, wizard auto|gold|bolt, name cat|pip <name>, cat <coat>' })
     } catch {
       $.ui.log('critter-buddy: /critter is taken by another plugin; the buttons above the prompt still work')
     }
@@ -333,6 +335,12 @@ export const register: Register = on => {
       await update($, sound, () => arg === 'on')
       return { text: arg === 'on' ? 'Sound is on: a cast chime and a purr.' : 'Sound is off.' }
     }
+    if (sub === 'feel') {
+      const f = FEELS.find(x => x === arg)
+      if (!f) return { text: 'Usage: /critter feel calm | warm | playful. Calm: still, no sound. Warm: the usual. Playful: more hops and sparks.' }
+      await update($, feel, () => f)
+      return { text: f === 'calm' ? 'Calm: the pair only breathe, walk and sleep. No sparks, no sound.' : f === 'playful' ? 'Playful: more hops, more sparks.' : 'Warm: the usual.' }
+    }
     if (sub === 'stage') {
       await $.ui.open({ id: STAGE, title: 'Stage', focus: true })
       return { text: 'The stage is open: the critter alone, walking and idling.' }
@@ -370,7 +378,7 @@ export const register: Register = on => {
       await drawBackdrop($, hidden ? undefined : { id: w, glass: glassFor(w) })
       return { text: hidden ? 'The pair are hidden.' : 'The pair are back.' }
     }
-    return { text: 'Usage: /critter [pet | treat | nap | spell | corner | stage | diary | hide | show | lite | full | party | talk on|off | sound on|off | wizard auto|gold|bolt | name cat|pip <name> | cat <coat>]' }
+    return { text: 'Usage: /critter [pet | treat | nap | spell | corner | stage | diary | hide | show | lite | full | party | talk on|off | sound on|off | feel calm|warm|playful | wizard auto|gold|bolt | name cat|pip <name> | cat <coat>]' }
   })
 
   // ---- the band above the prompt: the pair on the bar, and three things to press ----

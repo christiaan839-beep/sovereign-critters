@@ -743,7 +743,7 @@ export type Suggestion = { text: string; label: string; description: string }
 const COATS_LIST = ['orange', 'ink', 'brown', 'tabby', 'ginger', 'black', 'tuxedo', 'cream', 'grey', 'siamese', 'pair']
 /** What `/critter ` offers as you type it. Pure: the draft in, rows out; only at the end of the draft, and only for /critter. */
 export const suggest = (text: string, cursor: number, n: Names = NAMES_DEFAULT): Suggestion[] => {
-  const m = /^\/critter\s+(?:(cat|wizard|sound|talk|name)\s+)?(\S*)$/.exec(text)
+  const m = /^\/critter\s+(?:(cat|wizard|sound|talk|name|feel)\s+)?(\S*)$/.exec(text)
   if (!m || cursor !== text.length) return []
   const [, group, typed = ''] = m
   const row = (word: string, description: string): Suggestion => ({ text: word, label: word, description })
@@ -752,11 +752,12 @@ export const suggest = (text: string, cursor: number, n: Names = NAMES_DEFAULT):
     : group === 'wizard' ? [row('auto', 'gold star by day, bolt hat by night'), row('gold', 'always the gold star'), row('bolt', 'always the violet bolt')]
     : group === 'sound' ? [row('on', 'a cast chime and a purr'), row('off', 'quiet again')]
     : group === 'talk' ? [row('on', `${n.cat} speaks after a turn; one small model call each`), row('off', `${n.cat} keeps their own counsel`)]
+    : group === 'feel' ? [row('calm', 'still: no hops, no sparks, no sound'), row('warm', 'the usual'), row('playful', 'more hops, more sparks')]
     : group === 'name' ? [row('cat', `rename ${n.cat}`), row('pip', `rename ${n.pip}`)]
     : [
         row('pet', `${n.cat} allows it`), row('treat', `${n.pip} is sure it is his`), row('cast', `${n.pip} casts something`), row('nap', 'both of them sleep'),
         row('stage', 'the critter alone on an empty stage'), row('corner', `${n.cat}'s corner: moods, diary, a game`), row('diary', `what ${n.cat} wrote`),
-        row('cat', 'choose a coat'), row('wizard', 'choose the wizard'), row('name', 'rename them'), row('sound', 'chime and purr'), row('talk', `let ${n.cat} speak`),
+        row('cat', 'choose a coat'), row('wizard', 'choose the wizard'), row('name', 'rename them'), row('sound', 'chime and purr'), row('talk', `let ${n.cat} speak`), row('feel', 'calm, warm or playful'),
         row('lite', 'the bar, the wizard and the orb'), row('full', 'and the rows of the transcript'), row('party', 'and every message'), row('hide', 'out of sight'), row('show', 'back again'),
       ]
   return list.filter(r => r.text.startsWith(typed.toLowerCase()) && r.text !== typed)
@@ -773,9 +774,9 @@ const WORDS = (n: Names): Record<string, string> => ({
   pet: `${n.cat} allows it`, treat: `${n.pip} is sure it is his`, cast: `${n.pip} casts something`, spell: `${n.pip} casts something`, nap: 'both of them sleep',
   stage: 'the critter alone on a stage', corner: `${n.cat}'s corner`, diary: `what ${n.cat} wrote`, hide: 'out of sight', show: 'back again',
   lite: 'the bar, the wizard, the orb', full: 'and the rows of the transcript', party: 'and every message',
-  cat: 'choose a coat', wizard: 'choose the wizard', name: 'rename them', sound: 'chime and purr', talk: `let ${n.cat} speak`,
+  cat: 'choose a coat', wizard: 'choose the wizard', name: 'rename them', sound: 'chime and purr', talk: `let ${n.cat} speak`, feel: 'calm, warm or playful',
 })
-const ARGS: Record<string, string[]> = { cat: COATS_LIST, wizard: ['auto', 'gold', 'bolt'], sound: ['on', 'off'], talk: ['on', 'off'], name: ['cat', 'pip'] }
+const ARGS: Record<string, string[]> = { cat: COATS_LIST, wizard: ['auto', 'gold', 'bolt'], sound: ['on', 'off'], talk: ['on', 'off'], name: ['cat', 'pip'], feel: ['calm', 'warm', 'playful'] }
 /**
  * Runs to paint over a /critter draft: the command in clay, a word it knows in teal, a stray word underlined in gold, and a dim
  * ghost line after a finished word saying what it does. Pure: the draft in, runs out. Any other draft is left alone.
@@ -829,6 +830,22 @@ export const controlLabels = (s: Scene, mood: string, n: Names = NAMES_DEFAULT):
   nap: 'nap',
   corner: 'the corner',
 })
+
+
+// ---- the feel dial -----------------------------------------------------------------
+export type Feel = 'calm' | 'warm' | 'playful'
+export const FEELS: Feel[] = ['calm', 'warm', 'playful']
+/**
+ * One step of the scene at a chosen feel. warm is the plain step. calm lets no hop begin by itself and lets no spark or heart
+ * live: the pair only breathe, walk and sleep. playful hops about three times as often as warm.
+ */
+export const stepFeel = (s: Scene, feel: Feel): Scene => {
+  const n = step(s)
+  if (feel === 'warm') return n
+  if (feel === 'calm') return { ...n, jt: s.jt > 0 ? n.jt : 0, fx: n.fx.filter(f => f.k !== 'spark' && f.k !== 'heart') }
+  const idleish = (s.look === 'idle' || s.look === 'done') && !isAsleep(s)
+  return s.jt === 0 && n.jt === 0 && idleish && n.seed % 17 === 0 ? { ...n, jt: 1 } : n
+}
 
 // ---- cadence -------------------------------------------------------------------
 /**

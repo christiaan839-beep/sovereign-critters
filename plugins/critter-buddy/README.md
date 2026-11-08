@@ -39,6 +39,7 @@ The cat keeps its trust in you across sessions in `$.store`; it falls by 8 for e
 | `/critter cat <coat>` | The cat's coat: `orange` (the default), `ink`, `brown`, `tabby`, `ginger`, `black`, `tuxedo`, `cream`, `grey`, `siamese`, or `pair` (follows day and night). |
 | `/critter name cat <name>`, `name pip <name>` | What the cat (Biscuit) and the wizard critter (Pip) are called; every line says it. |
 | `/critter wizard auto`, `gold`, `bolt` | The wizard by the hour, the gold star always, or the violet bolt always. |
+| `/critter feel calm`, `warm`, `playful` | How lively they are. Calm: still, no sparks, no sound. Warm: the usual (default). Playful: more hops and sparks. |
 | `/critter sound on`, `off` | A cast chime for a Skill and a purr for a pet. Off until you ask. |
 | `/critter hide`, `show` | Explicit; bare `/critter hide` toggles. |
 

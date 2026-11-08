@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.0
+
+- A feel dial: `/critter feel calm | warm | playful`. Calm keeps the pair still (they breathe, walk and sleep; no hops, sparks, hearts or sound). Warm is the usual. Playful hops about three times as often. It is kept between sessions, offered by the typeahead and coloured in the prompt box.
+
 ## 0.8.2
 
 - The buttons say what is true now: a sulking cat is `make up with Biscuit`, a casting wizard reads `Pip is casting`. A `nap` button joins them (key `n`).
