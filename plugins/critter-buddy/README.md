@@ -14,7 +14,7 @@ Plugins load in a new session.
 
 | Where | What it does |
 | --- | --- |
-| The bar above the prompt | The critter changes with the tool Claude uses: laptop for Bash, glasses to read, pencil to edit, wizard hat and staff (built up frame by frame) for a skill or a subagent. The cat sleeps, follows, sits on the laptop, pounces on errors and knocks cups off. |
+| The bar above the prompt (and its buttons: pet, feed, cast, nap, the corner; each label follows what is happening) | The critter changes with the tool Claude uses: laptop for Bash, glasses to read, pencil to edit, wizard hat and staff (built up frame by frame) for a skill or a subagent. The cat sleeps, follows, sits on the laptop, pounces on errors and knocks cups off. |
 | Beside the thinking orb | The wizard stands to its left; the orb is the glossy clay Sovereign Matrix orb and breathes while Claude thinks. |
 | Every tool row | A small face by what the call did: working, done, failed. |
 | End of a turn | A line from the diary and a quip that depends on how long it took and whether anything failed. |

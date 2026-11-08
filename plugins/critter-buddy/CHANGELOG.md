@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.2
+
+- The buttons say what is true now: a sulking cat is `make up with Biscuit`, a casting wizard reads `Pip is casting`. A `nap` button joins them (key `n`).
+
 ## 0.8.1
 
 - The band's controls sit on one centred line that wraps in a narrow window: the label in full, the mood dim after it, then the four buttons, with a line of air above. Other mods' rows (usage lines) are held a line clear beneath, instead of crowding the buttons.

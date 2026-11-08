@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Look, Scene } from '../types'
-import { cadence, suggest, draftRuns, diaryMarkdown, diaryParts, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
+import { cadence, suggest, controlLabels, draftRuns, diaryMarkdown, diaryParts, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
 
 test('the cat sprite is rectangular, sixteen by twenty, in every pose', () => {
   const base = { ...initial(), cols: 40, cx: -40, kx: 6 }
@@ -864,4 +864,17 @@ test('the band keeps its label and buttons on one centred line that wraps, with 
     expect(await ui.find({ type: 'Text', text: /^· cat / })).toBeDefined()
     await ui.unmount()
   }
+})
+
+test('the buttons say what is true now: a sulking cat is made up with, a casting wizard is not asked to cast, and there is a nap', async ($, on) => {
+  const base = { ...initial(), look: 'idle' as Look }
+  expect(controlLabels(base, 'unbothered', NAMES_DEFAULT)).toEqual({ pet: 'pet Biscuit', feed: 'feed Biscuit', cast: 'Pip casts', nap: 'nap', corner: 'the corner' })
+  expect(controlLabels(base, 'sulking', NAMES_DEFAULT).pet).toBe('make up with Biscuit')
+  expect(controlLabels({ ...base, look: 'wizard' }, 'pleased', NAMES_DEFAULT).cast).toBe('Pip is casting')
+  expect(controlLabels(base, 'pleased', { cat: 'Mog', pip: 'Wick' })).toMatchObject({ pet: 'pet Mog', cast: 'Wick casts' })
+  stub(on)
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  const nap = (await ui.find({ key: 'nap' })) as { props?: { hotkey?: string; label?: string } } | undefined
+  expect(nap?.props).toMatchObject({ hotkey: 'n', label: 'nap' })
+  await ui.unmount()
 })

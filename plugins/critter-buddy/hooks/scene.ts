@@ -818,6 +818,18 @@ export const diaryMarkdown = (lines: string[], n: Names = NAMES_DEFAULT): string
   return `${head} · ${lines.length} line${lines.length === 1 ? '' : 's'}\n\n${shown.join('\n')}`
 }
 
+
+// ---- the buttons: each says what is true now ---------------------------------------
+export type Controls = { pet: string; feed: string; cast: string; nap: string; corner: string }
+/** The label of each button on the bar. A cat that is sulking is made up with, not petted; a wizard mid-cast is not asked to cast. */
+export const controlLabels = (s: Scene, mood: string, n: Names = NAMES_DEFAULT): Controls => ({
+  pet: mood === 'sulking' ? `make up with ${n.cat}` : `pet ${n.cat}`,
+  feed: `feed ${n.cat}`,
+  cast: s.look === 'wizard' ? `${n.pip} is casting` : `${n.pip} casts`,
+  nap: 'nap',
+  corner: 'the corner',
+})
+
 // ---- cadence -------------------------------------------------------------------
 /**
  * How many clock beats pass between one step of the scene and the next. While anything moves (work, a cast, a jump, a falling

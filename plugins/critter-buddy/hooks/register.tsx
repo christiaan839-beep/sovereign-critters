@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { NAMES_DEFAULT, cadence, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import { NAMES_DEFAULT, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
 import type { Names, FaceKind, Reaction, Run, Svgd } from './scene'
 
 // `shape` tags the stored form: a value an earlier version stored is declined, not misread.
@@ -385,6 +385,7 @@ export const register: Register = on => {
     // Other mods draw here too (usage-line, snoozing-pet): keep their rows beneath ours.
     const others = await next(e)
     const rows = paint({ ...s, cols })
+    const lb = controlLabels(s, moodOf(s), nm)
     return (
       <Box flexDirection="column">
         {vector ? (
@@ -397,10 +398,11 @@ export const register: Register = on => {
         <Box key="controls" flexDirection="row" alignItems="center" flexWrap="wrap" columnGap={1} marginTop={1}>
           <Text key="label">{s.label}</Text>
           <Text key="mood" dimColor>{`· cat ${moodOf(s)}`}</Text>
-          <Button key="pet" label={`pet ${nm.cat}`} hotkey="p" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'pet')); await ring($, 'purr') }} />
-          <Button key="treat" label={`feed ${nm.cat}`} hotkey="t" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'treat'))} />
-          <Button key="cast" label={`${nm.pip} casts`} hotkey="c" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'spell')); await ring($, 'cast') }} />
-          <Button key="corner" label="the corner" hotkey="k" onPress={() => $.ui.open({ id: PANE, title: 'Cat corner', focus: true })} />
+          <Button key="pet" label={lb.pet} hotkey="p" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'pet')); await ring($, 'purr') }} />
+          <Button key="treat" label={lb.feed} hotkey="t" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'treat'))} />
+          <Button key="cast" label={lb.cast} hotkey="c" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'spell')); await ring($, 'cast') }} />
+          <Button key="nap" label={lb.nap} hotkey="n" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'nap'))} />
+          <Button key="corner" label={lb.corner} hotkey="k" onPress={() => $.ui.open({ id: PANE, title: 'Cat corner', focus: true })} />
         </Box>
         <Box key="others" flexDirection="column" marginTop={1}>{others}</Box>
       </Box>
