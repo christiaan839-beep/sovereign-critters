@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { bellLine } from '../hooks/register'
+import { bellLine, turnLine } from '../hooks/register'
 
 test('the line says how long it ran and whether it failed', () => {
   expect(bellLine(20_000, false)).toBe('The command finished in 20 s')
@@ -42,4 +42,38 @@ test('a command that was denied is not a build that finished', async ($, on) => 
   const { toasts, bells } = await run($, on, 60_000, { deny: 'no' })
   expect(toasts).toEqual([])
   expect(bells).toEqual([])
+})
+
+test('a turn that ran long says so in its own words', () => {
+  expect(turnLine(45_000)).toBe('Claude finished after 45 s')
+  expect(turnLine(125_000)).toBe('Claude finished after 2 min 5 s')
+})
+
+const turn = async ($: any, on: any, ms: number) => {
+  const toasts: string[] = []
+  const bells: string[] = []
+  let clock = 2_000_000
+  on('clock.now', () => ({ value: clock }))
+  on('prompt.submit', (_: unknown, e: { text: string; inputText: string }) => ({ text: e.text, inputText: e.inputText }) as never)
+  on('turn.complete', () => ({ text: 'done' }))
+  on('ui.toast', (_: unknown, e: { text: string }) => { toasts.push(e.text); return { value: undefined } })
+  on('audio.play', (_: unknown, e: { clip: { asset?: string } }) => { bells.push(e.clip.asset ?? ''); return { value: undefined } })
+  await $.prompt.submit({ text: 'go', inputText: 'go' } as never)
+  clock += ms
+  await $.turn.complete({ answer: 'done' } as never)
+  return { toasts, bells }
+}
+
+test('a long turn rings the bell when it ends', async ($, on) => {
+  const { toasts, bells } = await turn($, on, 90_000)
+  expect(toasts).toEqual(['Claude finished after 1 min 30 s'])
+  expect(bells).toEqual(['sounds/bell.wav'])
+})
+
+test('a short turn stays quiet, and exactly the threshold rings', async ($, on) => {
+  expect((await turn($, on, 19_999)).bells).toEqual([])
+})
+
+test('exactly twenty seconds is long enough', async ($, on) => {
+  expect((await turn($, on, 20_000)).bells).toEqual(['sounds/bell.wav'])
 })

@@ -13,7 +13,7 @@
     {
       "name": "build-bell",
       "source": "./plugins/build-bell",
-      "description": "A counter-bell strike and a toast when a long command finishes."
+      "description": "A counter-bell strike and a toast when a long command or a long turn finishes."
     },
     {
       "name": "session-diary",
