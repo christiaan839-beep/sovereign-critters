@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12.3
+
+- The greeting has five lines for every weekday and every part of the day, up from two, and picks one a day: a new line tomorrow, the same one on every reopen today. Lines that name the day or the hour still do.
+
 ## 0.12.2
 
 - Several tool calls at once (subagents) each keep their own clock for the long wait, so one call no longer resets another's. The sky arguments and the long-call test moved into `world.ts`, where tests pin them, and the backdrop is tested against the session's weather. No visible change.

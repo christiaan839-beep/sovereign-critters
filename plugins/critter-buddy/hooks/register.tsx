@@ -594,7 +594,7 @@ export const register: Register = on => {
         {base}
         <Box flexDirection="row" gap={1}>
           {face('ok')}
-          <Text dimColor>{`critter-buddy: ${named(quip('greet', await read($, scene), hourOf(Date.now()), 0, weekdayOf(Date.now()), holidayOf(Date.now())?.line), await read($, names))}`}</Text>
+          <Text dimColor>{`critter-buddy: ${named(quip('greet', await read($, scene), hourOf(Date.now()), Date.now(), weekdayOf(Date.now()), holidayOf(Date.now())?.line), await read($, names))}`}</Text>
         </Box>
       </Box>
     )

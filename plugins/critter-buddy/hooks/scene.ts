@@ -725,25 +725,51 @@ export const cleanName = (raw: string): string => raw.replace(/[^\p{L}\p{N} '-]/
 export type Voice = 'turn' | 'ask' | 'greet' | 'hint'
 
 const pickBy = (pool: readonly string[], s: Scene): string => pool[(s.stats.turns + s.stats.commits + s.seed) % pool.length]!
+/** The greeting's pick: one line a day, a new one tomorrow (a pool of two or more never repeats on consecutive days), the same on every reopen that day. */
+export const pickByDay = (pool: readonly string[], ms: number): string => pool[Math.floor((ms + 7_200_000) / 86_400_000) % pool.length]!
 
 const TURN_FAST = ['{cat} did not look up', 'quick. {cat} is unimpressed', 'gone before {cat} blinked']
 const TURN_MID = ['{pip} approves', '{pip} nodded once', 'a clean cast, says {pip}']
 const TURN_LONG = ['{pip} dozed off', '{cat} has moved house since', 'long enough for two naps']
 const TURN_ROUGH = ['{cat} saw that error first', '{pip} blames {cat}', 'bumpy. {pip} is calm about it']
-const MORNING = ['good morning. {pip} is up first', 'morning. {cat} has not decided yet']
-const DAY = ['{pip} is at the orb', 'daylight. {cat} took the warm spot']
-const EVENING = ['evening. {pip} lit the lamp', '{cat} is awake now, as promised']
-const NIGHT = ['night shift. antennae out', 'the glass is dark. {pip} keeps the orb lit']
+const MORNING = [
+  'good morning. {pip} is up first',
+  'morning. {cat} has not decided yet',
+  'morning. the kettle is {pip}\'s department',
+  'morning. {cat} warmed the chair for you',
+  'early morning. {pip} approves of the quiet',
+]
+const DAY = [
+  '{pip} is at the orb',
+  'daylight. {cat} took the warm spot',
+  'afternoon. {pip} is pretending not to nap',
+  '{cat} has found the one patch of sun',
+  'midday. {pip} checked the orb twice',
+]
+const EVENING = [
+  'evening. {pip} lit the lamp',
+  '{cat} is awake now, as promised',
+  'evening. {pip} is counting what got done',
+  'evening. {cat} woke up for the second shift',
+  'evening. the lamp is lit and nobody is rushing',
+]
+const NIGHT = [
+  'night shift. antennae out',
+  'the glass is dark. {pip} keeps the orb lit',
+  'night. {cat} watches the cursor so you can blink',
+  'late. the glass is quiet and {pip} is not',
+  'night. {cat} is counting your keystrokes, kindly',
+]
 
 // The weekday only colours a daylight greeting; the night keeps its own lines. 0 is Sunday.
 const WEEKDAY: readonly (readonly string[])[] = [
-  ['sunday. {pip} keeps the orb low', 'sunday. {cat} is not working, you are'],
-  ['monday. {cat} has not agreed to it yet', 'monday. {pip} brought a list'],
-  ['tuesday. {cat} is settled in', 'tuesday. {pip} polished the orb'],
-  ['wednesday. the middle, says {pip}', 'wednesday. {cat} checked the clock twice'],
-  ['thursday. {pip} can smell friday', 'thursday. {cat} is pacing himself'],
-  ['friday. {pip} suspects the weekend', 'friday. {cat} has one eye on the door'],
-  ['saturday. {cat} is not working, you are', 'saturday. {pip} lit the orb anyway'],
+  ['sunday. {pip} keeps the orb low', 'sunday. {cat} is not working, you are', 'sunday. {pip} put the list face down', 'sunday. {cat} allows one email, no more', 'sunday. the slow light suits {cat}'],
+  ['monday. {cat} has not agreed to it yet', 'monday. {pip} brought a list', 'monday. {cat} is easing in, loudly', 'monday. {pip} polished the orb for the occasion', 'monday. the week starts when {cat} says'],
+  ['tuesday. {cat} is settled in', 'tuesday. {pip} polished the orb', 'tuesday. the quiet day, says {pip}', 'tuesday. {cat} found a rhythm and sat on it', 'tuesday. {pip} has the good pen out'],
+  ['wednesday. the middle, says {pip}', 'wednesday. {cat} checked the clock twice', 'wednesday. half done, {pip} insists', 'wednesday. {cat} is pacing the hump', 'wednesday. {pip} measured the week and it holds'],
+  ['thursday. {pip} can smell friday', 'thursday. {cat} is pacing themself', 'thursday. nearly, says {pip}', 'thursday. {cat} is pretending it is friday', 'thursday. {pip} sorted what can wait'],
+  ['friday. {pip} suspects the weekend', 'friday. {cat} has one eye on the door', 'friday. {pip} is wrapping things up neatly', 'friday. {cat} will believe it at five', 'friday. one good push, says {pip}'],
+  ['saturday. {cat} is not working, you are', 'saturday. {pip} lit the orb anyway', 'saturday. {cat} took the sofa and kept the peace', 'saturday. {pip} says the braai can wait an hour', 'saturday. a gentle one, says {pip}'],
 ]
 /** The weekday in Africa/Johannesburg (UTC+2, no daylight saving), 0 for Sunday, from epoch milliseconds. */
 export const weekdayOf = (ms: number): number => (((Math.floor((ms + 7_200_000) / 86_400_000) + 4) % 7) + 7) % 7
@@ -761,7 +787,7 @@ export const quip = (kind: Voice, s: Scene, hour = 12, ms = 0, weekday?: number,
       const pool = night ? NIGHT : weekday !== undefined && hour < 17 ? WEEKDAY[((weekday % 7) + 7) % 7]! : hour < 11 ? MORNING : hour < 17 ? DAY : EVENING
       const days = s.streak ?? 0
       const streak = days >= 2 ? ` · day ${days} together` : ''
-      return `${holiday && !night ? holiday : pickBy(pool, s)}${streak} · /critter`
+      return `${holiday && !night ? holiday : ms > 0 ? pickByDay(pool, ms) : pickBy(pool, s)}${streak} · /critter`
     }
     case 'hint':
       return s.look === 'wizard' ? '{pip} is casting' : s.mode === 'sit' ? '{cat} is on the laptop' : s.look === 'idle' && s.idle > 100 ? 'both asleep' : '/critter pet'

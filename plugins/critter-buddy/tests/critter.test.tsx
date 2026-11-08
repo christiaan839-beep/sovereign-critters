@@ -1130,3 +1130,30 @@ test('the backdrop draws the session weather: a low-spirited pair gets rain and 
   expect(await mountBackdrop(60)).toEqual({ rain: false, sun: true })
   expect(await mountBackdrop(10)).toEqual({ rain: true, sun: false }) // a storm hides the sun
 })
+
+const DAY_MS = 86_400_000
+const NOON = Date.UTC(2026, 10, 9, 10) // a Monday, noon in Johannesburg
+
+test('the greeting is one line a day, a new one tomorrow, and the same on every reopen', () => {
+  const s = initial()
+  const lines = Array.from({ length: 14 }, (_, d) => quip('greet', { ...s, seed: 1 + d * 97 }, 12, NOON + d * DAY_MS, weekdayOf(NOON + d * DAY_MS)))
+  for (let d = 1; d < lines.length; d++) expect(lines[d]).not.toBe(lines[d - 1]) // never the same two days running
+  expect(quip('greet', { ...s, seed: 5 }, 12, NOON, 1)).toBe(quip('greet', { ...s, seed: 999 }, 12, NOON + 3_600_000, 1)) // reopening the same day does not change it
+  expect(new Set(lines.map(l => l.replace(/ · \/critter$/, ''))).size).toBeGreaterThanOrEqual(8) // a fortnight shows variety, not two lines on repeat
+})
+
+test('every part of the day has five lines that name their hour, and the weekday ones name the weekday', () => {
+  const s = initial()
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+  for (let d = 0; d < 5; d++) {
+    const ms = NOON + d * DAY_MS
+    expect(quip('greet', s, 23, ms, 1)).toMatch(/night|glass|late/)
+    expect(quip('greet', s, 17, ms, 1)).toMatch(/evening|awake/)
+  }
+  for (let w = 0; w < 7; w++) {
+    const seen = new Set<string>()
+    for (let k = 0; k < 5; k++) seen.add(quip('greet', s, 12, NOON + (w - 1 + 7 * k) * DAY_MS, w)) // the same weekday, five weeks running
+    expect(seen.size).toBe(5)
+    for (const l of seen) expect(l.startsWith(days[w]!)).toBe(true)
+  }
+})
