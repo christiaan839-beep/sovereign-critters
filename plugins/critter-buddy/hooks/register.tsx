@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { NAMES_DEFAULT, FEELS, moodLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import { NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
 import { dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
 import type { Flight, Streak } from './world'
 import type { Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
@@ -119,10 +119,10 @@ const ring = async ($: any, which: 'cast' | 'purr') => {
 /** The cat's own agent: a second look at a change, in her voice and with no hands. Exported so a test can pin what she may touch. */
 export const LOOKS_AGENT = {
   name: 'biscuit-looks',
-  description: 'A second pair of eyes after a change is made and before it is called done: reads the diff or the files touched and says, in five lines at most, what would make a careful person wince. Use it when a change feels finished and you want one honest look; it only reads, it never edits.',
+  description: 'A second pair of eyes after a change is made and before it is called done: reads the files touched, or a diff pasted into the request, and says, in five lines at most, what would make a careful person wince. Use it when a change feels finished and you want one honest look; it only reads, it never edits.',
   prompt: [
     'You are Biscuit, a tabby cat who sits above the prompt and has read a great deal of other people\'s code. You are dry and warm, never cruel, never vague.',
-    'You are given a change. Read it: the diff if there is one, else the files named. You cannot edit anything and you must not try.',
+    'You are given a change. Read it: the diff if one is pasted into the request, else the files named. You cannot edit anything, you cannot run anything, and you must not try.',
     'Answer in five lines at most. One line each, most important first: the thing most likely to break, the thing someone will misread in six months, the test that is missing, the line that is doing two jobs, and, last, one thing that is genuinely good, said plainly.',
     'Quote the file and the line when you can. Say nothing you did not see. If the change is sound, say so in one line and stop; a short answer is a kindness.',
   ].join('\n\n'),
@@ -188,10 +188,29 @@ export const register: Register = on => {
 
   // A permission question: both of them look up.
   on('tool.check', async ($, e, next) => {
+    try {
+      // a call worth a second read gets the cat's line under its question
+      const line = riskLine(e.tool, e.input)
+      if (line && e.tool_use_id) $.ui.notice(e.tool_use_id, named(line, await read($, names)))
+    } catch {
+      // a notice that cannot be shown is no loss
+    }
     const r = await next(e)
     if (r.decision === 'ask') await update($, scene, (s: Scene): Scene => react(s, 'ask'))
     return r
   }).catch(($, e, next) => next(e))
+
+  // A long turn: the cat marks the round steps in the diary and does not otherwise touch the request.
+  on('turn.step', async function* ($, e, next) {
+    const result = yield* next(e) // the stream passes through untouched
+    try {
+      const line = stepLine(e.index)
+      if (line && !(await read($, isHidden))) await update($, scene, (s: Scene): Scene => ({ ...s, log: [...s.log, line].slice(-6) }))
+    } catch {
+      // a step that cannot be marked is no loss
+    }
+    return result
+  })
 
   on('prompt.submit', async ($, e, next) => {
     turnStartedAt = await $.clock.now()
@@ -247,7 +266,7 @@ export const register: Register = on => {
       const text = usageLine(u.context.percent, u.rateLimits.find((x: { kind: string }) => x.kind === 'five_hour')?.percentUsed)
       const was = await read($, usage)
       await update($, usage, () => text)
-      if (text.includes('compact button') && !was.includes('compact button')) { $.ui.toast(named(text, await read($, names)), { timeoutMs: 5000 }); await speak($, text) }
+      if (text.includes(FULL_MARK) && !was.includes(FULL_MARK)) { $.ui.toast(named(text, await read($, names)), { timeoutMs: 5000 }); await speak($, text) }
     } catch {
       // no usage to read: the cat says nothing about it
     }
@@ -414,7 +433,7 @@ export const register: Register = on => {
       return { text: arg === 'on' ? 'Sound is on: a cast chime and a purr.' : 'Sound is off.' }
     }
     if (sub === 'voice') {
-      const asked = cleanName(e.args.trim().split(/\s+/).slice(1).join(' '))
+      const asked = cleanVoice(e.args.trim().split(/\s+/).slice(1).join(' '))
       if (!asked) return { text: 'Usage: /critter voice on | off | <name of an installed system voice>. The cat says the big moments aloud (a prop earned, the glass nearly full); off until you say.' }
       const next = asked.toLowerCase() === 'off' ? '' : asked.toLowerCase() === 'on' ? 'default' : asked
       await update($, voice, () => next)
@@ -463,7 +482,7 @@ export const register: Register = on => {
       if (hidden) { lastSky = ''; await drawBackdrop($, undefined) } else { lastSky = ''; await syncSky($, await $.clock.now(), (await read($, scene)).joy) }
       return { text: hidden ? 'The pair are hidden.' : 'The pair are back.' }
     }
-    return { text: 'Usage: /critter [pet | treat | nap | spell | corner | stage | diary | hide | show | lite | full | party | talk on|off | sound on|off | feel calm|warm|playful | wizard auto|gold|bolt | name cat|pip <name> | cat <coat>]' }
+    return { text: 'Usage: /critter [pet | treat | nap | spell | corner | stage | diary | hide | show | lite | full | party | talk on|off | sound on|off | voice on|off|<name> | feel calm|warm|playful | wizard auto|gold|bolt | name cat|pip <name> | cat <coat>]' }
   })
 
   // ---- the band above the prompt: the pair on the bar, and three things to press ----

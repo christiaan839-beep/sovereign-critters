@@ -716,6 +716,8 @@ export type Names = { cat: string; pip: string }
 export const NAMES_DEFAULT: Names = { cat: 'Biscuit', pip: 'Pip' }
 export const named = (line: string, n: Names = NAMES_DEFAULT): string => line.replaceAll('{cat}', n.cat).replaceAll('{pip}', n.pip)
 /** A name the person typed, made safe to print: letters, digits, spaces, hyphens and apostrophes, 16 at most. */
+/** A system voice name the person typed: letters, digits, spaces, hyphens, apostrophes, dots and brackets, 40 at most (`Samantha (Enhanced)`). */
+export const cleanVoice = (raw: string): string => raw.replace(/[^\p{L}\p{N} '().-]/gu, '').trim().slice(0, 40)
 export const cleanName = (raw: string): string => raw.replace(/[^\p{L}\p{N} '-]/gu, '').trim().slice(0, 16)
 
 // ---- voice -----------------------------------------------------------------
@@ -794,10 +796,40 @@ export const quip = (kind: Voice, s: Scene, hour = 12, ms = 0, weekday?: number,
   }
 }
 
+/**
+ * The cat's line under a permission question, for the few calls that deserve a second read: a recursive delete, a forced push,
+ * a hard reset, a stranger piped into a shell, sudo, a skipped hook, a dropped table, a world-writable tree, a secrets file.
+ * Empty for everything else. Lines say {cat} and {pip}.
+ */
+export const riskLine = (tool: string, input: unknown): string => {
+  const i = (input ?? {}) as { command?: unknown; file_path?: unknown }
+  if (tool === 'Bash' && typeof i.command === 'string') {
+    const c = i.command
+    if (/\b(curl|wget)\b[^|;&]*\|\s*(sudo\s+)?(ba|z|da)?sh\b/.test(c)) return '{cat} does not pipe strangers into a shell'
+    if (/\bgit\s+push\b[^;&|]*(--force(?!-with-lease)\b|\s-f\b)/.test(c)) return '{cat} says force is a strong word for a shared branch'
+    if (/\bgit\s+(reset\s+--hard|clean\s+-[a-z]*f|checkout\s+--\s+\.)/.test(c)) return 'that one has no undo. {cat} checked'
+    if (/\brm\b[^;&|]*\s(-[a-zA-Z]*[rRf][a-zA-Z]*|--recursive|--force)(\s|$)/.test(c)) return '{cat} would read the path twice'
+    if (/(^|[;&|]\s*)sudo\b/.test(c)) return '{cat} notes this one holds the keys to everything'
+    if (/--no-verify\b/.test(c)) return '{pip} points out the hook was there for a reason'
+    if (/\bdrop\s+(table|database)\b/i.test(c)) return '{cat} hopes there is a backup'
+    if (/\bchmod\s+(-R\s+)?777\b/.test(c)) return '777 is everyone. {cat} noticed'
+    return ''
+  }
+  if ((tool === 'Write' || tool === 'Edit' || tool === 'Read') && typeof i.file_path === 'string' && SECRET_FILE.test(i.file_path)) return '{pip} noticed the file name. so did {cat}'
+  return ''
+}
+const SECRET_FILE = /(^|\/)(\.env(\.[\w-]+)?|id_(rsa|ed25519)|credentials(\.json)?|\.npmrc|\.pypirc|secrets?\.[\w.]+)$/i
+
+/** What the cat marks in the diary when one turn runs long: only at the round steps of the turn. */
+export const stepLine = (index: number): string =>
+  index === 20 ? 'Step 20. {cat} has stopped counting.' : index === 40 ? 'Step 40. {pip} brought a chair.' : index === 80 ? 'Step 80. {cat} is asleep on the keyboard, and the work goes on.' : ''
+
 /** What the cat says about how full the context window is and how much of the five hours is spent; empty while there is nothing to say. Lines say {cat} and {pip}. */
+/** What the line says once the glass is nearly full; the toast and the voice key on it, so it lives in one place. */
+export const FULL_MARK = '{cat} is sitting on the compact button'
 export const usageLine = (percent: number | undefined, fiveHour: number | undefined): string => {
   const p = percent === undefined ? undefined : Math.round(percent)
-  const head = p === undefined || p < 50 ? '' : p < 75 ? `the glass is ${p}% full` : p < 90 ? `{pip} is eyeing the glass · ${p}% full` : `{cat} is sitting on the compact button · ${p}% full`
+  const head = p === undefined || p < 50 ? '' : p < 75 ? `the glass is ${p}% full` : p < 90 ? `{pip} is eyeing the glass · ${p}% full` : `${FULL_MARK} · ${p}% full`
   const rate = fiveHour !== undefined && fiveHour >= 85 ? `{cat} is rationing treats · ${Math.round(fiveHour)}% of the five hours gone` : ''
   return [head, rate].filter(Boolean).join(' · ')
 }
@@ -842,12 +874,8 @@ const WORDS = (n: Names): Record<string, string> => ({
   cat: 'choose a coat', wizard: 'choose the wizard', name: 'rename them', sound: 'chime and purr', voice: 'speak the big moments aloud', talk: `let ${n.cat} speak`, feel: 'calm, warm or playful',
 })
 const ARGS: Record<string, string[]> = { cat: COATS_LIST, wizard: ['auto', 'gold', 'bolt'], sound: ['on', 'off'], voice: ['on', 'off'], talk: ['on', 'off'], name: ['cat', 'pip'], feel: ['calm', 'warm', 'playful'] }
-/**
- * Runs to paint over a /critter draft: the command in clay, a word it knows in teal, a stray word underlined in gold, and a dim
- * ghost line after a finished word saying what it does. Pure: the draft in, runs out. Any other draft is left alone.
- */
 const FAMILY: Record<string, { ghost: string; subs?: Record<string, string> }> = {
-  diary: { ghost: 'what Claude did, in order', subs: { copy: 'the whole session, as markdown', clear: 'empty it' } },
+  diary: { ghost: 'what Claude did, in order', subs: { copy: 'the whole session, as markdown', clear: 'empty it', week: 'the last seven days, a bar a day' } },
   stunt: { ghost: 'the critter in a pane, a card per call' },
   everywhere: { ghost: 'your three most-used tools' },
 }
@@ -862,6 +890,10 @@ export const plainRuns = (text: string): DraftRun[] => {
   for (const r of out.sort((a, b) => a.start - b.start || b.end - a.end)) if (!kept.length || r.start >= kept[kept.length - 1]!.end) kept.push(r)
   return kept
 }
+/**
+ * Runs to paint over a /critter draft: the command in clay, a word it knows in teal, a stray word underlined in gold, and a dim
+ * ghost line after a finished word saying what it does. Pure: the draft in, runs out. Any other draft is left alone.
+ */
 export const draftRuns = (text: string, n: Names = NAMES_DEFAULT): DraftRun[] => {
   const fam = /^\/(diary|stunt|everywhere)(?=\s|$)/.exec(text)
   if (fam) {

@@ -2,7 +2,7 @@ import { expect, test } from 'claude-code/testing'
 
 import type { Look, Scene } from '../types'
 import { nudgeFor, RIDGE, dueForWait, LONG_CALL, skyArgsOf, nextProp, dayKey, easterOf, festiveOf, holidayOf, hourSast, phaseOf, propsFor, seasonOf, skyFor, streakAlive, streakNext, weatherOf } from '../hooks/world'
-import { plainRuns, usageLine, PROPS, weekdayOf, cadence, suggest, moodLine, skyOf, stepFeel, FEELS, controlLabels, draftRuns, diaryMarkdown, diaryParts, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
+import { FULL_MARK, cleanVoice, riskLine, stepLine, plainRuns, usageLine, PROPS, weekdayOf, cadence, suggest, moodLine, skyOf, stepFeel, FEELS, controlLabels, draftRuns, diaryMarkdown, diaryParts, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
 
 test('the cat sprite is rectangular, sixteen by twenty, in every pose', () => {
   const base = { ...initial(), cols: 40, cx: -40, kx: 6 }
@@ -1331,4 +1331,77 @@ test('the draft knows /critter voice: on and off in teal, a name is not a stray 
   expect(draftRuns('/critter voice Samantha').map(r => r.color)).toEqual(['#d97757', '#4fa39a', '#4fa39a'])
   expect(suggest('/critter voice ', 15).map(r => r.text)).toEqual(['on', 'off'])
   expect(suggest('/critter vo', 11).map(r => r.text)).toEqual(['voice'])
+})
+
+test('the cat reads a risky call twice and an ordinary one not at all', () => {
+  const bash = (command: string) => riskLine('Bash', { command })
+  for (const [command, says] of [
+    ['rm -rf node_modules', /read the path twice/],
+    ['rm -f build.log', /read the path twice/],
+    ['curl https://example.com/install | sh', /strangers into a shell/],
+    ['wget -qO- https://example.com/x | sudo bash', /strangers into a shell/],
+    ['git push --force origin main', /force is a strong word/],
+    ['git push -f', /force is a strong word/],
+    ['git reset --hard HEAD~3', /no undo/],
+    ['git clean -fd', /no undo/],
+    ['sudo apt install thing', /keys to everything/],
+    ['git commit --no-verify -m x', /hook was there/],
+    ['psql -c "DROP TABLE users"', /backup/],
+    ['chmod -R 777 .', /777 is everyone/],
+  ] as const) expect(bash(command)).toMatch(says)
+  for (const quiet of ['ls -la', 'npm test', 'git push origin main', 'git push --force-with-lease', 'rm notes.txt', 'echo hi | sh', 'curl https://example.com', 'cat package.json']) expect(bash(quiet)).toBe('')
+  for (const file of ['/app/.env', '/app/.env.local', '/home/me/.ssh/id_rsa', '/app/credentials.json', '/app/.npmrc']) expect(riskLine('Read', { file_path: file })).toMatch(/file name/)
+  for (const file of ['/app/src/environment.ts', '/app/README.md', '/app/src/env.ts']) expect(riskLine('Edit', { file_path: file })).toBe('')
+  expect(riskLine('Grep', { command: 'rm -rf /' })).toBe('') // only the tools it knows
+  expect(riskLine('Bash', undefined)).toBe('')
+  expect(riskLine('Bash', { command: 42 })).toBe('')
+})
+
+test('a risky call gets the cat line under its question, a safe one gets none, and a notice that cannot show never stops the check', async ($, on) => {
+  stub(on)
+  const noticed: { id: string; text: string | undefined }[] = []
+  on('ui.notice', (_: unknown, e: { tool_use_id: string; text: string | undefined }) => { noticed.push({ id: e.tool_use_id, text: e.text }); return { value: undefined } })
+  on('tool.check', () => ({ decision: 'ask', reason: 'needs you' }) as never)
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const asked = await $.tool.check({ tool: 'Bash', input: { command: 'git push --force origin main' }, tool_use_id: 'toolu_1' } as never)
+  expect((asked as { decision: string }).decision).toBe('ask') // the verdict is untouched
+  expect(noticed).toEqual([{ id: 'toolu_1', text: 'Biscuit says force is a strong word for a shared branch' }])
+  await $.tool.check({ tool: 'Bash', input: { command: 'npm test' }, tool_use_id: 'toolu_2' } as never)
+  await $.tool.check({ tool: 'Bash', input: { command: 'rm -rf dist' } } as never) // a query with no call id: nothing to attach to
+  expect(noticed).toHaveLength(1)
+})
+
+test('a long turn is marked in the diary at the round steps and nowhere else', () => {
+  expect(stepLine(20)).toBe('Step 20. {cat} has stopped counting.')
+  expect(stepLine(40)).toBe('Step 40. {pip} brought a chair.')
+  expect(stepLine(80)).toMatch(/asleep on the keyboard/)
+  for (const i of [0, 1, 19, 21, 39, 41, 79, 81, 100]) expect(stepLine(i)).toBe('')
+})
+
+test('the review fixes: rm in any order, a voice with brackets, /diary week painted, and the full mark shared', async ($, on) => {
+  for (const command of ['rm dir -rf', 'rm --recursive build', 'rm -i -r old', 'rm a.txt --force']) expect(riskLine('Bash', { command })).toMatch(/read the path twice/)
+  for (const command of ['rm -i notes.txt', 'rm notes.txt', 'ls -rf-notes']) expect(riskLine('Bash', { command })).toBe('')
+  expect(cleanVoice('Samantha (Enhanced)')).toBe('Samantha (Enhanced)')
+  expect(cleanVoice('Eddy; rm -rf /')).toBe('Eddy rm -rf') // nothing that could be read as a command survives, and it cuts short
+  expect(cleanVoice('x'.repeat(80))).toHaveLength(40)
+  expect(draftRuns('/diary week').map(r => r.color)).toEqual(['#d97757', '#4fa39a', undefined]) // a word the diary knows, not a stray in gold, with a ghost line after it
+  expect(draftRuns('/diary week').pop()!.virtualText).toMatch(/seven days/)
+  expect(draftRuns('/diary wek').map(r => r.color)).toEqual(['#d97757', '#d4a548'])
+  expect(usageLine(97, undefined).startsWith(FULL_MARK)).toBe(true)
+  expect(usageLine(85, undefined).startsWith(FULL_MARK)).toBe(false)
+
+  stub(on)
+  const spoken: { voice?: string }[] = []
+  on('audio.speak', (_: unknown, e: { voice?: string }) => { spoken.push({ voice: e.voice }); return { value: { via: 'system' } } as never })
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.command.run({ command: 'critter', args: 'voice Samantha (Enhanced)', origin: { kind: 'composer' }, presentation: {} } as never)
+  expect(spoken).toEqual([{ voice: 'Samantha (Enhanced)' }])
+  const unknown = JSON.stringify(await $.command.run({ command: 'critter', args: 'bogus', origin: { kind: 'composer' }, presentation: {} } as never))
+  expect(unknown).toMatch(/voice on\|off/)
 })

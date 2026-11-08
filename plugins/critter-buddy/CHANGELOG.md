@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.0
+
+- A permission question gets the cat's line under it when the call deserves a second read: a recursive delete, a forced push (not `--force-with-lease`), a hard reset, a stranger piped into a shell, sudo, a skipped hook, a dropped table, a world-writable tree, or a secrets file. Everything else gets nothing, and the verdict is never touched.
+- A long turn is marked in the diary at steps 20, 40 and 80. The model's stream passes through the hook untouched.
+- After the cat's own review of this release: `/diary week` is a word the draft knows (it was painted as a stray); `rm` is caught with its flags in any order (`rm dir -rf`, `--recursive`); a voice name keeps its brackets (`Samantha (Enhanced)`); the full-glass mark lives in one place, so rewording the line cannot silently kill the toast and the voice; the agent no longer promises a diff it cannot fetch; the fallback usage text lists `voice`.
+
 ## 0.14.0
 
 - `/critter voice on | off | <name>`: the cat says the big moments aloud (a prop earned, the glass nearly full), in the system voice or an installed one you name. Off until you ask; calm stays silent; it never waits for the end of a sentence.
