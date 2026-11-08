@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.22.0
+
+- **The wizard keeps to the right**, above the right side of the prompt box, and the cat has everything to the left of him. He paces up to ten cells (fewer in a narrow band, none at 62 cells, the least that holds both); under 62 cells the two share the bar as before. A scene left from an older session glides into place two cells a tick instead of jumping.
+- **A `mods` button** joins the bar (hotkey `m`) and opens the control room (`/mods`, the mods plugin). Where that plugin is not installed it says how to get it. The mods button goes before any other label is shortened.
+- **The cat's walk eases**: one cell a tick to start, two in the open, one again to arrive, instead of a constant stride and a hard stop.
+
 ## 0.21.1
 
 - The desktop backdrop's horizon is two ridges now, a far one and a nearer, stronger one in the same quiet palette, instead of one nearly invisible pale strip.

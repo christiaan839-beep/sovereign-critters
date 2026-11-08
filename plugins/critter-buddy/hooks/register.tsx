@@ -119,6 +119,19 @@ const ring = async ($: any, which: SoundName) => {
   }
 }
 
+/** The mods button: runs /mods (the mods plugin draws its own pane); where that plugin is not installed, says how to get it. */
+const openMods = async ($: any) => {
+  try {
+    await $.command.run({ command: 'mods', args: '' })
+  } catch {
+    try {
+      $.ui.toast('The control room is its own plugin: /plugin install mods@sovereign-critters, then restart.', { timeoutMs: 6000 })
+    } catch {
+      // no toast, no harm
+    }
+  }
+}
+
 /** The cat's own agent: a second look at a change, in her voice and with no hands. Exported so a test can pin what she may touch. */
 export const LOOKS_AGENT = {
   name: 'biscuit-looks',
@@ -548,6 +561,7 @@ export const register: Register = on => {
           <Button key="cast" label={lb.cast} hotkey="c" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'spell')); await ring($, 'cast') }} />
           <Button key="nap" label={lb.nap} hotkey="n" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'nap'))} />
           <Button key="corner" label={lb.corner} hotkey="k" onPress={() => $.ui.open({ id: PANE, title: 'Cat corner', focus: true, ...PANE_ASKS.corner })} />
+          {lb.mods ? <Button key="mods" label={lb.mods} hotkey="m" onPress={() => openMods($)} /> : null}
         </Box>
         <Box key="gap"><Text> </Text></Box>
         <Box key="others" flexDirection="column">{others}</Box>

@@ -25,6 +25,10 @@ The control room for the sovereign-critters mods. Type `/mods` and one pane open
 | `/mods install <mod\|all>` | Installs a missing mod, or all of them. |
 | `/mods open <mod> [label]` | Puts the mod's own command in the prompt box (`/critter corner`) for you to send. |
 
+## In the footer
+
+A small chip, `mods 8/8`, shows how many mods are on.
+
 ## Look and feel
 
 When critter-buddy is on, the pane also holds its dials: feel (calm, warm, playful, still), reach (lite, full, party), the pair (show, hide) and sound (on, off). Each button runs that mod's own `/critter` command.

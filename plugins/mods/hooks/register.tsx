@@ -172,6 +172,17 @@ export const register: Register = on => {
     }
   })
 
+  // The footer's one small chip: how many mods are on. Silent where the plugin manager could not be read.
+  on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
+    try {
+      const modes: string[] = Array.isArray(e.props.modes) ? e.props.modes : []
+      if (!S.list || modes.some(m => /^mods \d+\/\d+$/.test(m))) return next(e)
+      return next({ ...e, props: { ...e.props, modes: [...modes, `mods ${onCount()}/${MODS.length}`] } })
+    } catch {
+      return next(e)
+    }
+  }).catch(($, e, next) => next(e))
+
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Text, Button } = $.ui.resolve(e)
     const cols = Math.max(24, Number(e.props.bodyColumns) || 56)

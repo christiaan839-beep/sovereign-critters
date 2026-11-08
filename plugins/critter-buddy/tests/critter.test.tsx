@@ -2,7 +2,7 @@ import { expect, test } from 'claude-code/testing'
 
 import type { Look, Scene } from '../types'
 import { nudgeFor, RIDGE, RIDGE_FAR, dueForWait, LONG_CALL, skyArgsOf, nextProp, dayKey, easterOf, festiveOf, holidayOf, hourSast, phaseOf, propsFor, seasonOf, skyFor, streakAlive, streakNext, weatherOf } from '../hooks/world'
-import { FULL_MARK, cleanVoice, riskLine, stepLine, plainRuns, usageLine, PROPS, weekdayOf, cadence, suggest, moodLine, skyOf, stepFeel, FEELS, controlLabels, draftRuns, diaryMarkdown, diaryParts, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
+import { homeOf, FULL_MARK, cleanVoice, riskLine, stepLine, plainRuns, usageLine, PROPS, weekdayOf, cadence, suggest, moodLine, skyOf, stepFeel, FEELS, controlLabels, draftRuns, diaryMarkdown, diaryParts, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
 
 test('the cat sprite is rectangular, sixteen by twenty, in every pose', () => {
   const base = { ...initial(), cols: 40, cx: -40, kx: 6 }
@@ -101,7 +101,7 @@ test('a build puts the critter in the chef hat, a plain command at the laptop, a
 })
 
 test('the cat never sits on top of the critter or its laptop, whichever way the critter faces', () => {
-  for (const cdir of [1, -1] as const) for (const cx of [4, 20, 44]) for (const mode of ['sit', 'follow'] as const) {
+  for (const cdir of [1, -1] as const) for (const cx of [homeOf(140)!.lo, homeOf(140)!.hi]) for (const mode of ['sit', 'follow'] as const) {
     let s = { ...initial(), cols: 140, look: 'coder' as const, cx, cdir, mode, kx: 100, idle: 0 }
     for (let i = 0; i < 80; i++) s = { ...step(s), look: 'coder', mode, mt: 0, idle: 0, cx, cdir }
     const cat = [s.kx, s.kx + CAT_W]
@@ -268,7 +268,7 @@ test('sound plays only when asked for, and a toast greets a commit and a green r
 test('the critter and the cat never overlap while both wander, at any width', () => {
   for (const cols of [90, 100, 130]) {
     for (const seed of [3, 7, 11]) {
-      let s = { ...initial(), cols, seed, cx: 4, kx: cols - CAT_W }
+      let s = { ...initial(), cols, seed, cx: homeOf(cols)!.lo, kx: homeOf(cols)!.catMax } // settled in their own stretches
       let worst = Infinity
       for (let i = 0; i < 1200; i++) {
         s = step({ ...s, idle: 0 })
@@ -669,14 +669,19 @@ test('every look in every cat mode draws, each row as wide as the bar', () => {
 })
 
 test('the critter walks, turns at both ends, jumps, and sits still at the laptop', () => {
-  let s = at({ cols: 100 }) // room for a 30-pixel cat and the critter's walk beside it
+  let s = at({ cols: 100, cx: homeOf(100)!.lo, kx: homeOf(100)!.catMax }) // the right-hand stretch is his: ten cells to pace
   const xs = new Set<number>()
   let jumped = false
   for (let i = 0; i < 600; i++) { s = step(s); xs.add(s.cx); jumped ||= s.jt > 0; expect(s.cx).toBeGreaterThanOrEqual(0) }
-  expect(Math.min(...xs)).toBe(0)
-  expect(Math.max(...xs)).toBeGreaterThan(20) // the stretch of the bar the cat leaves it
+  expect(Math.min(...xs)).toBe(homeOf(100)!.lo) // he turns at both ends of it
+  expect(Math.max(...xs)).toBe(homeOf(100)!.hi)
   expect(jumped).toBe(true)
   expect(run(at({ look: 'coder', cx: 10 }), 20).cx).toBe(10)
+  // in a band too narrow for a side each he still walks the bar from end to end, as before
+  let n = at({ cols: 60 })
+  const nx = new Set<number>()
+  for (let i = 0; i < 600; i++) { n = step(n); nx.add(n.cx) }
+  expect(Math.min(...nx)).toBe(0)
 })
 
 test('the critter naps when it is quiet, and wakes for work', () => {
@@ -886,7 +891,7 @@ test('the band puts its status on one line and its buttons on the next, and uses
 
 test('the buttons say what is true now: a sulking cat is made up with, a casting wizard is not asked to cast, and there is a nap', async ($, on) => {
   const base = { ...initial(), look: 'idle' as Look }
-  expect(controlLabels(base, 'unbothered', NAMES_DEFAULT)).toEqual({ pet: 'pet Biscuit', feed: 'feed Biscuit', cast: 'Pip casts', nap: 'nap', corner: 'the corner' })
+  expect(controlLabels(base, 'unbothered', NAMES_DEFAULT)).toEqual({ pet: 'pet Biscuit', feed: 'feed Biscuit', cast: 'Pip casts', nap: 'nap', corner: 'the corner', mods: 'mods' })
   expect(controlLabels(base, 'sulking', NAMES_DEFAULT).pet).toBe('make up with Biscuit')
   expect(controlLabels({ ...base, look: 'wizard' }, 'pleased', NAMES_DEFAULT).cast).toBe('Pip is casting')
   expect(controlLabels(base, 'pleased', { cat: 'Mog', pip: 'Wick' })).toMatchObject({ pet: 'pet Mog', cast: 'Wick casts' })
@@ -1589,14 +1594,48 @@ test('the habit line fires at exactly three in five, and a store that holds too 
 
 import { fitControls, statusParts } from '../hooks/scene'
 
-test('five buttons always fit one row: the full words when they fit, the short ones the moment they do not', () => {
-  const warm = controlLabels(initial(), 'unbothered', NAMES_DEFAULT) // 11 + 12 + 9 + 3 + 10 letters
-  expect(fitControls(warm, 79)).toEqual(warm) // 45 + 5 x 6 + 4 gaps = 79: exactly fits
-  expect(fitControls(warm, 78)).toEqual({ pet: 'pet', feed: 'feed', cast: 'cast', nap: 'nap', corner: 'corner' })
+test('six buttons always fit one row: the full words, then the short ones with the mods button, then the short five, each the moment the one before does not fit', () => {
+  const warm = controlLabels(initial(), 'unbothered', NAMES_DEFAULT) // 11 + 12 + 9 + 3 + 10 + 4 letters
+  const short = { pet: 'pet', feed: 'feed', cast: 'cast', nap: 'nap', corner: 'corner', mods: 'mods' }
+  expect(fitControls(warm, 90)).toEqual(warm) // 49 + 6 x 6 + 5 gaps = 90: exactly fits
+  expect(fitControls(warm, 89)).toEqual(short)
+  expect(fitControls(warm, 65)).toEqual(short) // 24 + 36 + 5 = 65: the short six fit exactly
+  expect(fitControls(warm, 64)).toEqual({ pet: 'pet', feed: 'feed', cast: 'cast', nap: 'nap', corner: 'corner' }) // the mods button goes first, never the others
   const sulk = controlLabels(initial(), 'sulking', NAMES_DEFAULT)
-  expect(fitControls(sulk, 88)).toEqual(sulk)
-  expect(fitControls(sulk, 87).pet).toBe('pet')
+  expect(fitControls(sulk, 99)).toEqual(sulk)
+  expect(fitControls(sulk, 98).pet).toBe('pet')
   expect(fitControls(warm, 20).corner).toBe('corner') // never shorter than the short words
+  expect(fitControls(warm, 20).mods).toBeUndefined()
+})
+
+test('the band has a mods button once there is room, and pressing it runs /mods; where the mods plugin is missing it says how to get it', async ($, on) => {
+  stub(on)
+  const ran: string[] = []
+  const toasts: string[] = []
+  let missing = false
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  on('ui.toast', (_: unknown, e: { text: string }) => { toasts.push(e.text); return { value: undefined } })
+  on('command.run', (_: unknown, e: { command: string }) => { ran.push(e.command); if (missing) throw new Error('no such command'); return { text: 'ok' } })
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  const narrow = await $.ui.mount({ ...BAND, surface: 'desktop', props: { ...BAND.props, bodyColumns: 60 } } as never)
+  expect(await narrow.find({ key: 'mods' })).toBeUndefined() // 60 cells: the five short buttons only
+  await narrow.unmount()
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const ui = await $.ui.mount({ ...BAND, surface })
+    const b = (await ui.find({ key: 'mods' })) as { props?: { hotkey?: string; label?: string } } | undefined
+    expect(b?.props?.hotkey).toBe('m')
+    expect(b?.props?.label).toBe('mods')
+    await ui.press({ key: 'mods' } as never)
+    await ui.unmount()
+  }
+  expect(ran).toEqual(['mods', 'mods'])
+  missing = true
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  await ui.press({ key: 'mods' } as never)
+  await ui.unmount()
+  expect(toasts.at(-1)).toMatch(/\/plugin install mods@sovereign-critters/)
 })
 
 test('the status is one row, whatever the glass says: the mood goes first, then the usage is cut with an ellipsis', () => {
@@ -2002,4 +2041,101 @@ test('the backdrop draws both ridges, the far one above the near one', async ($,
   expect((far as any).props.color).toBe(sky.ridgeFarColour) // each ridge in its own colour
   expect((near as any).props.color).toBe(sky.ridgeColour)
   await ui.unmount()
+})
+
+// ---- 0.22.0: motion that starts and stops softly ----
+test('the cat\'s walk eases in and out: one cell a tick to start, two in the open, one again to arrive, and never a jump in speed of more than one cell', () => {
+  let s: Scene = { ...initial(), cols: 120, kx: 0, cx: 80, mode: 'walk', mt: 0, target: 40, look: 'chef', trust: 80 }
+  const deltas: number[] = []
+  for (let i = 0; i < 40 && s.mode === 'walk'; i++) {
+    const before = s.kx
+    s = stepFeel({ ...s, idle: 0 }, 'warm')
+    deltas.push(s.kx - before)
+  }
+  expect(s.mode).toBe('loaf') // it arrived and settled
+  expect(Math.abs(s.kx - 40)).toBeLessThanOrEqual(2)
+  const moves = deltas.filter(d => d !== 0) // the step on which it settles does not move
+  expect(moves.slice(0, 2)).toEqual([1, 1]) // starts softly
+  expect(Math.max(...moves)).toBe(2) // and still reaches full pace
+  expect(moves.slice(-3).every(d => d === 1)).toBe(true) // arrives softly
+  for (let i = 1; i < moves.length; i++) expect(Math.abs(moves[i]! - moves[i - 1]!)).toBeLessThanOrEqual(1)
+  expect(deltas.every(d => d >= 0)).toBe(true) // never backwards on the way
+})
+
+test('a short walk never reaches full pace, and a walk to the left eases the same way', () => {
+  let s: Scene = { ...initial(), cols: 120, kx: 30, cx: 80, mode: 'walk', mt: 0, target: 22, look: 'chef', trust: 80 }
+  const deltas: number[] = []
+  for (let i = 0; i < 20 && s.mode === 'walk'; i++) { const b = s.kx; s = stepFeel({ ...s, idle: 0 }, 'warm'); deltas.push(s.kx - b) }
+  expect(deltas.every(d => d <= 0)).toBe(true) // to the left, and never back
+  expect(deltas.filter(d => d !== 0).every(d => d === -1)).toBe(true) // eight cells or fewer: it never reaches full pace
+  expect(deltas.filter(d => d !== 0).length).toBeGreaterThanOrEqual(5)
+})
+
+// ---- the wizard keeps to the right of the band, above the right side of the prompt box ----
+
+test('in a band that holds both, the wizard has the right-hand stretch and the cat everything left of it, with a gap between', () => {
+  expect(homeOf(40)).toBeUndefined() // too narrow for both: they share the bar as before
+  expect(homeOf(CAT_W + CRIT_W + 1)).toBeUndefined() // one cell short
+  expect(homeOf(CAT_W + CRIT_W + 2)).toEqual({ lo: 32, hi: 32, catMax: 0 }) // the least: he stands at the right end and does not pace
+  expect(homeOf(67)).toEqual({ lo: 32, hi: 37, catMax: 0 }) // five cells to pace
+  expect(homeOf(72)).toEqual({ lo: 32, hi: 42, catMax: 0 }) // ten, from here on
+  const w = homeOf(96)!
+  expect(w.hi).toBe(96 - CRIT_W) // the wizard's right edge is the band's right edge
+  expect(w.lo).toBe(w.hi - 10)
+  expect(w.catMax + CAT_W + 2).toBe(w.lo) // the cat stops two cells short of where he may reach
+})
+
+test('over a long time the wizard stays on the right and the cat on the left, whatever they do, and they never overlap', () => {
+  for (const cols of [62, 67, 76, 96, 120]) {
+    const home = homeOf(cols)!
+    let s: Scene = { ...initial(), cols, cx: 4, kx: 60 }
+    for (let i = 0; i < 1500; i++) {
+      s = stepFeel({ ...s, idle: i % 90 === 0 ? 0 : s.idle }, 'playful')
+      if (i === 200) s = react(s, 'treat') // the cat is lured, the cup is knocked: the movements that used to cross the bar
+      if (i === 600) s = react(s, 'spell')
+      expect(s.kx).toBeGreaterThanOrEqual(0)
+      if (i > 40) { // after both have glided in from where an old scene left them
+        expect(s.cx).toBeGreaterThanOrEqual(home.lo)
+        expect(s.cx).toBeLessThanOrEqual(home.hi)
+        expect(s.kx).toBeLessThanOrEqual(home.catMax)
+        expect(s.kx + CAT_W).toBeLessThan(s.cx) // the cat's right edge is clear of the wizard's left
+      }
+    }
+  }
+})
+
+test('the wizard glides in from where he was rather than jumping: at most two cells a tick', () => {
+  let s: Scene = { ...initial(), cols: 96, cx: 4, kx: 10 }
+  const jumps: number[] = []
+  for (let i = 0; i < 60; i++) { const b = s.cx; s = stepFeel({ ...s, idle: 0 }, 'warm'); jumps.push(Math.abs(s.cx - b)) }
+  expect(Math.max(...jumps)).toBeLessThanOrEqual(2)
+  expect(s.cx).toBeGreaterThanOrEqual(homeOf(96)!.lo)
+})
+
+test('in a window too narrow for the two to have a side each, they share the bar as before and nothing breaks', () => {
+  let s: Scene = { ...initial(), cols: 50 }
+  for (let i = 0; i < 800; i++) {
+    s = stepFeel({ ...s, idle: 0 }, 'warm')
+    expect(Number.isFinite(s.cx) && Number.isFinite(s.kx)).toBe(true)
+    expect(s.cx).toBeGreaterThanOrEqual(0)
+    expect(s.kx).toBeGreaterThanOrEqual(0)
+  }
+})
+
+test('the cat glides in from the wrong side two cells a tick, follows close on the left, and cannot be sent past its stretch', () => {
+  const home = homeOf(120)!
+  // glides: from far right it comes left two a tick, never faster, never back
+  let s: Scene = { ...initial(), cols: 120, cx: home.lo, kx: 100, mode: 'loaf' }
+  const kxs = [s.kx]
+  for (let i = 0; i < 40; i++) { s = stepFeel({ ...s, idle: 0 }, 'warm'); kxs.push(s.kx) }
+  for (let i = 1; i < kxs.length; i++) { expect(kxs[i - 1]! - kxs[i]!).toBeLessThanOrEqual(2); expect(kxs[i]!).toBeLessThanOrEqual(kxs[i - 1]!) }
+  expect(kxs[1]).toBe(98) // two cells, not a jump to the stretch
+  // follows: the cat follows him as close as its stretch allows, which is the right-hand end of it
+  let f: Scene = { ...initial(), cols: 120, cx: home.lo, kx: 0, mode: 'follow', mt: 0 }
+  for (let i = 0; i < 60; i++) f = stepFeel({ ...f, mode: 'follow', mt: 0, idle: 0 }, 'warm')
+  expect(f.kx).toBeGreaterThanOrEqual(home.catMax - 2)
+  expect(f.kx).toBeLessThanOrEqual(home.catMax)
+  // a walk toward a target beyond the stretch stops at its edge
+  let w: Scene = { ...initial(), cols: 120, cx: home.lo, kx: home.catMax - 1, mode: 'walk', mt: 5, target: 110, look: 'chef' }
+  for (let i = 0; i < 6; i++) { w = stepFeel({ ...w, idle: 0 }, 'warm'); expect(w.kx).toBeLessThanOrEqual(home.catMax) }
 })

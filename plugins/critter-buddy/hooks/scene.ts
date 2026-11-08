@@ -419,6 +419,18 @@ export const catchIn = (s: Scene, lane: 0 | 1 | 2): Scene => {
   return hit ? { ...s, game: g, joy: clamp(s.joy + 2), fx: addFx(s, ...hearts(s, 1)), idle: 0 } : { ...s, game: g }
 }
 
+/**
+ * The wizard's home: the right-hand stretch of the band, above the right side of the prompt box; the cat has everything left of it
+ * with a two-cell gap. He paces up to ten cells, fewer as the band narrows, and none at 62 cells, the least that holds both. Under
+ * that the two share the bar as they always did.
+ */
+export const homeOf = (cols: number): { lo: number; hi: number; catMax: number } | undefined => {
+  if (cols < CAT_W + CRIT_W + 2) return undefined
+  const hi = cols - CRIT_W
+  const lo = hi - Math.min(10, cols - (CAT_W + CRIT_W + 2))
+  return { lo, hi, catMax: lo - CAT_W - 2 }
+}
+
 export const step = (s: Scene): Scene => {
   const n: Scene = { ...s, tick: s.tick + 1, mt: s.mt + 1, idle: s.idle + 1, seed: rnd(s.seed) }
   // "done" is a few seconds of celebration, then the pair settle to idle so they can nap again
@@ -426,7 +438,8 @@ export const step = (s: Scene): Scene => {
   if (s.look === 'wizard' && s.label.startsWith('done') && s.idle > 10) n.look = 'done'
   if (s.look === 'done' && s.idle > 24) ((n.look = 'idle'), (n.label = 'ready'))
   n.wt = s.look === 'wizard' ? Math.min(60, s.wt + 1) : 0 // how long the hat has been building
-  const max = Math.max(0, s.cols - CAT_W)
+  const home = homeOf(s.cols)
+  const max = home ? home.catMax : Math.max(0, s.cols - CAT_W)
   const asleep = isAsleep(s)
   const calm = s.look === 'idle' || s.look === 'done'
 
@@ -436,10 +449,14 @@ export const step = (s: Scene): Scene => {
     n.cx = s.cx + s.cdir * speed
     // the critter keeps to the stretch of the bar the cat leaves it: left of the cat if the cat is to its right, else right of it
     const catRight = s.kx >= s.cx
-    const lo = catRight ? 0 : Math.min(s.cols - CRIT_W, s.kx + CAT_W + 2)
-    const hi = catRight ? Math.max(0, Math.min(s.cols - CRIT_W, s.kx - CRIT_W - 2)) : Math.max(0, s.cols - CRIT_W)
-    if (n.cx >= hi) ((n.cx = Math.max(lo, hi)), (n.cdir = -1))
-    if (n.cx <= lo) ((n.cx = lo), (n.cdir = 1))
+    const lo = home ? home.lo : catRight ? 0 : Math.min(s.cols - CRIT_W, s.kx + CAT_W + 2)
+    const hi = home ? home.hi : catRight ? Math.max(0, Math.min(s.cols - CRIT_W, s.kx - CRIT_W - 2)) : Math.max(0, s.cols - CRIT_W)
+    const gliding = home !== undefined && s.cx < lo // on his way in from the left: he walks, he does not jump
+    if (gliding) ((n.cx = Math.min(lo, s.cx + 2)), (n.cdir = 1))
+    else {
+      if (n.cx >= hi) ((n.cx = Math.max(lo, hi)), (n.cdir = -1))
+      if (n.cx <= lo) ((n.cx = lo), (n.cdir = 1))
+    }
   }
   if (s.jt > 0) n.jt = s.jt >= 9 ? 0 : s.jt + 1
   else if (calm && !asleep && n.seed % 53 === 0) n.jt = 1
@@ -449,6 +466,7 @@ export const step = (s: Scene): Scene => {
   const clampCat = (x: number) => Math.max(0, Math.min(max, x))
   // beside the critter, never on it: behind it if there is room there, else on its other side
   const beside = () => {
+    if (home) return home.catMax // the wizard keeps the right: the cat keeps close to him on the left
     const behind = s.cdir === 1 ? s.cx - CAT_W - 2 : s.cx + CRIT_W + 2
     const other = s.cdir === 1 ? s.cx + CRIT_W + 2 : s.cx - CAT_W - 2
     const fits = (x: number) => x >= 0 && x <= max
@@ -469,7 +487,7 @@ export const step = (s: Scene): Scene => {
       if (Math.abs(s.target - catX) <= 2) {
         if (cup && near(cup.x)) { n.mode = 'knock'; n.mt = 0; n.kdir = cup.x > catX ? 1 : -1 }
         else ((n.mode = 'loaf'), (n.mt = 0))
-      } else goTo(s.target)
+      } else goTo(s.target, Math.abs(s.target - catX) > 8 && s.mt >= 2 ? 2 : 1) // soft start, full pace in the open, soft arrival
       break
     case 'follow':
       goTo(beside(), 2) // follows close, never on top of it
@@ -524,7 +542,11 @@ export const step = (s: Scene): Scene => {
   // the pair's moods drift back to even
   if (s.tick % 40 === 0) { n.joy = s.joy + (s.joy > 60 ? -1 : s.joy < 60 ? 1 : 0); if (s.idle > 400) n.trust = clamp(s.trust - 1) }
   // whatever the cat just did, it stays out of the critter: if the two would overlap it stops at the critter's edge
-  if (n.kx < n.cx + CRIT_W + 2 && n.cx < n.kx + CAT_W + 2 && s.mode !== 'sit' && s.mode !== 'follow') {
+  if (home) {
+    // each keeps to its own side; one that was left outside it (an old scene, a window that grew) glides in, two cells a tick
+    if (s.kx > max && s.mode !== 'sit') ((n.kx = Math.max(max, s.kx - 2)), (n.kdir = -1))
+    else if (n.kx > max) n.kx = max
+  } else if (n.kx < n.cx + CRIT_W + 2 && n.cx < n.kx + CAT_W + 2 && s.mode !== 'sit' && s.mode !== 'follow') {
     n.kx = s.kx >= s.cx ? Math.min(max, n.cx + CRIT_W + 2) : Math.max(0, n.cx - CAT_W - 2)
   }
   return n
@@ -957,7 +979,7 @@ export const diaryMarkdown = (lines: string[], n: Names = NAMES_DEFAULT): string
 
 
 // ---- the buttons: each says what is true now ---------------------------------------
-export type Controls = { pet: string; feed: string; cast: string; nap: string; corner: string }
+export type Controls = { pet: string; feed: string; cast: string; nap: string; corner: string; mods?: string }
 /** The label of each button on the bar. A cat that is sulking is made up with, not petted; a wizard mid-cast is not asked to cast. */
 export const controlLabels = (s: Scene, mood: string, n: Names = NAMES_DEFAULT): Controls => ({
   pet: mood === 'sulking' ? `make up with ${n.cat}` : `pet ${n.cat}`,
@@ -965,6 +987,7 @@ export const controlLabels = (s: Scene, mood: string, n: Names = NAMES_DEFAULT):
   cast: s.look === 'wizard' ? `${n.pip} is casting` : `${n.pip} casts`,
   nap: 'nap',
   corner: 'the corner',
+  mods: 'mods',
 })
 
 
@@ -1148,12 +1171,20 @@ export const recordSession = (prev: Habits | undefined, cwd: string, hour: numbe
 
 // ---- the band holds its shape: one row of status, one row of buttons, at any width ----
 const BUTTON_PAD = 6 // the hotkey chip and the padding around a button's label
-const SHORT_CONTROLS: Controls = { pet: 'pet', feed: 'feed', cast: 'cast', nap: 'nap', corner: 'corner' }
-/** The button labels that fit one row of `cols` cells: the full words, or the short ones when the full ones would wrap. */
+const SHORT_CONTROLS: Controls = { pet: 'pet', feed: 'feed', cast: 'cast', nap: 'nap', corner: 'corner', mods: 'mods' }
+const widthOf = (c: Controls): number => {
+  const words = [c.pet, c.feed, c.cast, c.nap, c.corner, ...(c.mods ? [c.mods] : [])]
+  return words.reduce((a, w) => a + w.length + BUTTON_PAD, 0) + (words.length - 1)
+}
+/**
+ * The button labels that fit one row of `cols` cells: the full words with the mods button, else the short words with it, else the
+ * short five alone. The mods button goes before any word is cut further, and never before the short words.
+ */
 export const fitControls = (c: Controls, cols: number): Controls => {
-  const words = [c.pet, c.feed, c.cast, c.nap, c.corner]
-  const width = words.reduce((a, w) => a + w.length + BUTTON_PAD, 0) + (words.length - 1)
-  return width <= cols ? c : SHORT_CONTROLS
+  if (widthOf(c) <= cols) return c
+  if (widthOf(SHORT_CONTROLS) <= cols) return SHORT_CONTROLS
+  const { mods: _mods, ...five } = SHORT_CONTROLS
+  return five
 }
 /**
  * The status as one row: the label, then a dim rest (the cat's mood and the glass line). When the row is too wide the mood goes

@@ -324,3 +324,28 @@ test('the dials are not drawn when critter-buddy is off or missing', async ($, o
   expect(await ui.find({ key: 'dial-feel-still' })).toBeUndefined()
   await ui.unmount()
 })
+
+test('the footer carries a count of the mods that are on, after whatever the footer already says', async ($, on) => {
+  setup($, on)
+  on('ui.render', ($: any, e: any) => { const { Text } = $.ui.resolve(e); return <Text>{(e.props.modes ?? []).join(' · ')}</Text> })
+  await begin($)
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const ui = await $.ui.mount({ plugin: 'mods', component: 'SessionMode', requestId: 'r1', props: { modes: ['auto mode on'] }, surface } as never)
+    expect((await ui.find({ type: 'Text', text: /auto mode on/ }))?.text).toBe('auto mode on · mods 7/8')
+    await ui.unmount()
+  }
+})
+
+test('the footer says nothing of mods where the plugin manager could not be read, and does not count twice', async ($, on) => {
+  on('command.register', () => ({ value: { command: 'mods' } }))
+  on('session.start', (_: unknown, e: { cwd: string }) => ({ cwd: e.cwd }))
+  on('process.run', () => { throw new Error('no manager') })
+  on('ui.render', ($: any, e: any) => { const { Text } = $.ui.resolve(e); return <Text>{(e.props.modes ?? []).join(' · ')}</Text> })
+  await begin($)
+  const ui = await $.ui.mount({ plugin: 'mods', component: 'SessionMode', requestId: 'r1', props: { modes: ['auto mode on'] }, surface: 'terminal' } as never)
+  expect((await ui.find({ type: 'Text', text: /auto mode on/ }))?.text).toBe('auto mode on')
+  await ui.unmount()
+  const again = await $.ui.mount({ plugin: 'mods', component: 'SessionMode', requestId: 'r1', props: { modes: ['mods 3/8'] }, surface: 'terminal' } as never)
+  expect((await again.find({ type: 'Text', text: /mods/ }))?.text).toBe('mods 3/8') // a footer that already has the chip is left alone
+  await again.unmount()
+})
