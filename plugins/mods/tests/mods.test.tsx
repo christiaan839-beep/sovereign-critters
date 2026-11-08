@@ -114,7 +114,13 @@ const setup = ($: any, on: any, listOut: string = LIST, openHandler: (...a: any[
   const commands: { command: string; args: string }[] = []
   on('command.register', () => ({ value: { command: 'mods' } }))
   on('session.start', (_: unknown, e: { cwd: string }) => ({ cwd: e.cwd }))
-  on('process.run', (_: unknown, e: { argv: string[] }) => { ran.push([...e.argv]); return { value: { ...PROCESS_OK, stdout: e.argv.includes('list') ? listOut : '{"ok":true}' } } })
+  let doc = JSON.parse(listOut) as { id: string; enabled: boolean }[] // the plugin manager remembers what it was told
+  on('process.run', (_: unknown, e: { argv: string[] }) => {
+    ran.push([...e.argv])
+    const verb = e.argv[2]
+    if (verb === 'disable' || verb === 'enable') doc = doc.map(x => (x.id === e.argv[3] ? { ...x, enabled: verb === 'enable' } : x))
+    return { value: { ...PROCESS_OK, stdout: e.argv.includes('list') ? JSON.stringify(doc) : '{"ok":true}' } }
+  })
   on('ui.open', openHandler as never)
   on('command.run', (_: unknown, e: { command: string; args: string }) => { if (e.command !== 'mods') commands.push({ command: e.command, args: e.args }); return { text: `ran ${e.command}` } })
   return { ran, commands }
