@@ -899,8 +899,8 @@ test('the buttons say what is true now: a sulking cat is made up with, a casting
 
 // ---- the feel dial ----
 test('calm keeps the pair still, warm is the usual, playful hops more; the feel only changes how they move', () => {
-  expect(FEELS).toEqual(['calm', 'warm', 'playful'])
-  const run = (feel: 'calm' | 'warm' | 'playful', n = 4000) => {
+  expect(FEELS).toEqual(['calm', 'warm', 'playful', 'still'])
+  const run = (feel: 'calm' | 'warm' | 'playful' | 'still', n = 4000) => {
     let s: Scene = { ...initial(), cols: 60, look: 'idle', idle: 0 }
     let hops = 0
     for (let i = 0; i < n; i++) {
@@ -932,11 +932,11 @@ test('/critter feel sets the dial, says so, offers its words, and calm silences 
   on('store.get', () => ({ value: undefined }))
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   const said = async (args: string) => ((await $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never)) as { text?: string }).text ?? ''
-  expect(await said('feel')).toMatch(/Usage: \/critter feel calm \| warm \| playful/)
+  expect(await said('feel')).toMatch(/Usage: \/critter feel calm \| warm \| playful \| still/)
   expect(await said('feel loud')).toMatch(/Usage/)
   expect(await said('feel calm')).toMatch(/Calm/)
   expect(await said('feel playful')).toMatch(/Playful/)
-  expect(suggest('/critter feel ', 14).map(r => r.text)).toEqual(['calm', 'warm', 'playful'])
+  expect(suggest('/critter feel ', 14).map(r => r.text)).toEqual(['calm', 'warm', 'playful', 'still'])
   expect(suggest('/critter ', 9).map(r => r.text)).toContain('feel')
   expect(draftRuns('/critter feel calm', NAMES_DEFAULT)[2]).toMatchObject({ color: '#4fa39a' })
   expect(draftRuns('/critter feel loud', NAMES_DEFAULT)[2]).toMatchObject({ color: '#d4a548', underline: true })
@@ -1854,4 +1854,87 @@ test('a new session offers its own postcard', async ($, on) => {
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   await $.turn.complete({ answer: 'done' } as never)
   expect(offered).toEqual(['/diary postcard', '/diary postcard'])
+})
+
+// ---- accessibility: a feel in which nothing moves ----
+import { motionTick } from '../hooks/scene'
+
+test('still is a feel in which nothing moves: no walk, no hop, no spark, no animated frame, and the clock still runs', () => {
+  // a busy scene: the cat mid-walk, a hop under way, hearts and sparks in the air, the wizard casting
+  let s: Scene = { ...react(react({ ...initial(), cols: 60, cx: 7, kx: 12 }, 'pet'), 'spell'), mode: 'walk', jt: 3, look: 'wizard', wt: 8 }
+  const pinned = { cx: s.cx, kx: s.kx, cdir: s.cdir, kdir: s.kdir }
+  const frames = new Set<string>()
+  for (let i = 0; i < 400; i++) {
+    const before = s.tick
+    s = stepFeel(s, 'still')
+    expect(s.tick).toBe(before + 1) // time passes; only the picture holds
+    expect(s).toMatchObject(pinned) // nobody walks
+    expect(s.jt).toBe(0) // nobody hops
+    expect(s.fx).toEqual([]) // no spark, no heart, no z, no bubble
+    expect(['loaf', 'sit', 'sulk', 'purr']).toContain(s.mode) // no pounce, swat, knock, yawn, walk
+    frames.add(canvasOf(s, 60).map(r => r.join('')).join('\n'))
+    s = { ...s, idle: 0 }
+  }
+  expect(frames.size).toBe(1) // 400 steps, one picture: breath, blink and the wizard's bolts are held
+  // and the held picture has its eyes open: a held blink would look like sleep (the critter's eyes are '6' and shut ones are one row)
+  const eyesOf = (c: string[][]) => c.flat().filter(k => k === '6').length
+  const shut = canvasOf({ ...initial(), cols: 60, look: 'idle', still: true, tick: 2 }, 60)
+  const blinking = canvasOf({ ...initial(), cols: 60, look: 'idle', tick: 0 }, 60)
+  expect(eyesOf(shut)).toBeGreaterThan(eyesOf(blinking))
+})
+
+test('still leaves a scene that is moving the moment another feel is chosen, and does not leak into it', () => {
+  let s: Scene = { ...initial(), cols: 60, look: 'idle' }
+  s = stepFeel(s, 'still')
+  expect(s.still).toBe(true)
+  for (const feel of ['calm', 'warm', 'playful'] as const) expect(stepFeel(s, feel).still).toBeFalsy()
+  expect(motionTick({ ...s, tick: 41 })).toBe(2)
+  expect(motionTick({ ...s, still: undefined, tick: 41 })).toBe(41)
+})
+
+test('the other feels still move: the held picture is only still\'s', () => {
+  let s: Scene = { ...initial(), cols: 60, look: 'idle' }
+  const frames = new Set<string>()
+  for (let i = 0; i < 400; i++) { s = { ...stepFeel(s, 'warm'), idle: 0 }; frames.add(canvasOf(s, 60).map(r => r.join('')).join('\n')) }
+  expect(frames.size).toBeGreaterThan(5)
+})
+
+test('/critter feel still says what it does, is as silent as calm, and the doctor names it', async ($, on) => {
+  stub(on)
+  const spoken: string[] = []
+  const played: string[] = []
+  on('audio.speak', (_: unknown, e: { text: string }) => { spoken.push(e.text); return { value: { via: 'system' } } as never })
+  on('audio.play', (_: unknown, e: { asset: string }) => { played.push(e.asset); return { value: undefined } as never })
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const said = async (args: string) => ((await $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never)) as { text?: string }).text ?? ''
+  expect(await said('feel still')).toMatch(/Still: nothing moves/)
+  await said('sound on')
+  await said('voice on') // on a warm cat this would say "has found their voice"
+  await said('pet'); await said('spell')
+  expect(spoken).toEqual([]) // still is silent, like calm
+  expect(played).toEqual([])
+  const base = { detail: 'party', feel: 'warm', sound: true, voice: 'default', talk: true, hidden: false, cols: 120, surface: 'terminal' } as const
+  expect(doctorLines({ ...base, feel: 'still' }).join('\n')).toMatch(/still.*nothing moves.*silent.*\/critter feel warm/i)
+  // calm no longer claims to be still: it only breathes, walks and sleeps
+  expect(suggest('/critter feel ', 14).find(r => r.text === 'calm')?.description ?? '').not.toMatch(/^still/)
+  expect(await said('feel calm')).toMatch(/breathe, walk and sleep/)
+})
+
+test('the wizard beside the orb holds his place in still, and paces in warm', () => {
+  const at = (tick: number, still: boolean) => wizardCanvas({ ...initial(), cols: 40, tick, still: still || undefined }).map(r => r.join('')).join('\n')
+  const stillFrames = new Set([0, 5, 10, 15, 20, 25, 30].map(t => at(t, true)))
+  expect(stillFrames.size).toBe(1)
+  const warmFrames = new Set([0, 5, 10, 15, 20, 25, 30].map(t => at(t, false)))
+  expect(warmFrames.size).toBeGreaterThan(1)
+})
+
+test('no meaning rides on colour alone: each face says what the call did in its eyes, and the colours can be taken away', () => {
+  const plain = (kind: 'run' | 'ok' | 'err' | 'rest') => faceRuns(kind, 1).map(r => r.text).join('')
+  const faces = (['run', 'ok', 'err', 'rest'] as const).map(plain)
+  expect(new Set(faces).size).toBe(4) // four states, four different strings, with no colour to help
+  expect(plain('err')).toContain('×')
+  expect(plain('ok')).toContain('^')
 })

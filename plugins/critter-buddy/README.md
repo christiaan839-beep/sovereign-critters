@@ -51,12 +51,20 @@ The cat keeps its trust in you across sessions in `$.store`; it falls by 8 for e
 | `/critter cat <coat>` | The cat's coat: `orange` (the default), `ink`, `brown`, `tabby`, `ginger`, `black`, `tuxedo`, `cream`, `grey`, `siamese`, or `pair` (follows day and night). |
 | `/critter name cat <name>`, `name pip <name>` | What the cat (Biscuit) and the wizard critter (Pip) are called; every line says it. |
 | `/critter wizard auto`, `gold`, `bolt` | The wizard by the hour, the gold star always, or the violet bolt always. |
-| `/critter feel calm`, `warm`, `playful` | How lively they are. Calm: still, no sparks, no sound. Warm: the usual (default). Playful: more hops and sparks. |
+| `/critter feel calm`, `warm`, `playful`, `still` | How lively they are. Calm: quiet, with no hops, sparks or sound; they still breathe, walk and sleep. Warm: the usual (default). Playful: more hops and sparks. Still: nothing moves at all and there is no sound. |
+| `/critter doctor` | What is on and why, in plain words, and the switch that changes each thing. |
 | `/critter sound on`, `off` | A cast chime for a Skill and a purr for a pet. Off until you ask. |
 | `/critter voice on`, `off`, `<name>` | The cat says the big moments aloud (a prop earned, the glass nearly full) in the system voice, or in an installed voice you name. Off until you ask; calm stays silent. |
 | `/critter hide`, `show` | Explicit; bare `/critter hide` toggles. |
 
 It draws above other mods' rows in the same place and registers `/critter` and one agent, `biscuit-looks`: a second look at a change that can read and search but never edit, five lines at most.
+
+## Accessibility
+
+- **Nothing moves** with `/critter feel still`: no walking, hopping, sparks, blinking or breathing, the thinking orb and the wizard hold one frame, and sound and speech are off. `/critter feel warm` brings them back.
+- **Colour never carries a meaning alone.** A tool row's face says what the call did in its eyes (`×` failed, `^` done, `-` resting, `▪` working); the band, the doctor and the diary say it in words; a word `/critter` does not know is underlined as well as gold.
+- Sound and speech are off until you ask, and silent in calm and still.
+- **Pending:** a high-contrast palette for the Day and Night backdrop and the characters. It is not guessed: it waits for screenshots of the real window at its current contrast.
 
 ## Check
 

@@ -46,6 +46,8 @@ export type Scene = {
   streak?: number
   /** Errors in a row since the last green test or commit: two clouds the sky, three rains, five storms. */
   fails?: number
+  /** Set by the still feel: the picture is held at one frame, whatever the tick. */
+  still?: boolean
   /** Only ever set on a copy, to draw the wizard beside a /critter reply asleep or with his hat tipped; never kept. */
   pose?: 'asleep' | 'tipped'
 }

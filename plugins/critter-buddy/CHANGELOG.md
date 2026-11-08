@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.21.0
+
+- `/critter feel still`: a feel in which nothing moves. The cat and the wizard stay where they are, no hop, spark, heart or bubble is drawn, and breath, blink, the wizard's pacing and bolts, and the thinking orb all hold one frame (eyes open), while the clock and the story go on. Sound and speech are off, as in calm. Choosing another feel moves them again.
+- `calm` now says what it is: quiet (no hops, sparks or sound), with the pair still breathing, walking and sleeping. It used to be called "still" in the typeahead, which it was not.
+- A test pins that no meaning rides on colour alone in the tool-row faces.
+
 ## 0.20.1
 
 - The button rows of the stage and the corner are spaced by a column gap, as the band is, instead of a space between them. In the terminal the stage showed "[ cast   [ nap   [ close ]" with the closing brackets missing (seen by driving a real terminal session).

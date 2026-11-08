@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { windowWidth, fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, wizardPoseFor, welcomeLine, cleanMemory, cleanStreak, doctorLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import { windowWidth, fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, wizardPoseFor, isQuiet, motionTick, welcomeLine, cleanMemory, cleanStreak, doctorLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
 import { hourSast, dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
 import type { Flight, Streak } from './world'
 import type { SoundName, Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
@@ -113,7 +113,7 @@ const kit = (els: any, surface: string) => {
 /** A short sound, only when the person has turned sound on; a player that is missing never matters. */
 const ring = async ($: any, which: SoundName) => {
   try {
-    if ((await read($, feel)) !== 'calm' && (await read($, sound))) await $.audio.play({ asset: `sounds/${which}.wav` }, { gain: 0.5 })
+    if (!isQuiet(await read($, feel)) && (await read($, sound))) await $.audio.play({ asset: `sounds/${which}.wav` }, { gain: 0.5 })
   } catch {
     // no player, no sound: the picture is enough
   }
@@ -137,7 +137,7 @@ export const LOOKS_AGENT = {
 const speak = async ($: any, line: string) => {
   try {
     const v = await read($, voice)
-    if (!v || (await read($, feel)) === 'calm' || (await read($, isHidden))) return
+    if (!v || isQuiet(await read($, feel)) || (await read($, isHidden))) return
     const text = named(line, await read($, names)).replace(/\s·\s/g, '. ')
     void Promise.resolve($.audio.speak(text, v === 'default' ? undefined : { voice: v })).catch(() => undefined)
   } catch {
@@ -392,7 +392,7 @@ export const register: Register = on => {
     })
     // One command, subcommands inside: the session already has /pet from another mod.
     try {
-      await $.command.register({ name: 'critter', description: 'The pair above your prompt: pet, treat, nap, spell, corner, diary, doctor, stage, hide, show, lite|full|party, talk on|off, sound on|off, voice on|off|<name>, feel calm|warm|playful, wizard auto|gold|bolt, name cat|pip <name>, cat <coat>' })
+      await $.command.register({ name: 'critter', description: 'The pair above your prompt: pet, treat, nap, spell, corner, diary, doctor, stage, hide, show, lite|full|party, talk on|off, sound on|off, voice on|off|<name>, feel calm|warm|playful|still, wizard auto|gold|bolt, name cat|pip <name>, cat <coat>' })
     } catch {
       $.ui.log('critter-buddy: /critter is taken by another plugin; the buttons above the prompt still work')
     }
@@ -466,9 +466,9 @@ export const register: Register = on => {
     }
     if (sub === 'feel') {
       const f = FEELS.find(x => x === arg)
-      if (!f) return { text: 'Usage: /critter feel calm | warm | playful. Calm: still, no sound. Warm: the usual. Playful: more hops and sparks.' }
+      if (!f) return { text: 'Usage: /critter feel calm | warm | playful | still. Calm: quiet, no sound. Warm: the usual. Playful: more hops and sparks. Still: nothing moves.' }
       await update($, feel, () => f)
-      return { text: f === 'calm' ? 'Calm: the pair only breathe, walk and sleep. No sparks, no sound.' : f === 'playful' ? 'Playful: more hops, more sparks.' : 'Warm: the usual.' }
+      return { text: f === 'still' ? 'Still: nothing moves, and there is no sound. /critter feel warm brings them back.' : f === 'calm' ? 'Calm: the pair only breathe, walk and sleep. No sparks, no sound.' : f === 'playful' ? 'Playful: more hops, more sparks.' : 'Warm: the usual.' }
     }
     if (sub === 'doctor') {
       return { text: doctorLines({ detail: await read($, detail), feel: await read($, feel), sound: await read($, sound), voice: await read($, voice), talk: await read($, talk), hidden: (await read($, isHidden)) === true, cols: windowCols, surface: e.surface ?? 'terminal' }).join('\n') }
@@ -510,7 +510,7 @@ export const register: Register = on => {
       if (hidden) { lastSky = ''; await drawBackdrop($, undefined) } else { lastSky = ''; await syncSky($, await $.clock.now(), await read($, scene)) }
       return { text: hidden ? 'The pair are hidden.' : 'The pair are back.' }
     }
-    return { text: 'Usage: /critter [pet | treat | nap | spell | corner | stage | diary | doctor | hide | show | lite | full | party | talk on|off | sound on|off | voice on|off|<name> | feel calm|warm|playful | wizard auto|gold|bolt | name cat|pip <name> | cat <coat>]' }
+    return { text: 'Usage: /critter [pet | treat | nap | spell | corner | stage | diary | doctor | hide | show | lite | full | party | talk on|off | sound on|off | voice on|off|<name> | feel calm|warm|playful|still | wizard auto|gold|bolt | name cat|pip <name> | cat <coat>]' }
   })
 
   // ---- the band above the prompt: the pair on the bar, and three things to press ----
@@ -564,7 +564,7 @@ export const register: Register = on => {
     return (
       <Box flexDirection="row" alignItems="flex-end" gap={1}>
         <Box>{vector ? svg(paintWizardSvg(s, 5), 'The wizard critter, pacing beside the orb') : rowsOf(Text, paintWizard(s), 'w')}</Box>
-        <Box>{vector ? svg(paintOrbSvg(s.tick, 5), 'The Sovereign Matrix orb') : rowsOf(Text, paintOrb(s.tick), 'o')}</Box>
+        <Box>{vector ? svg(paintOrbSvg(motionTick(s), 5), 'The Sovereign Matrix orb') : rowsOf(Text, paintOrb(motionTick(s)), 'o')}</Box>
         {orbLine}
       </Box>
     )

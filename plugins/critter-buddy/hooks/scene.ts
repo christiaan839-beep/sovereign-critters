@@ -169,21 +169,22 @@ const critterGrid = (o: CritterPose): Px => {
 }
 const critterCache = new Map<string, Px>()
 const critterPx = (s: Scene, step: 0 | 1): Px => {
+  const tk = motionTick(s) // still holds the picture at one frame
   const wiz = s.look === 'wizard'
   const pose = s.pose // a reply's wizard: asleep, or with his hat tipped
   const o: CritterPose = {
-    aura: wiz ? Math.floor(s.tick / 2) % 8 : 0,
+    aura: wiz ? Math.floor(tk / 2) % 8 : 0,
     kit: wiz ? 'wizard' : s.look === 'reader' ? 'sherlock' : s.look === 'chef' ? 'chef' : 'none',
     walk: s.look !== 'coder' && s.look !== 'chef' && !isAsleep(s) && !pose ? step : -1,
     arms: s.jt > 0 ? 1 : 0,
     cast: !pose && ((wiz && s.wt >= 8) || s.look === 'reader'),
-    blink: isAsleep(s) || pose === 'asleep' || (!pose && s.tick % 14 === 0),
+    blink: isAsleep(s) || pose === 'asleep' || (!pose && tk % 14 === 0),
     happy: s.look === 'done' || pose === 'tipped',
-    breath: s.tick % 16 < 8,
+    breath: tk % 16 < 8,
     morph: wiz ? Math.round(Math.min(1, s.wt / 8) * 16) / 16 : 0,
     night: s.form === 'bolt' ? true : s.form === 'gold' ? false : s.night,
     tip: pose === 'tipped',
-    bolt: wiz && !pose && s.wt >= 8 ? ((Math.floor(s.tick / 2) % 2) + 1) as 1 | 2 : 0,
+    bolt: wiz && !pose && s.wt >= 8 ? ((Math.floor(tk / 2) % 2) + 1) as 1 | 2 : 0,
   }
   const key = `${o.kit}${o.aura}${o.walk}${o.arms}${+o.cast}${+o.blink}${+o.happy}${+o.breath}|${o.morph}|${+o.night}${o.bolt}${+!!o.tip}`
   const hit = critterCache.get(key)
@@ -550,26 +551,27 @@ export const CRIT_W = 30 // the critter's cells, with room for a magnifier or a 
 
 /** Every pixel of the scene on one canvas, keys into the palette; '.' is clear. */
 export const canvasOf = (s: Scene, cols: number): string[][] => {
+  const tk = motionTick(s) // still holds the picture at one frame
   const canvas: string[][] = Array.from({ length: H }, () => Array.from({ length: cols }, () => '.'))
-  const stepA = (s.tick % 2) as 0 | 1
+  const stepA = (tk % 2) as 0 | 1
   const fall = s.mode === 'pounce' ? [0, 3, 5, 5, 3, 1, 0, 0, 0][Math.min(8, s.mt)] ?? 0 : 0
   const lift = s.mode === 'sit' ? 2 : fall // on the laptop it sits a little above the bar
   const walking = s.mode === 'walk' || s.mode === 'follow' || s.mode === 'knock'
   const catPx = s.mode === 'loaf' && isAsleep(s)
-    ? catAsleep(s, s.tick % 16 < 8)
+    ? catAsleep(s, tk % 16 < 8)
     : catPose(s, {
-        blink: s.mode === 'sulk' || (!walking && s.tick % 30 > 27), // sulking eyes stay shut; otherwise it blinks now and then
+        blink: s.mode === 'sulk' || (!walking && tk % 30 > 27), // sulking eyes stay shut; otherwise it blinks now and then
         yawn: s.mode === 'yawn',
         lift: walking && stepA === 1, // a front paw lifts at each step
-        phase: s.mode === 'alert' || s.mode === 'swat' || s.tick % 40 > 34 ? 1 : 0, // the tail flicks, and rides up when it is alert
+        phase: s.mode === 'alert' || s.mode === 'swat' || tk % 40 > 34 ? 1 : 0, // the tail flicks, and rides up when it is alert
       })
   const facing = s.mode === 'sulk' ? (s.kdir === 1 ? -1 : 1) : s.kdir
   for (const p of propsFor(s.streak ?? 0)) blit(canvas, PROPS[p], cols - PROP_AT[p], H - 1, false) // behind the pair
   blit(canvas, catPx, s.kx - 1, H - 1 - lift, facing === -1)
   const hop = (JUMP[Math.min(9, s.jt)] ?? 0) * SCALE
   blit(canvas, critterPx(s, stepA), s.cx, H - 1 - hop, s.cdir === -1)
-  if (s.look === 'done') blit(canvas, cupPx(s.tick), s.cx + (s.cdir === 1 ? CRIT_W - 4 : -CUP_W), H - 1, s.cdir === -1)
-  if (s.look === 'coder') blit(canvas, laptopPx(s.tick), s.cx + (s.cdir === 1 ? CRIT_W - 2 : -LAPTOP_W + 2), H - 1, s.cdir === -1)
+  if (s.look === 'done') blit(canvas, cupPx(tk), s.cx + (s.cdir === 1 ? CRIT_W - 4 : -CUP_W), H - 1, s.cdir === -1)
+  if (s.look === 'coder') blit(canvas, laptopPx(tk), s.cx + (s.cdir === 1 ? CRIT_W - 2 : -LAPTOP_W + 2), H - 1, s.cdir === -1)
   for (const f of s.fx) blit(canvas, FX[f.k] ?? [], Math.round(f.x), H - 1 - Math.round(f.y), false)
   return canvas
 }
@@ -594,7 +596,7 @@ export const wizardCanvas = (s: Scene, pose?: WizardPose): string[][] =>
   canvasOf(
     {
       // he paces a cell to and fro beside the orb while Claude works, legs stepping, instead of standing like a statue
-      ...s, look: 'wizard', wt: 8, cols: WIZARD_COLS, cx: pose ? 1 : 1 + (Math.floor(s.tick / 5) % 2), cdir: 1, kx: -40, pose,
+      ...s, look: 'wizard', wt: 8, cols: WIZARD_COLS, cx: pose ? 1 : 1 + (Math.floor(motionTick(s) / 5) % 2), cdir: 1, kx: -40, pose,
       // the sparks of a cast, a finished turn or a pet drift round him; the cup and the treat stay on the bar
       fx: pose === 'asleep'
         ? [{ k: 'z' as const, x: 25, y: 13, vx: 0, vy: 0, life: 9 }, { k: 'z' as const, x: 28, y: 18, vx: 0, vy: 0, life: 9 }] // a sleeper's z, drifting up beside the hat
@@ -857,7 +859,7 @@ export const suggest = (text: string, cursor: number, n: Names = NAMES_DEFAULT):
     : group === 'sound' ? [row('on', 'a cast chime and a purr'), row('off', 'quiet again')]
     : group === 'voice' ? [row('on', `${n.cat} speaks the big moments aloud, in the system voice`), row('off', 'silent again')]
     : group === 'talk' ? [row('on', `${n.cat} speaks after a turn; one small model call each`), row('off', `${n.cat} keeps their own counsel`)]
-    : group === 'feel' ? [row('calm', 'still: no hops, no sparks, no sound'), row('warm', 'the usual'), row('playful', 'more hops, more sparks')]
+    : group === 'feel' ? [row('calm', 'quiet: no hops, no sparks, no sound'), row('warm', 'the usual'), row('playful', 'more hops, more sparks'), row('still', 'nothing moves at all, and no sound')]
     : group === 'name' ? [row('cat', `rename ${n.cat}`), row('pip', `rename ${n.pip}`)]
     : [
         row('pet', `${n.cat} allows it`), row('treat', `${n.pip} is sure it is his`), row('cast', `${n.pip} casts something`), row('nap', 'both of them sleep'),
@@ -967,14 +969,25 @@ export const controlLabels = (s: Scene, mood: string, n: Names = NAMES_DEFAULT):
 
 
 // ---- the feel dial -----------------------------------------------------------------
-export type Feel = 'calm' | 'warm' | 'playful'
-export const FEELS: Feel[] = ['calm', 'warm', 'playful']
+export type Feel = 'calm' | 'warm' | 'playful' | 'still'
+export const FEELS: Feel[] = ['calm', 'warm', 'playful', 'still']
+/** The two feels that keep sound and speech off. */
+export const isQuiet = (f: Feel): boolean => f === 'calm' || f === 'still'
+/** The frame still holds: tick 2 has the eyes open (tick 0 would be a blink), no cat tail flick, and a settled breath. */
+export const STILL_TICK = 2
+/** The tick the picture is drawn at: still holds it at one frame, so breath, blink, walk steps and bolts do not change from one frame to the next. */
+export const motionTick = (s: Scene): number => (s.still ? STILL_TICK : s.tick)
+const STILL_MODES: CatMode[] = ['loaf', 'sit', 'sulk', 'purr']
 /**
  * One step of the scene at a chosen feel. warm is the plain step. calm lets no hop begin by itself and lets no spark or heart
  * live: the pair only breathe, walk and sleep. playful hops about three times as often as warm.
  */
 export const stepFeel = (s: Scene, feel: Feel): Scene => {
   const n = step(s)
+  if (feel === 'still') { // the clock runs and the story goes on, but nobody walks, hops, sparks or breathes on screen
+    return { ...n, still: true, cx: s.cx, kx: s.kx, cdir: s.cdir, kdir: s.kdir, jt: 0, fx: [], mode: STILL_MODES.includes(n.mode) ? n.mode : 'loaf' }
+  }
+  if (s.still) return stepFeel({ ...s, still: undefined }, feel) // leaving still: the next feel starts from a scene that moves again
   if (feel === 'warm') return n
   if (feel === 'calm') return { ...n, jt: s.jt > 0 ? n.jt : 0, fx: n.fx.filter(f => f.k !== 'spark' && f.k !== 'heart') }
   const idleish = (s.look === 'idle' || s.look === 'done') && !isAsleep(s)
@@ -1046,7 +1059,8 @@ export const doctorLines = (d: DoctorInput): string[] => {
   const out = [`Reach: ${d.detail}. Feel: ${d.feel}. Surface: ${d.surface}, ${d.cols} columns.`]
   if (d.hidden) out.push('The pair are hidden: /critter show brings them back.')
   if (d.cols < MIN_COLS) out.push(`The window is narrow (${d.cols} columns); the stage and the corner want ${MIN_COLS}.`)
-  if (d.feel === 'calm') out.push(d.sound || d.voice ? 'Calm keeps the pair silent, so sound and voice say nothing: /critter feel warm lets them speak.' : 'Calm: the pair only breathe, walk and sleep.')
+  if (d.feel === 'still') out.push(d.sound || d.voice ? 'Still: nothing moves, and the pair are silent, so sound and voice say nothing: /critter feel warm lets them speak.' : 'Still: nothing moves.')
+  else if (d.feel === 'calm') out.push(d.sound || d.voice ? 'Calm keeps the pair silent, so sound and voice say nothing: /critter feel warm lets them speak.' : 'Calm: the pair only breathe, walk and sleep.')
   out.push(d.sound ? 'Sound is on: a cast chime and a purr.' : 'Sound is off: /critter sound on.')
   out.push(d.voice ? `The voice is on${d.voice === 'default' ? ', in the system voice' : `: voice ${d.voice}`}.` : 'The voice is off: /critter voice on.')
   out.push(d.talk ? 'The cat speaks after a turn (one small model call each).' : 'The cat does not speak after a turn: /critter talk on.')
