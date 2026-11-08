@@ -1019,7 +1019,7 @@ test('the public holidays are found, Easter moves, and one on a Sunday is kept o
 })
 
 test('the weather is the pair\'s joy: errors darken it, good news clears it, and no forecast is asked for', () => {
-  expect([80, 60, 59, 45, 44, 25, 24, 0].map(weatherOf)).toEqual(['clear', 'clear', 'cloud', 'cloud', 'rain', 'rain', 'storm', 'storm'])
+  expect([80, 60, 59, 45, 44, 25, 24, 0].map(j => weatherOf(j))).toEqual(['clear', 'clear', 'cloud', 'cloud', 'rain', 'rain', 'storm', 'storm'])
   let s = initial()
   expect(weatherOf(s.joy)).toBe('clear')
   for (let i = 0; i < 5; i++) s = react(s, 'error')
@@ -1491,4 +1491,27 @@ test('the wizard sits beside a reply that is a moment, and not beside the plain 
   expect(wizardFor('The pair are back.')).toBe(true)
   expect(wizardFor('Usage: /critter sound on | off.')).toBe(false)
   expect(wizardFor('Reach: party. Feel: warm.\nSound is off.')).toBe(false) // a report is not a moment
+})
+
+test('a run of failures with no green between darkens the sky by itself, and a green run clears the count', () => {
+  // the joy alone is unchanged when there is no streak
+  expect(weatherOf(80, 0)).toBe('clear')
+  expect(weatherOf(80)).toBe('clear')
+  // a failing streak sets a floor: two is cloud, three is rain, five is storm, exactly
+  expect([1, 2, 3, 4, 5, 9].map(n => weatherOf(80, n))).toEqual(['clear', 'cloud', 'rain', 'rain', 'storm', 'storm'])
+  // the worse of the two wins: a joyless cat is stormy with no streak, and a streak never brightens it
+  expect(weatherOf(10, 0)).toBe('storm')
+  expect(weatherOf(30, 2)).toBe('rain')
+  expect(weatherOf(30, 5)).toBe('storm')
+  // errors count in a row; a green test or a commit clears the count; a treat does not
+  let s = { ...initial(), joy: 80 } as Scene
+  for (let i = 0; i < 3; i++) s = react(s, 'error')
+  expect(s.fails).toBe(3)
+  expect(react(s, 'treat').fails).toBe(3)
+  expect(react(s, 'test').fails).toBe(0)
+  expect(react(s, 'commit').fails).toBe(0)
+  // and the sky is drawn from it
+  const a = skyArgsOf(Date.UTC(2026, 10, 8, 10), 80, 3)
+  expect(a.weather).toBe('rain')
+  expect(skyArgsOf(Date.UTC(2026, 10, 8, 10), 80).weather).toBe('clear')
 })

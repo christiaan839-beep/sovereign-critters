@@ -332,7 +332,7 @@ export const register: Register = on => {
       // no streak yet: the cat has not counted anything
     }
     lastSky = ''
-    await syncSky($, now, (await read($, scene)).joy)
+    await syncSky($, now, await read($, scene))
     await Promise.resolve($.agent.register(LOOKS_AGENT)).catch(() => undefined) // a build without agents keeps the rest
     await $.tool
       .register({
@@ -363,7 +363,7 @@ export const register: Register = on => {
         await $.store.set('diaryLog', written)
       }
       if (dueForWait(flights.values(), t)) await update($, scene, (s: Scene): Scene => react(s, 'wait'))
-      if (snapshot) await syncSky($, t, (snapshot as Scene).joy)
+      if (snapshot) await syncSky($, t, snapshot as Scene)
       if (snapshot && snapshot.tick % 40 === 0) await $.store.set('memory', { trust: snapshot.trust, pets: snapshot.stats.pets, lastSeen: t })
       if (snapshot && (snapshot.night ? 'night' : 'day') !== (await read($, world))) await update($, world, () => (snapshot!.night ? 'night' : 'day'))
     })
@@ -482,7 +482,7 @@ export const register: Register = on => {
     }
     if (sub === '' || sub === 'hide' || sub === 'show') {
       const hidden = await update($, isHidden, h => (sub === 'hide' ? true : sub === 'show' ? false : !h))
-      if (hidden) { lastSky = ''; await drawBackdrop($, undefined) } else { lastSky = ''; await syncSky($, await $.clock.now(), (await read($, scene)).joy) }
+      if (hidden) { lastSky = ''; await drawBackdrop($, undefined) } else { lastSky = ''; await syncSky($, await $.clock.now(), await read($, scene)) }
       return { text: hidden ? 'The pair are hidden.' : 'The pair are back.' }
     }
     return { text: 'Usage: /critter [pet | treat | nap | spell | corner | stage | diary | doctor | hide | show | lite | full | party | talk on|off | sound on|off | voice on|off|<name> | feel calm|warm|playful | wizard auto|gold|bolt | name cat|pip <name> | cat <coat>]' }
@@ -707,7 +707,7 @@ export const register: Register = on => {
   on('ui.render', { component: 'Backdrop' }, async ($, e, next) => {
     if (e.props.plugin !== 'critter-buddy') return next(e)
     const now = await $.clock.now()
-    const sky = skyFor(skyArgs(now, (await read($, scene)).joy))
+    const sky = skyFor(skyArgs(now, (await read($, scene)).joy, (await read($, scene)).fails))
     const { Box, Text } = kit($.ui.resolve(e), e.surface)
     return (
       <Box position="absolute" top={0} left={0} width="100%" height="100%" backgroundColor={sky.paper}>
@@ -763,7 +763,7 @@ export const register: Register = on => {
     const alone: Scene = { ...s, cols, kx: -80, look: s.look === 'wizard' || s.look === 'done' ? s.look : 'idle' }
     return (
       <Box flexDirection="column">
-        <Box key="head" flexDirection="row" justifyContent="center"><Text bold>{`${nmS.pip}'s stage · ${stageWord(await $.clock.now(), s.joy)}`}</Text></Box>
+        <Box key="head" flexDirection="row" justifyContent="center"><Text bold>{`${nmS.pip}'s stage · ${stageWord(await $.clock.now(), s.joy, s.fails)}`}</Text></Box>
         <Box key="art" flexDirection="row" justifyContent="center">
           {vector ? svg(paintSvg(alone, 5), 'The critter alone on a stage, walking and idling') : <Box flexDirection="column">{rowsOf(Text, paint(alone), 's')}</Box>}
         </Box>
@@ -797,7 +797,7 @@ export const register: Register = on => {
     const gap = (k: string) => <Box key={k}><Text> </Text></Box> // air is a spacer row: the desktop does not count margins
     return (
       <Box flexDirection="column">
-        <Box key="head" flexDirection="row" justifyContent="center"><Text bold>{`${nm.cat} and ${nm.pip} · ${stageWord(nowMs, s.joy)}`}</Text></Box>
+        <Box key="head" flexDirection="row" justifyContent="center"><Text bold>{`${nm.cat} and ${nm.pip} · ${stageWord(nowMs, s.joy, s.fails)}`}</Text></Box>
         <Box key="art" flexDirection="row" justifyContent="center">
           {vector
             ? svg(paintBigSvg({ ...s, cols: Math.min(60, cols), cdir: 1 }, 8), 'The critter and the cat, large')
@@ -867,15 +867,15 @@ export const register: Register = on => {
 
 // What the backdrop is made of right now: the hour, the season, the session's weather and whether the lights are up.
 const skyArgs = skyArgsOf
-const stageWord = (now: number, joy: number) => {
-  const a = skyArgs(now, joy)
+const stageWord = (now: number, joy: number, fails = 0) => {
+  const a = skyArgs(now, joy, fails)
   const h = holidayOf(now)
   return [a.phase, a.season, a.weather === 'clear' ? undefined : a.weather, h?.name].filter(Boolean).join(' · ')
 }
 // Draw the backdrop again only when something it is made of changed; the desktop draws it, every other surface answers that it did not.
-const syncSky = async ($: any, now: number, joy: number) => {
+const syncSky = async ($: any, now: number, s: { joy: number; fails?: number }) => {
   if ((await read($, isHidden)) === true) return
-  const a = skyArgs(now, joy)
+  const a = skyArgs(now, s.joy, s.fails)
   const key = skyFor(a).key
   if (key === lastSky) return
   lastSky = key

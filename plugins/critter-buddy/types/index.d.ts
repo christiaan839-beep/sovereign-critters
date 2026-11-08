@@ -44,6 +44,8 @@ export type Scene = {
   log: string[]
   /** Days in a row you came back to the cat; three earns a ball of yarn, seven a cushion, 14 a plant, 30 a lamp. */
   streak?: number
+  /** Errors in a row since the last green test or commit: two clouds the sky, three rains, five storms. */
+  fails?: number
 }
 
 declare module 'claude-code' {

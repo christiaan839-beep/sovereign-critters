@@ -74,8 +74,13 @@ export const festiveOf = (ms: number): boolean => {
 
 // ---- the session's weather -----------------------------------------------------------------
 export type Weather = 'clear' | 'cloud' | 'rain' | 'storm'
-/** The weather is the pair's joy: errors darken it, a green test, a commit or a treat clear it. No forecast is asked for. */
-export const weatherOf = (joy: number): Weather => (joy < 25 ? 'storm' : joy < 45 ? 'rain' : joy < 60 ? 'cloud' : 'clear')
+/** The weather is the pair's joy: errors darken it, a green test, a commit or a treat clear it. A run of failures with no green between sets a floor (two cloud, three rain, five storm). No forecast is asked for. */
+export const weatherOf = (joy: number, fails = 0): Weather => {
+  const byJoy: Weather = joy < 25 ? 'storm' : joy < 45 ? 'rain' : joy < 60 ? 'cloud' : 'clear'
+  const byRun: Weather = fails >= 5 ? 'storm' : fails >= 3 ? 'rain' : fails >= 2 ? 'cloud' : 'clear' // a run of failures with no green between sets a floor
+  const order: Weather[] = ['clear', 'cloud', 'rain', 'storm']
+  return order[Math.max(order.indexOf(byJoy), order.indexOf(byRun))]!
+}
 
 // ---- the streak ----------------------------------------------------------------------------------
 export type Streak = { days: number; last: string }
@@ -171,7 +176,7 @@ export const dueForWait = (flights: Iterable<Flight>, now: number): boolean => {
   return due
 }
 /** What the backdrop is made of at an instant, given the pair's joy: the hour, the season, the weather and whether the lights are up. */
-export const skyArgsOf = (now: number, joy: number) => ({ phase: phaseOf(hourSast(now)), season: seasonOf(now), weather: weatherOf(joy), festive: festiveOf(now) })
+export const skyArgsOf = (now: number, joy: number, fails = 0) => ({ phase: phaseOf(hourSast(now)), season: seasonOf(now), weather: weatherOf(joy, fails), festive: festiveOf(now) })
 
 /**
  * The one thing the cat would put in the empty prompt box, dim, for Tab to take: the corner when a prop has just been earned,

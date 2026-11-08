@@ -364,13 +364,13 @@ export const react = (s: Scene, ev: Reaction, arg = 0): Scene => {
   const woke = { ...s, idle: 0 }
   switch (ev) {
     case 'error':
-      return { ...poke(woke, 'pounce'), joy: clamp(s.joy - 6), stats: { ...s.stats, errors: s.stats.errors + 1 },
+      return { ...poke(woke, 'pounce'), joy: clamp(s.joy - 6), fails: (s.fails ?? 0) + 1, stats: { ...s.stats, errors: s.stats.errors + 1 },
         log: say(s, milestone(s.stats.errors + 1, ERROR_LINES) ?? 'That broke. {cat} was already watching it.') }
     case 'test':
-      return { ...woke, jt: 1, joy: clamp(s.joy + 6), trust: clamp(s.trust + 3), stats: { ...s.stats, tests: s.stats.tests + 1 },
+      return { ...woke, jt: 1, joy: clamp(s.joy + 6), trust: clamp(s.trust + 3), fails: 0, stats: { ...s.stats, tests: s.stats.tests + 1 },
         look: 'wizard', wt: 8, label: 'green', fx: addFx(s, ...sparks(s.cx + 6, 3)), log: [...say(s, milestone(s.stats.tests + 1, TEST_LINES) ?? 'Green. {cat} allows it.'), ...forgives(s, 3)] }
     case 'commit':
-      return { ...woke, jt: 1, joy: clamp(s.joy + 8), trust: clamp(s.trust + 4), stats: { ...s.stats, commits: s.stats.commits + 1 },
+      return { ...woke, jt: 1, joy: clamp(s.joy + 8), trust: clamp(s.trust + 4), fails: 0, stats: { ...s.stats, commits: s.stats.commits + 1 },
         look: 'wizard', wt: 8, label: 'committed', fx: addFx(s, ...sparks(s.cx + 6, 4)), log: [...say(s, milestone(s.stats.commits + 1, COMMIT_LINES) ?? 'A commit. {pip} drew a small star in the history.'), ...forgives(s, 4)] }
     case 'turn': {
       const mins = Math.round(arg / 60000)

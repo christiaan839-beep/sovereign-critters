@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.17.0
+
+- The sky follows a failing streak as well as the cat's joy: errors in a row with no green test or commit between them cloud the sky at two, rain at three and storm at five. A green run or a commit clears the count; a treat does not. The worse of the joy and the streak wins, and the sky never brightens because of a streak.
+
 ## 0.16.0
 
 - `/critter doctor`: says what is on and what is off (reach, feel, sound, voice, talk, a hidden pair, a narrow window under 110 columns) and the one command that changes each.
