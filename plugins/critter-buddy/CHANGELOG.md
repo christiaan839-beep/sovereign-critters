@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.25.1
+
+- The folder tints are tuned from a contact sheet of the real sky colours: by day violet and slate read as the same grey and teal and sage as the same mint, so sage is now rose and slate is ocean (a stronger blue), and the ground leans a little harder (13%). Folders you already had on sage or slate move to rose or ocean.
+
 ## 0.25.0
 
 - Every folder leans its own quiet colour in the sky behind the chat: one of six (clay, teal, gold, violet, sage, slate), picked by a hash of the folder's path, so the same folder is always the same colour and you can tell projects apart by the light behind them. The lean is small: the ground moves by about a tenth and the paper by under four hundredths, and the path itself is never stored.

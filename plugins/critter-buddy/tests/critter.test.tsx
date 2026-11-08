@@ -2259,7 +2259,7 @@ test('the welcome reads the room: plain before noon, dry in the afternoon, deadp
 import { TINTS, tintOf } from '../hooks/world'
 
 test('every folder leans its own quiet colour: the same folder always the same, and the six colours all get used', () => {
-  expect(TINTS.map(t => t.name)).toEqual(['clay', 'teal', 'gold', 'violet', 'sage', 'slate'])
+  expect(TINTS.map(t => t.name)).toEqual(['clay', 'teal', 'gold', 'violet', 'rose', 'ocean'])
   expect(tintOf('/work/alpha')).toBe(tintOf('/work/alpha'))
   const seen = new Set(Array.from({ length: 60 }, (_, i) => tintOf(`/work/project-${i}`)))
   expect([...seen].sort()).toEqual([0, 1, 2, 3, 4, 5])
@@ -2278,11 +2278,11 @@ test('a tint leans the sky a little, never repaints it: ground more than paper, 
   expect(teal.paper).not.toBe(none.paper)
   expect(teal.ground).not.toBe(none.ground)
   expect(teal.ground).not.toBe(clay.ground)
-  // the lean is small: no channel of the paper moves by more than 4% of the range, and the ground by no more than 11%
+  // the lean is small: no channel of the paper moves by more than 4% of the range, and the ground by no more than 14%
   const ch = (h: string) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16))
   const far = (a: string, b: string) => Math.max(...ch(a).map((v, i) => Math.abs(v - ch(b)[i]!))) / 255
   expect(far(teal.paper, none.paper)).toBeLessThan(0.04)
-  expect(far(teal.ground, none.ground)).toBeLessThan(0.11)
+  expect(far(teal.ground, none.ground)).toBeLessThan(0.14)
   expect(far(teal.ground, none.ground)).toBeGreaterThan(0.01)
   expect(skyFor({ ...base, tint: undefined }).ground).toBe(none.ground)
 })

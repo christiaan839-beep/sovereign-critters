@@ -143,10 +143,10 @@ export const RIDGE_FAR: string = Array.from({ length: 400 }, (_, i) => '▁▂�
 /** True while the wizard is thinking: the turn is under way and nothing else has taken the bar. */
 export const thinkingOf = (s: { look: string; label: string }): boolean => s.look === 'wizard' && s.label === 'thinking'
 
-/** The six quiet colours a folder can lean its sky toward: the studio's own four and two calm ones. */
+/** The six quiet colours a folder can lean its sky toward: the studio's own four and two more, each a different hue so the six read apart by day. */
 export const TINTS = [
   { name: 'clay', hex: '#d97757' }, { name: 'teal', hex: '#4fa39a' }, { name: 'gold', hex: '#d4a548' },
-  { name: 'violet', hex: '#8f7cc4' }, { name: 'sage', hex: '#8aa17a' }, { name: 'slate', hex: '#6f86a6' },
+  { name: 'violet', hex: '#8f7cc4' }, { name: 'rose', hex: '#c9707f' }, { name: 'ocean', hex: '#3f7fb5' },
 ] as const
 /** Which tint a folder leans: a hash of its path picks one of six, so the same folder is always the same colour. The path itself is never kept. */
 export const tintOf = (cwd: string): number => {
@@ -156,7 +156,7 @@ export const tintOf = (cwd: string): number => {
 }
 export const skyFor = (o: { phase: Phase; season: Season; weather: Weather; festive: boolean; glow?: boolean; tint?: number }) => {
   const lean = (c: string, k: number): string => (o.tint === undefined ? c : mix(c, TINTS[o.tint]!.hex, k)) // a folder's colour, a little
-  const ground0 = lean(GROUND[o.phase][o.season], 0.1)
+  const ground0 = lean(GROUND[o.phase][o.season], 0.13)
   const dark = o.phase === 'night' || o.phase === 'dusk'
   const warm = (c: string): string => (o.glow ? mix(c, o.phase === 'night' ? '#efe4c4' : o.phase === 'dusk' ? '#e0875f' : '#d4a548', 0.06) : c) // while Claude thinks the light warms a little
   const cloudy = o.weather !== 'clear'
