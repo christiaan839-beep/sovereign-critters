@@ -129,7 +129,7 @@ const mix = (a: string, b: string, k: number): string => {
   return '#' + [0, 1, 2].map(i => Math.round(n(a, i) + (n(b, i) - n(a, i)) * k).toString(16).padStart(2, '0')).join('')
 }
 /** The far ridge along the horizon: a gentle highveld skyline of two slow swells, one row of blocks, the same every time. */
-export const RIDGE: string = Array.from({ length: 160 }, (_, i) => '▁▂▃▄▅'[Math.max(0, Math.min(4, Math.round(2 + 1.6 * Math.sin(i / 9) + 0.9 * Math.sin(i / 3.7 + 1))))]).join('')
+export const RIDGE: string = Array.from({ length: 400 }, (_, i) => '▁▂▃▄▅'[Math.max(0, Math.min(4, Math.round(2 + 1.6 * Math.sin(i / 9) + 0.9 * Math.sin(i / 3.7 + 1))))]).join('')
 
 /** The window behind the conversation, from the hour, the season, the session's weather and the holiday. */
 export const skyFor = (o: { phase: Phase; season: Season; weather: Weather; festive: boolean }) => {

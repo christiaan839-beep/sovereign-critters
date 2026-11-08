@@ -1159,7 +1159,7 @@ test('every part of the day has five lines that name their hour, and the weekday
 })
 
 test('the horizon is a ridge of five heights, and a clear day has high thin cloud while a night and a storm do not', () => {
-  expect(RIDGE.length).toBeGreaterThanOrEqual(150)
+  expect(RIDGE.length).toBeGreaterThanOrEqual(300) // wide enough for a big desktop window, and truncated, never wrapped
   expect(new Set(RIDGE).size).toBe(5) // the ridge rises and falls through every height, it is not a flat line
   expect(RIDGE).toBe(RIDGE) // fixed: no chance in it
   const clearDay = skyFor({ phase: 'day', season: 'spring', weather: 'clear', festive: false })
@@ -1212,7 +1212,7 @@ test('a turn that fills the glass says so in the band and toasts once; a streak 
   on('turn.complete', () => ({ text: 'done' }))
   on('model.complete', () => ({ value: { isAnswered: false, text: '', usage: {} } }) as never)
   on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1_000_000, percent }, rateLimits: [] } }) as never)
-  on('prompt.suggest', (_: unknown, e: { text: string }) => { offered.push(e.text); return { isSuggested: true } as never })
+  on('prompt.suggest', (_: unknown, e: { text: string }) => { offered.push(e.text); return { isShown: true } as never })
   on('command.register', () => ({ value: { command: 'critter' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('store.get', () => ({ value: undefined }))
@@ -1247,4 +1247,30 @@ test('the stage opens wide, see-through and closable with Escape; the corner ope
   const band = await $.ui.mount({ ...BAND, surface: 'desktop' })
   await band.press({ key: 'corner' })
   expect(asked[2]).toMatchObject({ id: 'cat-corner', columns: 56, rows: 30 })
+})
+
+test('the turn that earns a prop offers the corner in the box, once, and a turn that does not offers nothing', async ($, on) => {
+  stub(on)
+  const offered: string[] = []
+  on('ui.status', () => ({ value: undefined }))
+  on('ui.toast', () => ({ value: undefined }))
+  on('turn.complete', () => ({ text: 'done' }))
+  on('model.complete', () => ({ value: { isAnswered: false, text: '', usage: {} } }) as never)
+  on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1_000_000, percent: 10 }, rateLimits: [] } }) as never)
+  on('prompt.suggest', (_: unknown, e: { text: string }) => { offered.push(e.text); return { isShown: true } as never })
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', (_: unknown, e: { key: string }) => ({ value: e.key === 'streak' ? { days: 2, last: '2001-09-08' } : undefined })) // yesterday made two; the stub clock says 2001-09-09
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.turn.complete({ answer: 'done' } as never)
+  expect(offered).toEqual(['/critter corner']) // day three: a ball of yarn
+  await $.turn.complete({ answer: 'done' } as never)
+  expect(offered).toEqual(['/critter corner']) // the same day again: three is not new any more
+})
+
+test('painted words never overlap: a link or a file inside a code span stays inside it', () => {
+  const text = 'run `cat @a.ts https://x.io/y` then @b.ts'
+  const runs = plainRuns(text)
+  for (let i = 1; i < runs.length; i++) expect(runs[i]!.start).toBeGreaterThanOrEqual(runs[i - 1]!.end)
+  expect(runs.map(r => text.slice(r.start, r.end))).toEqual(['`cat @a.ts https://x.io/y`', '@b.ts'])
 })

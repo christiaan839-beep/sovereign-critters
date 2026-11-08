@@ -856,7 +856,10 @@ export const plainRuns = (text: string): DraftRun[] => {
   for (const m of text.matchAll(/(^|\s)(@[\w./-]+)/g)) out.push({ start: m.index! + m[1]!.length, end: m.index! + m[0].length, color: TEAL })
   for (const m of text.matchAll(/https?:\/\/[^\s)]+/g)) out.push({ start: m.index!, end: m.index! + m[0].length, color: TEAL, underline: true })
   for (const m of text.matchAll(/`[^`\n]+`/g)) out.push({ start: m.index!, end: m.index! + m[0].length, color: GOLD })
-  return out.sort((a, b) => a.start - b.start)
+  // runs never overlap (a link inside a code span would): the earlier one keeps the stretch
+  const kept: DraftRun[] = []
+  for (const r of out.sort((a, b) => a.start - b.start || b.end - a.end)) if (!kept.length || r.start >= kept[kept.length - 1]!.end) kept.push(r)
+  return kept
 }
 export const draftRuns = (text: string, n: Names = NAMES_DEFAULT): DraftRun[] => {
   const fam = /^\/(diary|stunt|everywhere)(?=\s|$)/.exec(text)

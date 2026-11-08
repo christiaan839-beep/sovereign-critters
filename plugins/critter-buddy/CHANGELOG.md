@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.13.3
+
+- Fixed: the corner nudge in the prompt box never appeared. It compared the streak after the turn had already counted it, so a new prop was never "new". It now remembers the streak from before the turn, and a test earns a prop and watches the box.
+- Fixed: a store that will not write no longer stops the cat counting the day, the milestone toast or the nudge.
+- The far ridge is wide enough for a very wide window (400 cells) and is cut, never wrapped to a second line.
+- Painted words never overlap: a link or a file inside a `code span` stays inside it.
+
 ## 0.13.2
 
 - The stage and the corner say how they want to be seated beside the chat: the stage 60 columns wide and see-through, so the day or night sky shows behind the pair; the corner 56 wide and tall enough for the diary. Escape closes either. The surface may grant less; below 110 columns they sit above the prompt as before.

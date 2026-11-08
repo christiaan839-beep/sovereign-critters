@@ -202,10 +202,12 @@ export const register: Register = on => {
       return r
     })
     $.ui.status(undefined)
+    let streakBefore = 0 // the streak as it stood before this turn: the nudge needs it after the scene has moved on
     try {
       streak = streakNext(streak, dayKey(now))
-      await $.store.set('streak', streak)
+      await Promise.resolve($.store.set('streak', streak)).catch(() => undefined) // a store that will not write must not stop the cat counting the day
       const before = (await read($, scene)).streak ?? 0
+      streakBefore = before
       await update($, scene, (s: Scene): Scene => ({ ...s, streak: streak!.days }))
       if (streak.days !== before && [3, 7, 14, 30].includes(streak.days))
         $.ui.toast(named(`${streak.days} days in a row. {cat} brought something for the bar.`, await read($, names)), { timeoutMs: 4000 })
@@ -225,7 +227,7 @@ export const register: Register = on => {
     // One dim line the person can Tab into the empty box: the corner after a new prop, the week's diary on a Friday afternoon.
     try {
       const last = (await $.store.get('nudged')) as string | undefined
-      const text = nudgeFor(now, streak!.days, (await read($, scene)).streak ?? 0, last)
+      const text = nudgeFor(now, streak!.days, streakBefore, last)
       if (text) {
         await $.prompt.suggest({ text })
         if (text === '/diary week') await $.store.set('nudged', dayKey(now))
@@ -652,7 +654,7 @@ export const register: Register = on => {
     return (
       <Box position="absolute" top={0} left={0} width="100%" height="100%" backgroundColor={sky.paper}>
         <Box position="absolute" bottom={0} left={0} width="100%" height="30%" backgroundColor={sky.ground}>
-          <Box position="absolute" top={-1} left={0} width="100%"><Text color={sky.ridgeColour}>{RIDGE}</Text></Box>
+          <Box position="absolute" top={-1} left={0} width="100%"><Text color={sky.ridgeColour} wrap="truncate-end">{RIDGE}</Text></Box>
         </Box>
         {sky.wisps.map((w, i) => (
           <Box key={`w${i}`} position="absolute" top={w.top} left={w.left}>
