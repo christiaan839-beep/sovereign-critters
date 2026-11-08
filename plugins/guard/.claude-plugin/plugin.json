@@ -1,0 +1,7 @@
+{
+  "name": "guard",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "Stops a git push that forces, or that writes main or master, before the Bash tool runs it. It reads the common spellings of a command line, asks git where each push goes (the branch checked out, the push settings, a branch that names another) and takes what earlier git commands on the line change from the line itself. It refuses what it cannot read ahead, a push run with PATH, GIT_EXEC_PATH or an LD_ or DYLD_ variable set among it, and hands the git it asks only the variables that locate the repository and its settings; if the check itself fails, the command waits. It is best effort: a push made by a script or another program (make, an npm script, gh, an MCP tool), a command built while the line runs (eval or sh -c of an expansion) and a git alias in a config file are outside it, and it is no substitute for branch protection on the server.",
+  "author": { "name": "Sovereign Matrix" }
+}
