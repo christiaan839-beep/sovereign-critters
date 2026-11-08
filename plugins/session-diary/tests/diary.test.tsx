@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Entry } from '../types'
-import { barOf, addTool, addTurn, dayOf, lineOf, markdownOf, weekOf } from '../hooks/register'
+import { postcardOf, barOf, addTool, addTurn, dayOf, lineOf, markdownOf, weekOf } from '../hooks/register'
 
 // 1_000_000_000_000 ms is 2001-09-09 01:46:40 UTC, so 03:46 in Johannesburg.
 const AT = 1_000_000_000_000
@@ -194,4 +194,87 @@ test('the week draws a bar a day: the busiest fills the card, a light day is a s
   expect(w).not.toMatch(/Sat 11-07.*█/)
   const tie = addTool(addTool([], SUN - DAY, 'Read', true), SUN, 'Read', true)
   expect(weekOf(tie, SUN)).not.toContain('Busiest day') // a tie crowns nobody
+})
+
+// ---- the postcard ----
+const H = 3_600_000
+const card = (list: Entry[]) => postcardOf(list)
+
+test('the postcard of nothing says so, and of a session names the span, the turns, the calls, the busiest hour and the tools used most', () => {
+  expect(card([])).toBe('# Session postcard\n\nNothing yet.\n')
+  // 03:46 SAST: two Reads; 04:46: three Bash (one failed); 05:46: one Edit; turns end at 05:50 and 06:00
+  const list: Entry[] = [
+    tool({ at: AT, tool: 'Read' }), tool({ at: AT + 1000, tool: 'Read' }),
+    tool({ at: AT + H, tool: 'Bash' }), tool({ at: AT + H + 1000, tool: 'Bash', ok: false }), tool({ at: AT + H + 2000, tool: 'Bash' }),
+    tool({ at: AT + 2 * H, tool: 'Edit', ms: 500 }),
+    turn({ at: AT + 2 * H + 4 * 60_000, tools: 6, errors: 1, ms: 30 * 60_000 }),
+    turn({ at: AT + 2 * H + 14 * 60_000, tools: 0, errors: 0, ms: 10 * 60_000 }),
+  ]
+  const md = card(list)
+  expect(md).toContain('# Session postcard')
+  expect(md).toContain('2 h 14 min, 03:46 to 06:00') // first mark to the last turn's end
+  expect(md).toContain('2 turns, Claude working 40 min')
+  expect(md).toContain('6 tool calls, 1 failed')
+  expect(md).toContain('Busiest hour: 04:00 to 05:00, 3 tool calls')
+  expect(md).toContain('Most used: Bash 3, Read 2, Edit 1')
+  expect(md).toContain('A long one. Stand up.') // two hours or more
+  expect(md).not.toMatch(/\n{3,}/)
+})
+
+test('the postcard breaks a tie for the busiest hour toward the earlier one, and a tie of tools toward the alphabet', () => {
+  const list: Entry[] = [tool({ at: AT + H, tool: 'Zed' }), tool({ at: AT, tool: 'Alpha' }), turn({ at: AT + H + 5000 })]
+  const md = card(list)
+  expect(md).toContain('Busiest hour: 03:00 to 04:00, 1 tool call') // 03:46 is before 04:46 though it was written second
+  expect(md).toContain('Most used: Alpha 1, Zed 1')
+})
+
+test('the postcard keeps its words short and singular where it should, and says nothing of a long sit under two hours', () => {
+  const md = card([tool({ at: AT, tool: 'Read' }), turn({ at: AT + 60_000, tools: 1, errors: 0, ms: 60_000 })])
+  expect(md).toContain('1 min, 03:46 to 03:47')
+  expect(md).toContain('1 turn, Claude working 1 min')
+  expect(md).toContain('1 tool call, 0 failed')
+  expect(md).not.toContain('Stand up')
+  expect(card([tool({ at: AT, tool: 'Read' })])).toContain('under a minute')
+})
+
+test('a diary at its cap says its start may be missing; one under it does not', () => {
+  const full: Entry[] = Array.from({ length: 300 }, (_, i) => tool({ at: AT + i * 1000 }))
+  expect(card(full)).toContain('keeps the last 300 lines')
+  expect(card(full.slice(1))).not.toContain('keeps the last 300 lines')
+})
+
+test('the postcard names tools and times only: never what was run', () => {
+  const md = card([tool({ tool: 'Bash' })])
+  expect(md).not.toMatch(/curl|SECRET|\/Users/)
+})
+
+test('/diary postcard says it, /diary postcard copy puts it on the clipboard, and the pane has a button for it', async ($, on) => {
+  stub(on)
+  let copied = ''
+  on('clock.now', () => ({ value: AT }))
+  on('command.register', () => ({ value: { command: 'diary' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('turn.complete', () => ({ text: 'done' }))
+  on('ui.copy', (_: unknown, e: { text: string }) => { copied = e.text; return { value: undefined } })
+  on('tool.call', () => ({ result: 'ok' }) as never)
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.tool.call({ tool: 'Read' } as never)
+  await $.turn.complete({ answer: 'done' } as never)
+  const said = async (args: string) => (await $.command.run({ command: 'diary', args, origin: { kind: 'composer' }, presentation: {} } as never)) as { text?: string }
+  const text = (await said('postcard')).text ?? ''
+  expect(text).toMatch(/^Session postcard/)
+  expect(text).toContain('Most used: Read 1')
+  expect(copied).toBe('') // saying it does not copy it
+  expect((await said('postcard copy')).text).toMatch(/Copied the postcard/)
+  expect(copied).toContain('# Session postcard')
+  const ui = await $.ui.mount({ plugin: 'session-diary', component: 'Pane', requestId: 'session-diary', surface: 'terminal', props: { bodyColumns: 60 } } as never)
+  expect(await ui.find({ key: 'postcard' })).toBeDefined()
+  await ui.unmount()
+})
+
+test('the span runs to the end of the last call, and the long-sit line starts at exactly two hours', () => {
+  expect(card([tool({ at: AT, ms: 5 * 60_000 })])).toContain('5 min, 03:46 to 03:51') // a call still running counts to its end
+  const at2h = (ms: number) => card([tool({ at: AT }), turn({ at: AT + ms, ms: 1000 })])
+  expect(at2h(2 * H)).toContain('Stand up')
+  expect(at2h(2 * H - 60_000)).not.toContain('Stand up') // a minute short of two hours
 })

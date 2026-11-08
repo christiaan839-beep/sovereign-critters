@@ -83,6 +83,40 @@ export const weekOf = (list: readonly Day[], now: number): string => {
   return out.join('\n') + '\n'
 }
 
+// ---- the postcard ------------------------------------------------------------
+/** A length of time in words a person says: under a minute, 12 min, 2 h 14 min. */
+const dur = (ms: number): string => {
+  const m = Math.round(ms / 60_000)
+  return m < 1 ? 'under a minute' : m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ''}`
+}
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
+
+/** A one-screen summary of the session as markdown: how long, how many turns, the busiest hour, the tools used most. Names and times only. */
+export const postcardOf = (list: readonly Entry[]): string => {
+  if (!list.length) return '# Session postcard\n\nNothing yet.\n'
+  const start = Math.min(...list.map(x => x.at))
+  const end = Math.max(...list.map(x => (x.kind === 'tool' ? x.at + x.ms : x.at)))
+  const calls = list.filter((x): x is Extract<Entry, { kind: 'tool' }> => x.kind === 'tool')
+  const turns = list.filter((x): x is Extract<Entry, { kind: 'turn' }> => x.kind === 'turn')
+  const failed = calls.filter(x => !x.ok).length
+  const hours = new Map<string, number>() // by the Johannesburg hour of the day, in the order the hours first appeared
+  for (const x of [...calls].sort((a, b) => a.at - b.at)) { const h = clock(x.at).slice(0, 2); hours.set(h, (hours.get(h) ?? 0) + 1) }
+  let busy: [string, number] | undefined
+  for (const [h, n] of hours) if (!busy || n > busy[1]) busy = [h, n]
+  const by: Record<string, number> = {}
+  for (const x of calls) by[x.tool] = (by[x.tool] ?? 0) + 1
+  const top = Object.entries(by).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, 3).map(([t, n]) => `${t} ${n}`)
+  const out = ['# Session postcard', '', `- ${dur(end - start)}, ${clock(start)} to ${clock(end)}`]
+  out.push(`- ${plural(turns.length, 'turn')}, Claude working ${dur(turns.reduce((n, x) => n + x.ms, 0))}`)
+  out.push(`- ${plural(calls.length, 'tool call')}, ${failed} failed`)
+  if (busy) out.push(`- Busiest hour: ${busy[0]}:00 to ${String((Number(busy[0]) + 1) % 24).padStart(2, '0')}:00, ${plural(busy[1], 'tool call')}`)
+  if (top.length) out.push(`- Most used: ${top.join(', ')}`)
+  out.push('')
+  if (end - start >= 2 * 3_600_000) out.push('A long one. Stand up.', '')
+  if (list.length >= KEEP) out.push(`(The diary keeps the last ${KEEP} lines, so the start of a long session may be missing.)`, '')
+  return out.join('\n').replace(/\n{3,}/g, '\n\n')
+}
+
 export const register: Register = on => {
   let turnStart = 0
   let tools = 0
@@ -125,7 +159,7 @@ export const register: Register = on => {
 
   on('session.start', async ($, e, next) => {
     try {
-      await $.command.register({ name: 'diary', description: 'Open the session diary: every tool call, its time, and a line for each turn. /diary copy puts it on the clipboard as markdown; /diary clear empties it; /diary week sums up the last seven days (/diary week copy for markdown).' })
+      await $.command.register({ name: 'diary', description: 'Open the session diary: every tool call, its time, and a line for each turn. /diary copy puts it on the clipboard as markdown; /diary clear empties it; /diary week sums up the last seven days (/diary week copy for markdown). /diary postcard sums up this session on one screen (/diary postcard copy for markdown).' })
     } catch {
       $.ui.log('session-diary: /diary is taken by another plugin')
     }
@@ -141,6 +175,11 @@ export const register: Register = on => {
     if (sub === 'week' || sub === 'week copy') {
       const text = weekOf(await read($, days), await $.clock.now())
       if (sub === 'week copy') { await $.ui.copy({ text }); return { text: 'Copied the week as markdown.' } }
+      return { text: text.replace(/^# /, '') }
+    }
+    if (sub === 'postcard' || sub === 'postcard copy') {
+      const text = postcardOf(await read($, entries))
+      if (sub === 'postcard copy') { await $.ui.copy({ text }); return { text: 'Copied the postcard as markdown.' } }
       return { text: text.replace(/^# /, '') }
     }
     if (sub === 'copy') {
@@ -170,6 +209,8 @@ export const register: Register = on => {
         ))}
         <Box flexDirection="row">
           <Button key="copy" label="copy as markdown" hotkey="c" onPress={async () => { await $.ui.copy({ text: markdownOf(await read($, entries)) }) }} />
+          <Text> </Text>
+          <Button key="postcard" label="postcard" hotkey="p" onPress={async () => { await $.ui.copy({ text: postcardOf(await read($, entries)) }) }} />
           <Text> </Text>
           <Button key="clear" label="clear" hotkey="x" onPress={() => update($, entries, () => [] as Entry[])} />
           <Text> </Text>

@@ -15,8 +15,10 @@ It stores tool names and times only. It never reads the command, the file or the
 | `/diary` | Opens the pane. |
 | `/diary copy` | Puts the diary on the clipboard as markdown. |
 | `/diary clear` | Empties it. |
+| `/diary week` | The last seven days, a bar a day (`/diary week copy` for markdown). |
+| `/diary postcard` | This session on one screen: time, turns, calls, busiest hour, tools used most (`/diary postcard copy` for markdown). |
 
-In the pane: `c` copies, `x` clears, `q` closes.
+In the pane: `c` copies, `p` copies the postcard, `x` clears, `q` closes.
 
 ## Install
 
