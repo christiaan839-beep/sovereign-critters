@@ -150,3 +150,30 @@ test('the week lists seven days oldest first, marks quiet ones, and names the bu
   expect(w).toContain('Busiest: Read 2, Bash 1.')
   expect(w).not.toContain('11-01')
 })
+
+// ---- the register: calls and turns reach the day counts, and /diary week says them and copies them ----
+test('every call and turn lands in its day, and /diary week says them and copies them as markdown', async ($, on) => {
+  stub(on)
+  let copied = ''
+  on('clock.now', () => ({ value: AT }))
+  on('command.register', () => ({ value: { command: 'diary' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('turn.complete', () => ({ text: 'done' }))
+  on('ui.copy', (_: unknown, e: { text: string }) => { copied = e.text; return { value: undefined } })
+  on('tool.call', (_: unknown, e: { tool: string }) => (e.tool === 'Bash' ? { deny: 'no' } : { result: 'ok' }) as never)
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.tool.call({ tool: 'Read' } as never)
+  await $.tool.call({ tool: 'Read' } as never)
+  await $.tool.call({ tool: 'Bash' } as never)
+  await $.turn.complete({ answer: 'done' } as never)
+  const said = async (args: string) => (await $.command.run({ command: 'diary', args, origin: { kind: 'composer' }, presentation: {} } as never)) as { text?: string }
+  const week = (await said('week')).text ?? ''
+  expect(week).toContain('3 tool calls, 1 failed, 1 turn')
+  expect(week).toContain('Busiest: Read 2, Bash 1.')
+  expect(week).toContain('Sun 09-09') // 03:46 in Johannesburg on 2001-09-09
+  expect(copied).toBe('') // saying it does not copy it
+  const done = (await said('week copy')).text ?? ''
+  expect(done).toMatch(/Copied the week/)
+  expect(copied).toContain('# This week')
+  expect(copied).toContain('3 tool calls, 1 failed, 1 turn')
+})

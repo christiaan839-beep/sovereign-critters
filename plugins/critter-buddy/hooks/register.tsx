@@ -3,8 +3,8 @@ import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
 import { NAMES_DEFAULT, FEELS, moodLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
-import { nextProp, dayKey, festiveOf, glassOf, holidayOf, hourSast, phaseOf, seasonOf, skyFor, streakAlive, streakNext, weatherOf } from './world'
-import type { Streak } from './world'
+import { dayKey, dueForWait, glassOf, holidayOf, nextProp, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
+import type { Flight, Streak } from './world'
 import type { Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
 
 // `shape` tags the stored form: a value an earlier version stored is declined, not misread.
@@ -48,8 +48,8 @@ const ERR_LINES = [
 
 let liveCols = 80
 let lastSky = '' // the key of the backdrop last drawn: it is redrawn only when the hour, the season, the weather or the lights change
-let running: { since: number; waiting: boolean } | undefined // a tool call in flight; past 20 s the cat goes to the window
-const LONG_CALL = 20_000
+const flights = new Map<number, Flight>() // the tool calls in flight, each with its own clock: past 20 s the cat goes to the window
+let flightId = 0
 let streak: Streak | undefined
 let turnStartedAt = 0
 let ticker: { cancel: () => void } | undefined
@@ -117,8 +117,9 @@ export const register: Register = on => {
       const [look, label] = tool === 'Bash' && BUILD.test(asked) ? (['chef', 'cooking a build'] as [Look, string]) : (LOOKS[tool] ?? (['coder', 'working'] as [Look, string]))
       await update($, scene, (s: Scene): Scene => ({ ...s, look, label, idle: 0, tools: s.tools + 1, skills: s.skills + (tool === 'Skill' ? 1 : 0), ...(tool === 'Skill' ? { jt: 1 } : {}) }))
       $.ui.status(label)
-      running = { since: await $.clock.now(), waiting: false }
-      const ran = await next(e).finally(() => { running = undefined })
+      const mine = ++flightId
+      flights.set(mine, { since: await $.clock.now(), waiting: false })
+      const ran = await next(e).finally(() => { flights.delete(mine) })
       const command = String((e as { command?: unknown }).command ?? '')
       let ev: Reaction | null = null
       if (ran.deny !== undefined) ev = 'deny'
@@ -285,10 +286,7 @@ export const register: Register = on => {
         const written = await update($, diary, (d: string[]) => [...d, ...said.map(l => `${hhmm(t)} ${named(l, nm)}`)].slice(-200))
         await $.store.set('diaryLog', written)
       }
-      if (running && !running.waiting && t - running.since > LONG_CALL) {
-        running.waiting = true
-        await update($, scene, (s: Scene): Scene => react(s, 'wait'))
-      }
+      if (dueForWait(flights.values(), t)) await update($, scene, (s: Scene): Scene => react(s, 'wait'))
       if (snapshot) await syncSky($, t, (snapshot as Scene).joy)
       if (snapshot && snapshot.tick % 40 === 0) await $.store.set('memory', { trust: snapshot.trust, pets: snapshot.stats.pets, lastSeen: t })
       if (snapshot && (snapshot.night ? 'night' : 'day') !== (await read($, world))) await update($, world, () => (snapshot!.night ? 'night' : 'day'))
@@ -772,7 +770,7 @@ export const register: Register = on => {
 }
 
 // What the backdrop is made of right now: the hour, the season, the session's weather and whether the lights are up.
-const skyArgs = (now: number, joy: number) => ({ phase: phaseOf(hourSast(now)), season: seasonOf(now), weather: weatherOf(joy), festive: festiveOf(now) })
+const skyArgs = skyArgsOf
 const stageWord = (now: number, joy: number) => {
   const a = skyArgs(now, joy)
   const h = holidayOf(now)

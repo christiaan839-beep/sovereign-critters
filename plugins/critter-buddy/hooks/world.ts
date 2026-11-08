@@ -149,3 +149,16 @@ export const glassOf = (p: Phase): { blur: number; opacity: number; tint: string
   : p === 'dusk' ? { blur: 16, opacity: 0.55, tint: '#2b2236' }
   : p === 'dawn' ? { blur: 14, opacity: 0.5, tint: '#f6e9df' }
   : { blur: 14, opacity: 0.5, tint: '#faf9f5' }
+
+/** A tool call in flight, as the ticker sees it. */
+export type Flight = { since: number; waiting: boolean }
+/** How long a call may run before the cat goes to the window to wait. */
+export const LONG_CALL = 20_000
+/** True once, for the first time any call in flight has run past LONG_CALL; each such call is marked so it is only counted once. Several calls at a time (subagents) each keep their own clock. */
+export const dueForWait = (flights: Iterable<Flight>, now: number): boolean => {
+  let due = false
+  for (const f of flights) if (!f.waiting && now - f.since > LONG_CALL) { f.waiting = true; due = true }
+  return due
+}
+/** What the backdrop is made of at an instant, given the pair's joy: the hour, the season, the weather and whether the lights are up. */
+export const skyArgsOf = (now: number, joy: number) => ({ phase: phaseOf(hourSast(now)), season: seasonOf(now), weather: weatherOf(joy), festive: festiveOf(now) })

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12.2
+
+- Several tool calls at once (subagents) each keep their own clock for the long wait, so one call no longer resets another's. The sky arguments and the long-call test moved into `world.ts`, where tests pin them, and the backdrop is tested against the session's weather. No visible change.
+
 ## 0.12.1
 
 - The corner and the stage are laid out again: the heading, the portrait and the buttons are centred; a line under the portrait says how many days you have come back and what the cat will bring next (`day 5 together · a cushion in 2 days`); the sections are set apart by spacer rows (a margin is lost to the desktop's measure); the stats are two short lines instead of one that ran off the edge. The stage has a status line and its buttons centred under the art.

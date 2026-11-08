@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Look, Scene } from '../types'
-import { nextProp, dayKey, easterOf, festiveOf, holidayOf, hourSast, phaseOf, propsFor, seasonOf, skyFor, streakAlive, streakNext, weatherOf } from '../hooks/world'
+import { dueForWait, LONG_CALL, skyArgsOf, nextProp, dayKey, easterOf, festiveOf, holidayOf, hourSast, phaseOf, propsFor, seasonOf, skyFor, streakAlive, streakNext, weatherOf } from '../hooks/world'
 import { PROPS, weekdayOf, cadence, suggest, moodLine, skyOf, stepFeel, FEELS, controlLabels, draftRuns, diaryMarkdown, diaryParts, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
 
 test('the cat sprite is rectangular, sixteen by twenty, in every pose', () => {
@@ -1102,4 +1102,31 @@ test('the corner and the stage are centred, with spacer rows, and the corner say
     }
     await stage.unmount()
   }
+})
+
+test('a call past 20 seconds is due once, each call in flight keeps its own clock, and the sky args follow the hour, the season and the joy', () => {
+  const a = { since: 1000, waiting: false }
+  const b = { since: 1000 + LONG_CALL, waiting: false }
+  expect(dueForWait([a, b], 1000 + LONG_CALL)).toBe(false) // exactly 20 s is not yet past it
+  expect(dueForWait([a, b], 1000 + LONG_CALL + 1)).toBe(true) // a is long
+  expect(a.waiting).toBe(true)
+  expect(b.waiting).toBe(false)
+  expect(dueForWait([a, b], 1000 + LONG_CALL + 5)).toBe(false) // a is not counted twice, b is not yet long
+  expect(dueForWait([a, b], 1000 + 2 * LONG_CALL + 1)).toBe(true) // b is long on its own clock
+  expect(dueForWait([], 5)).toBe(false)
+  expect(skyArgsOf(Date.UTC(2026, 10, 8, 10), 10)).toEqual({ phase: 'day', season: 'spring', weather: 'storm', festive: false })
+})
+
+test('the backdrop draws the session weather: a low-spirited pair gets rain and no sun, a happy one a clear sky', async ($, on) => {
+  stub(on)
+  const mountBackdrop = async (joy: number) => {
+    kept.set('critter-buddy.scene', { value: { shape: 'scene-5', value: { ...initial(), joy } }, version: 1 })
+    const ui = await $.ui.mount({ ...row('Backdrop', { id: 'x', plugin: 'critter-buddy', glass: { blur: 14, opacity: 0.5 } }), surface: 'desktop' } as never)
+    const rain = await ui.find({ type: 'Text', text: /╲/ })
+    const sun = await ui.find({ type: 'Text', text: /[●☾]/ })
+    await ui.unmount()
+    return { rain: rain !== undefined, sun: sun !== undefined }
+  }
+  expect(await mountBackdrop(60)).toEqual({ rain: false, sun: true })
+  expect(await mountBackdrop(10)).toEqual({ rain: true, sun: false }) // a storm hides the sun
 })
