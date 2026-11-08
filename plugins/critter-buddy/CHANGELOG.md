@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.0
+
+- The prompt box paints the family too: `/diary` (with `copy` and `clear`), `/stunt` and `/everywhere`, each with a dim ghost line saying what it does.
+- The cat corner says its moods in words (`trust ███░░░░░░░ 30 · warming`). The stage names whose it is and the hour (`Pip's stage · night`).
+- The backdrop has a ground band, a sun by day and a moon by night, and the stars by night. It is the same two worlds, drawn with a horizon.
+
 ## 0.9.1
 
 - Fixed: 0.9.0 did not pass `claude plugin validate --strict`: the feel setting was missing from the manifest's types contract. It is declared now.

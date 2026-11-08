@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { NAMES_DEFAULT, FEELS, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import { NAMES_DEFAULT, FEELS, moodLine, skyOf, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
 import type { Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
 
 // `shape` tags the stored form: a value an earlier version stored is declined, not misread.
@@ -55,7 +55,6 @@ const hourOf = (ms: number) => Math.floor(ms / 3_600_000 + 2) % 24
 const isNight = (ms: number) => hourOf(ms) >= 18 || hourOf(ms) < 6
 const hhmm = (ms: number) => `${String(hourOf(ms)).padStart(2, '0')}:${String(Math.floor(ms / 60_000) % 60).padStart(2, '0')}`
 
-const bar = (n: number) => '█'.repeat(Math.round(n / 10)) + '░'.repeat(10 - Math.round(n / 10))
 const moodOf = (s: Scene) => (s.trust < 30 ? 'sulking' : s.trust > 80 ? 'devoted' : s.joy > 75 ? 'pleased' : 'unbothered')
 const pick = <T,>(list: readonly T[], key: string): T => {
   let h = 7
@@ -94,13 +93,6 @@ const kit = (els: any, surface: string) => {
   const face = (kind: FaceKind) => (vector ? svg(faceSvg(kind, 1), `the critter's face: ${kind}`) : faceOf(Text, kind))
   return { Box, Text, Button, vector, svg, face }
 }
-
-// Night's sky for the desktop backdrop: stars at fixed places, so a redraw does not shuffle them.
-const STARS = Array.from({ length: 22 }, (_, i) => {
-  const a = Math.imul(i + 1, 2654435761) >>> 0
-  const b = Math.imul(i + 11, 1664525) >>> 0
-  return { top: a % 34, left: b % 150, big: i % 5 === 0 }
-})
 
 /** A short sound, only when the person has turned sound on; a player that is missing never matters. */
 const ring = async ($: any, which: 'cast' | 'purr') => {
@@ -594,16 +586,19 @@ export const register: Register = on => {
   // ---- the window behind the conversation: cream Day, glass Night with a few stars (the desktop app only) ----
   on('ui.render', { component: 'Backdrop' }, async ($, e, next) => {
     if (e.props.plugin !== 'critter-buddy') return next(e)
-    const night = (await read($, world)) === 'night'
-    const { Box, Text, face, vector, svg } = kit($.ui.resolve(e), e.surface)
+    const sky = skyOf((await read($, world)) === 'night' ? 'night' : 'day')
+    const { Box, Text } = kit($.ui.resolve(e), e.surface)
     return (
-      <Box position="absolute" top={0} left={0} width="100%" height="100%" backgroundColor={night ? '#141413' : '#faf9f5'}>
-        {night &&
-          STARS.map((st, i) => (
-            <Box key={`s${i}`} position="absolute" top={st.top} left={st.left}>
-              <Text color={st.big ? '#d4a548' : '#8f7cc4'} dimColor={!st.big}>{st.big ? '✦' : '·'}</Text>
-            </Box>
-          ))}
+      <Box position="absolute" top={0} left={0} width="100%" height="100%" backgroundColor={sky.paper}>
+        <Box position="absolute" bottom={0} left={0} width="100%" height="30%" backgroundColor={sky.ground} />
+        <Box position="absolute" top={2} right={6}>
+          <Text color={sky.bodyColor}>{sky.body}</Text>
+        </Box>
+        {sky.stars.map((st, i) => (
+          <Box key={`s${i}`} position="absolute" top={st.top} left={st.left}>
+            <Text color={st.big ? '#d4a548' : '#8f7cc4'} dimColor={!st.big}>{st.big ? '✦' : '·'}</Text>
+          </Box>
+        ))}
       </Box>
     )
   }).catch(($, e, next) => next(e))
@@ -611,13 +606,14 @@ export const register: Register = on => {
   // ---- the stage: our own critter alone on an empty screen, walking and idling as the session runs ----
   on('ui.render', { component: 'Pane', requestId: STAGE }, async ($, e) => {
     const s = await read($, scene)
+    const nmS = await read($, names)
     const { Box, Text, Button, vector, svg } = kit($.ui.resolve(e), e.surface)
     const cols = Math.min(72, e.props.bodyColumns || 60)
     // the cat is off the stage; the critter keeps to what it is doing, else it idles
     const alone: Scene = { ...s, cols, kx: -80, look: s.look === 'wizard' || s.look === 'done' ? s.look : 'idle' }
     return (
       <Box flexDirection="column">
-        <Text bold>{'Stage'}</Text>
+        <Text bold>{`${nmS.pip}'s stage · ${(await read($, world)) === 'night' ? 'night' : 'day'}`}</Text>
         {vector ? svg(paintSvg(alone, 5), 'The critter alone on a stage, walking and idling') : rowsOf(Text, paint(alone), 's')}
         <Text dimColor>{`${s.label} · ${s.tools} tools · ${s.skills} skills`}</Text>
         <Box flexDirection="row">
@@ -654,8 +650,8 @@ export const register: Register = on => {
               </Text>
             ))}
         <Text bold>{'Moods'}</Text>
-        <Text>{`trust ${bar(s.trust)} ${Math.round(s.trust)}`}</Text>
-        <Text>{`joy   ${bar(s.joy)} ${Math.round(s.joy)}`}</Text>
+        <Text>{moodLine('trust', s.trust)}</Text>
+        <Text>{moodLine('joy', s.joy)}</Text>
         <Text dimColor>{`${s.stats.turns} turns · ${s.tools} tools · ${s.skills} skills · ${s.stats.errors} errors · ${s.stats.pets} pets · ${s.stats.commits} commits · ${s.stats.knocks} knocked off`}</Text>
         <Box flexDirection="row">
           <Button key="p" label="pet" hotkey="p" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'pet'))} />

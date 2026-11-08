@@ -781,7 +781,25 @@ const ARGS: Record<string, string[]> = { cat: COATS_LIST, wizard: ['auto', 'gold
  * Runs to paint over a /critter draft: the command in clay, a word it knows in teal, a stray word underlined in gold, and a dim
  * ghost line after a finished word saying what it does. Pure: the draft in, runs out. Any other draft is left alone.
  */
+const FAMILY: Record<string, { ghost: string; subs?: Record<string, string> }> = {
+  diary: { ghost: 'what Claude did, in order', subs: { copy: 'the whole session, as markdown', clear: 'empty it' } },
+  stunt: { ghost: 'the critter in a pane, a card per call' },
+  everywhere: { ghost: 'your three most-used tools' },
+}
 export const draftRuns = (text: string, n: Names = NAMES_DEFAULT): DraftRun[] => {
+  const fam = /^\/(diary|stunt|everywhere)(?=\s|$)/.exec(text)
+  if (fam) {
+    const f = FAMILY[fam[1]!]!
+    const end = fam[0].length
+    const out: DraftRun[] = [{ start: 0, end, color: CLAY, bold: true }]
+    const words = [...text.matchAll(/\S+/g)].slice(1)
+    const sub = words[0]
+    if (!sub) return [...out, { start: end, end, dimColor: true, virtualText: ` · ${f.ghost}` }]
+    const hit = f.subs?.[sub[0].toLowerCase()]
+    out.push(hit ? { start: sub.index!, end: sub.index! + sub[0].length, color: TEAL } : { start: sub.index!, end: sub.index! + sub[0].length, color: GOLD, underline: true })
+    if (hit && words.length === 1) out.push({ start: text.length, end: text.length, dimColor: true, virtualText: ` · ${hit}` })
+    return out
+  }
   const m = /^\/critter(?=\s|$)/.exec(text)
   if (!m) return []
   const out: DraftRun[] = [{ start: 0, end: 8, color: CLAY, bold: true }]
@@ -846,6 +864,32 @@ export const stepFeel = (s: Scene, feel: Feel): Scene => {
   const idleish = (s.look === 'idle' || s.look === 'done') && !isAsleep(s)
   return s.jt === 0 && n.jt === 0 && idleish && n.seed % 17 === 0 ? { ...n, jt: 1 } : n
 }
+
+
+// ---- the moods, in words ------------------------------------------------------------
+const barOf = (v: number) => '█'.repeat(Math.round(v / 10)) + '░'.repeat(10 - Math.round(v / 10))
+const MOOD_WORDS = {
+  trust: [[30, 'wary'], [60, 'warming'], [80, 'fond'], [101, 'devoted']],
+  joy: [[30, 'flat'], [60, 'content'], [80, 'bright'], [101, 'delighted']],
+} as const
+/** One mood as a line: its name, its bar, its number and a word for it. */
+export const moodLine = (which: 'trust' | 'joy', v: number): string => {
+  const x = Math.max(0, Math.min(100, Math.round(v)))
+  const word = MOOD_WORDS[which].find(([lim]) => x < lim)![1]
+  return `${which.padEnd(5)} ${barOf(x)} ${x} · ${word}`
+}
+
+// ---- the sky behind the chat --------------------------------------------------------
+const SKY_STARS = Array.from({ length: 22 }, (_, i) => {
+  const a = Math.imul(i + 1, 2654435761) >>> 0
+  const b = Math.imul(i + 11, 1664525) >>> 0
+  return { top: a % 34, left: b % 150, big: i % 5 === 0 }
+})
+/** The window behind the conversation: paper, a ground band, a sun or a moon, and by night a few stars at fixed places. */
+export const skyOf = (w: 'day' | 'night') =>
+  w === 'night'
+    ? { paper: '#141413', ground: '#1c1b19', body: '☾', bodyColor: '#efe4c4', stars: SKY_STARS }
+    : { paper: '#faf9f5', ground: '#f2eee3', body: '●', bodyColor: '#d4a548', stars: [] as typeof SKY_STARS }
 
 // ---- cadence -------------------------------------------------------------------
 /**

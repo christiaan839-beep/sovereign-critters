@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Look, Scene } from '../types'
-import { cadence, suggest, stepFeel, FEELS, controlLabels, draftRuns, diaryMarkdown, diaryParts, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
+import { cadence, suggest, moodLine, skyOf, stepFeel, FEELS, controlLabels, draftRuns, diaryMarkdown, diaryParts, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
 
 test('the cat sprite is rectangular, sixteen by twenty, in every pose', () => {
   const base = { ...initial(), cols: 40, cx: -40, kx: 6 }
@@ -592,6 +592,7 @@ test('the backdrop is cream by day and a starry glass by night, and only for thi
   await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true }) // the stub clock reads 03:00, so night
   const ui = await $.ui.mount({ ...row('Backdrop', { id: 'night', plugin: 'critter-buddy', glass: { blur: 18, opacity: 0.6 } }), surface: 'desktop' } as never)
   expect(await ui.find({ type: 'Text', text: /[✦·]/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /☾/ })).toBeDefined() // a moon by night
   await ui.unmount()
   const other = await $.ui.mount({ ...row('Backdrop', { id: 'x', plugin: 'someone-else', glass: false }), surface: 'desktop' } as never)
   expect(await other.find({ type: 'Text', text: /engine/ })).toBeDefined() // another plugin's backdrop is left alone
@@ -922,4 +923,54 @@ test('/critter feel sets the dial, says so, offers its words, and calm silences 
   expect(suggest('/critter ', 9).map(r => r.text)).toContain('feel')
   expect(draftRuns('/critter feel calm', NAMES_DEFAULT)[2]).toMatchObject({ color: '#4fa39a' })
   expect(draftRuns('/critter feel loud', NAMES_DEFAULT)[2]).toMatchObject({ color: '#d4a548', underline: true })
+})
+
+// ---- the family in the prompt box, the moods in words, the sky behind the chat ----
+test('the family commands are painted too: /diary, /stunt and /everywhere, each with its own ghost line', () => {
+  const draft = (t: string) => draftRuns(t, NAMES_DEFAULT)
+  const diary = draft('/diary')
+  expect(diary[0]).toMatchObject({ start: 0, end: 6, color: '#d97757', bold: true })
+  expect(diary.at(-1)).toMatchObject({ start: 6, end: 6, dimColor: true, virtualText: ' · what Claude did, in order' })
+  expect(draft('/diary copy')[1]).toMatchObject({ start: 7, end: 11, color: '#4fa39a' })
+  expect(draft('/diary copy').at(-1)!.virtualText).toBe(' · the whole session, as markdown')
+  expect(draft('/diary clone')[1]).toMatchObject({ color: '#d4a548', underline: true })
+  expect(draft('/stunt').at(-1)!.virtualText).toBe(' · the critter in a pane, a card per call')
+  expect(draft('/everywhere').at(-1)!.virtualText).toBe(' · your three most-used tools')
+  expect(draft('/diaryish')).toEqual([])
+  expect(draft('/critter').length).toBe(1) // the bare /critter stays quiet, as before
+})
+
+test('the moods are said in words as well as bars', () => {
+  expect(moodLine('trust', 12)).toBe('trust █░░░░░░░░░ 12 · wary')
+  expect(moodLine('trust', 50)).toContain('· warming')
+  expect(moodLine('trust', 70)).toContain('· fond')
+  expect(moodLine('trust', 95)).toContain('· devoted')
+  expect(moodLine('joy', 10)).toContain('· flat')
+  expect(moodLine('joy', 50)).toContain('· content')
+  expect(moodLine('joy', 70)).toContain('· bright')
+  expect(moodLine('joy', 90)).toContain('· delighted')
+  expect(moodLine('joy', 150)).toContain('100') // out of range is held to the scale
+})
+
+test('the sky: a sun by day and a moon by night, a horizon either way, and the stars stay put', () => {
+  expect(skyOf('day')).toMatchObject({ body: '●', bodyColor: '#d4a548', ground: '#f2eee3', paper: '#faf9f5' })
+  expect(skyOf('night')).toMatchObject({ body: '☾', bodyColor: '#efe4c4', ground: '#1c1b19', paper: '#141413' })
+  expect(skyOf('night').stars.length).toBe(22)
+  expect(JSON.stringify(skyOf('night').stars)).toBe(JSON.stringify(skyOf('night').stars))
+  expect(skyOf('day').stars.length).toBe(0)
+})
+
+test('the stage names whose it is and what hour, and the corner shows the moods in words', async ($, on) => {
+  stub(on)
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  const stage = await $.ui.mount({ plugin: 'critter-buddy', component: 'Pane', requestId: 'stage', props: { bodyColumns: 60 }, surface: 'desktop' } as never)
+  expect(await stage.find({ type: 'Text', text: /Pip's stage · night/ })).toBeDefined() // the stub clock reads 03:00
+  await stage.unmount()
+  const corner = await $.ui.mount({ plugin: 'critter-buddy', component: 'Pane', requestId: 'cat-corner', props: { bodyColumns: 60 }, surface: 'desktop' } as never)
+  expect(await corner.find({ type: 'Text', text: /trust .* · (wary|warming|fond|devoted)/ })).toBeDefined()
+  expect(await corner.find({ type: 'Text', text: /joy .* · (flat|content|bright|delighted)/ })).toBeDefined()
+  await corner.unmount()
 })
