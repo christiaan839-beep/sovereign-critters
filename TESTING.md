@@ -31,7 +31,7 @@ Ask Claude: *"Run `git push --force origin main` in a scratch repo."* The guard 
 
 ## 6. The bell
 
-Ask Claude: *"Run `sleep 25` in Bash."* A bell and a toast when it ends (the bell needs `/critter sound on`? No: build-bell has its own `sound` setting, on by default).
+Ask Claude: *"Run `sleep 25` in Bash."* A bell and a toast when it ends. (build-bell has its own `sound` setting, on by default; `/critter sound on` is for the pair's sounds, a different thing.)
 
 ## 7. Everywhere and stunt
 
