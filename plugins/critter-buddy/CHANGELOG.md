@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.0
+
+- The cat and the wizard critter have names, Biscuit and Pip, and every line says them. `/critter name cat <name>` and `/critter name pip <name>` rename them.
+- The lines are rewritten: drier, a little warmer, and each one says what happened.
+- The wizard comes out for four moments: a Skill or a subagent, a commit, a green test run, and the end of a long turn (one last bolt before the coffee). A commit and a green run also show a toast.
+- Three wizards: `/critter wizard auto` (gold star by day, violet bolt by night), `gold` or `bolt`.
+- Sound, off until you ask: `/critter sound on` plays a cast chime for a Skill and a purr for a pet.
+- Typeahead: as you type `/critter `, the prompt offers what it can do, each in the cat's voice.
+- The buttons say what they do: `pet Biscuit`, `feed Biscuit`, `Pip casts`, `the corner`.
+- Fixed: the critter and the cat could walk into each other. They now keep to their own stretch of the bar.
+
 ## 0.6.1
 
 - Fixed: on the desktop the critter's feet and the laptop touched the label row under the bar. A clear row now sits beneath the picture.

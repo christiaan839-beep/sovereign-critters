@@ -14,6 +14,8 @@ export type Stats = {
 
 /** Everything the band and the pane draw: one value, advanced by `step`, changed by `react`. */
 export type Scene = {
+  /** Which wizard: by the hour, always the gold star, or always the violet bolt. */
+  form: 'auto' | 'gold' | 'bolt'
   tick: number
   cols: number
   look: Look
@@ -54,6 +56,10 @@ declare module 'claude-code' {
       world: Shaped<'day' | 'night'>
       /** Whether the cat speaks after a turn through a small model call. Off by default: it costs tokens. */
       talk: Shaped<boolean>
+      /** What the person called the cat and the wizard critter. */
+      names: Shaped<{ cat: string; pip: string }>
+      /** Whether the cast chime and the purr play. Off until asked: sound in a shared mod is a choice. */
+      sound: Shaped<boolean>
     }
   }
 }

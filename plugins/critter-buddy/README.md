@@ -2,6 +2,8 @@
 
 The Sovereign Matrix critter, a wizard version of it, and a tabby cat, living in Claude Code's own interface: above the prompt, beside the thinking orb, on every tool row, and behind the conversation on the desktop app.
 
+![The critter's day: reading, cooking a build, casting, done](demo.gif)
+
 ```
 /plugin install critter-buddy --marketplace <owner>/<repo>
 ```
@@ -33,6 +35,9 @@ The cat keeps its trust in you across sessions in `$.store`; it falls by 8 for e
 | `/critter lite`, `full`, `party` | How far it reaches: lite is the bar, the wizard and the orb; full adds the transcript's rows (default); party adds every message. |
 | `/critter talk on`, `off` | The cat speaks after each turn through one small model call. Off by default: it costs tokens. |
 | `/critter cat <coat>` | The cat's coat: `orange` (the default), `ink`, `brown`, `tabby`, `ginger`, `black`, `tuxedo`, `cream`, `grey`, `siamese`, or `pair` (follows day and night). |
+| `/critter name cat <name>`, `name pip <name>` | What the cat (Biscuit) and the wizard critter (Pip) are called; every line says it. |
+| `/critter wizard auto`, `gold`, `bolt` | The wizard by the hour, the gold star always, or the violet bolt always. |
+| `/critter sound on`, `off` | A cast chime for a Skill and a purr for a pet. Off until you ask. |
 | `/critter hide`, `show` | Explicit; bare `/critter hide` toggles. |
 
 It draws above other mods' rows in the same place and registers only `/critter`.

@@ -2,11 +2,11 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { catchIn, faceRuns, faceSvg, initial, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
-import type { FaceKind, Reaction, Run, Svgd } from './scene'
+import { NAMES_DEFAULT, suggest, catchIn, cleanName, named, faceRuns, faceSvg, initial, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import type { Names, FaceKind, Reaction, Run, Svgd } from './scene'
 
 // `shape` tags the stored form: a value an earlier version stored is declined, not misread.
-const scene = atom({ plugin: 'critter-buddy', key: 'scene' } as const, initial(), { shape: 'scene-4' })
+const scene = atom({ plugin: 'critter-buddy', key: 'scene' } as const, initial(), { shape: 'scene-5' })
 const isHidden = atom({ plugin: 'critter-buddy', key: 'isHidden' } as const, false, { shape: 'hidden-1' })
 const diary = atom({ plugin: 'critter-buddy', key: 'diary' } as const, [] as string[], { shape: 'diary-1' })
 // lite: the band, the wizard and the orb, the pane, the backdrop. full: the rows of the transcript too.
@@ -17,6 +17,9 @@ const world = atom({ plugin: 'critter-buddy', key: 'world' } as const, 'day' as 
 
 // off by default: the cat speaks after a turn through one small model call, which costs tokens each time
 const talk = atom({ plugin: 'critter-buddy', key: 'talk' } as const, false as boolean, { shape: 'talk-1' })
+
+const names = atom({ plugin: 'critter-buddy', key: 'names' } as const, NAMES_DEFAULT as Names, { shape: 'names-1' })
+const sound = atom({ plugin: 'critter-buddy', key: 'sound' } as const, false as boolean, { shape: 'sound-1' })
 
 const PANE = 'cat-corner'
 const STAGE = 'stage'
@@ -34,9 +37,9 @@ const TEST = /\b(pytest|vitest|jest|mocha)\b|\b(npm|pnpm|yarn|bun|cargo|go)\s+(r
 const COMMIT = /\bgit\s+commit\b/
 const DAY = 86_400_000
 const ERR_LINES = [
-  'It failed. The cat was not surprised.',
-  'The wizard says that was on purpose.',
-  'The cat knocked it over first.',
+  '{cat} was not surprised.',
+  '{pip} says that was on purpose.',
+  '{cat} knocked it over first.',
   'Nothing was harmed. Mostly.',
 ]
 
@@ -98,6 +101,15 @@ const STARS = Array.from({ length: 22 }, (_, i) => {
   return { top: a % 34, left: b % 150, big: i % 5 === 0 }
 })
 
+/** A short sound, only when the person has turned sound on; a player that is missing never matters. */
+const ring = async ($: any, which: 'cast' | 'purr') => {
+  try {
+    if (await read($, sound)) await $.audio.play({ asset: `sounds/${which}.wav` }, { gain: 0.5 })
+  } catch {
+    // no player, no sound: the picture is enough
+  }
+}
+
 export const register: Register = on => {
   // What Claude is doing sets the look; what happens to it sets the mood.
   for (const tool of Object.keys(LOOKS)) {
@@ -115,6 +127,14 @@ export const register: Register = on => {
       else if (tool === 'Bash' && COMMIT.test(command)) ev = 'commit'
       else if (tool === 'Bash' && TEST.test(command)) ev = 'test'
       if (ev) await update($, scene, (s: Scene): Scene => react(s, ev as Reaction))
+      if (ev === 'spell') await ring($, 'cast')
+      try {
+        const nm = await read($, names)
+        if (ev === 'commit') $.ui.toast(named('A commit. {pip} drew a star in the history.', nm), { timeoutMs: 3500 })
+        if (ev === 'test') $.ui.toast(named('Green. {cat} allows it.', nm), { timeoutMs: 3000 })
+      } catch {
+        // a toast that cannot show is no loss
+      }
       return ran
     }).catch(($, e, next) => next(e)) // a decorative mod never stands in the way of a tool call
   }
@@ -188,7 +208,7 @@ export const register: Register = on => {
     // The cat's line for the turn stays in the transcript, as a row of its own.
     if (line && !(await read($, isHidden)) && (await read($, detail)) !== 'lite') {
       const id = `diary-${n}`
-      notes.set(id, `${hhmm(now)}  ${line}`)
+      notes.set(id, `${hhmm(now)}  ${named(line, await read($, names))}`)
       try {
         await $.ui.place({ id })
       } catch {
@@ -222,6 +242,7 @@ export const register: Register = on => {
     ticker = $.clock.every(250, async () => {
       if ((await read($, isHidden)) === true) return
       const t = await $.clock.now()
+      const nm = await read($, names)
       let said: string[] = []
       let snapshot: Scene | undefined
       await update($, scene, (s: Scene): Scene => {
@@ -231,7 +252,7 @@ export const register: Register = on => {
         return { ...n, log: [] }
       })
       if (said.length) {
-        const written = await update($, diary, (d: string[]) => [...d, ...said.map(l => `${hhmm(t)} ${l}`)].slice(-200))
+        const written = await update($, diary, (d: string[]) => [...d, ...said.map(l => `${hhmm(t)} ${named(l, nm)}`)].slice(-200))
         await $.store.set('diaryLog', written)
       }
       if (snapshot && snapshot.tick % 40 === 0) await $.store.set('memory', { trust: snapshot.trust, pets: snapshot.stats.pets, lastSeen: t })
@@ -239,7 +260,7 @@ export const register: Register = on => {
     })
     // One command, subcommands inside: the session already has /pet from another mod.
     try {
-      await $.command.register({ name: 'critter', description: 'The pair above your prompt: pet, treat, nap, spell, corner, diary, stage, hide, show, lite|full|party, talk on|off, cat <coat>' })
+      await $.command.register({ name: 'critter', description: 'The pair above your prompt: pet, treat, nap, spell, corner, diary, stage, hide, show, lite|full|party, talk on|off, sound on|off, wizard auto|gold|bolt, name cat|pip <name>, cat <coat>' })
     } catch {
       $.ui.log('critter-buddy: /critter is taken by another plugin; the buttons above the prompt still work')
     }
@@ -258,18 +279,49 @@ export const register: Register = on => {
     return next(e)
   }).catch(($, e, next) => next(e))
 
+  // As you type /critter, the typeahead offers what it can do, in the cat's voice.
+  on('prompt.autocomplete', async ($, e, next) => {
+    const base = await next(e)
+    try {
+      const rows = suggest(e.text, e.cursor, await read($, names))
+      return rows.length ? { suggestions: [...base.suggestions, ...rows] } : base
+    } catch {
+      return base // a typeahead that fails shows only the engine's own rows
+    }
+  })
+
   on('command.run', { command: 'critter' }, async ($, e) => {
     const [sub = '', arg = ''] = e.args.trim().split(/\s+/)
     const reactions: Record<string, [Reaction, string]> = {
-      pet: ['pet', 'You petted the cat. It did not ask.'],
-      treat: ['treat', 'A treat. The wizard thinks it was for him.'],
-      nap: ['nap', 'Both of them are asleep.'],
-      spell: ['spell', 'The wizard cast something.'],
+      pet: ['pet', '{cat} allows it. Do not stop.'],
+      treat: ['treat', 'A treat. {pip} is sure it was his.'],
+      nap: ['nap', '{cat} and {pip} are asleep.'],
+      spell: ['spell', '{pip} cast something.'],
     }
     const hit = reactions[sub]
     if (hit) {
       await update($, scene, (s: Scene): Scene => react(s, hit[0]))
-      return { text: hit[1] }
+      if (hit[0] === 'pet') await ring($, 'purr')
+      if (hit[0] === 'spell') await ring($, 'cast')
+      return { text: named(hit[1], await read($, names)) }
+    }
+    if (sub === 'name') {
+      const [target = '', ...words] = e.args.trim().split(/\s+/).slice(1) // the name may have spaces, so it is read from the whole line
+      const value = cleanName(words.join(' '))
+      if ((target !== 'cat' && target !== 'pip') || !value) return { text: 'Usage: /critter name cat <name> | /critter name pip <name>. Letters, digits, spaces and hyphens, up to 16.' }
+      await update($, names, (n: Names): Names => ({ ...n, [target]: value }))
+      return { text: target === 'cat' ? `The cat is ${value}.` : `The wizard critter is ${value}.` }
+    }
+    if (sub === 'wizard') {
+      const form = arg === 'gold' || arg === 'bolt' || arg === 'auto' ? arg : undefined
+      if (!form) return { text: 'Usage: /critter wizard auto | gold | bolt. Auto is the gold star by day and the bolt hat by night.' }
+      await update($, scene, (s: Scene): Scene => ({ ...s, form }))
+      return { text: form === 'auto' ? 'The wizard follows the hour.' : form === 'gold' ? 'The wizard wears the gold star, day and night.' : 'The wizard wears the violet bolt, day and night.' }
+    }
+    if (sub === 'sound') {
+      if (arg !== 'on' && arg !== 'off') return { text: 'Usage: /critter sound on | off. A cast chime for a Skill and a purr for a pet; off until you say.' }
+      await update($, sound, () => arg === 'on')
+      return { text: arg === 'on' ? 'Sound is on: a cast chime and a purr.' : 'Sound is off.' }
     }
     if (sub === 'stage') {
       await $.ui.open({ id: STAGE, title: 'Stage', focus: true })
@@ -309,13 +361,14 @@ export const register: Register = on => {
       await drawBackdrop($, hidden ? undefined : { id: w, glass: glassFor(w) })
       return { text: hidden ? 'The pair are hidden.' : 'The pair are back.' }
     }
-    return { text: 'Usage: /critter [pet | treat | nap | spell | corner | stage | diary | hide | show | lite | full | party | talk on|off | cat <coat>]' }
+    return { text: 'Usage: /critter [pet | treat | nap | spell | corner | stage | diary | hide | show | lite | full | party | talk on|off | sound on|off | wizard auto|gold|bolt | name cat|pip <name> | cat <coat>]' }
   })
 
   // ---- the band above the prompt: the pair on the bar, and three things to press ----
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey || (await read($, isHidden))) return next(e)
     const s = await read($, scene)
+    const nm = await read($, names)
     // A wide desktop window would spread the pair thin across it: the bar stops at 96 cells, like the film's frame.
     const cols = Math.min(96, e.props.bodyColumns || e.viewport?.columns || 80)
     liveCols = cols
@@ -333,13 +386,13 @@ export const register: Register = on => {
         ) : rowsOf(Text, rows, 'r')}
         <Box flexDirection="row">
           <Text dimColor>{`${s.label} · cat ${moodOf(s)} `}</Text>
-          <Button key="pet" label="pet" hotkey="p" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'pet'))} />
+          <Button key="pet" label={`pet ${nm.cat}`} hotkey="p" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'pet')); await ring($, 'purr') }} />
           <Text> </Text>
-          <Button key="treat" label="treat" hotkey="t" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'treat'))} />
+           <Button key="treat" label={`feed ${nm.cat}`} hotkey="t" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'treat'))} />
           <Text> </Text>
-          <Button key="cast" label="cast" hotkey="c" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'spell'))} />
+          <Button key="cast" label={`${nm.pip} casts`} hotkey="c" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'spell')); await ring($, 'cast') }} />
           <Text> </Text>
-          <Button key="corner" label="cat corner" hotkey="k" onPress={() => $.ui.open({ id: PANE, title: 'Cat corner', focus: true })} />
+          <Button key="corner" label="the corner" hotkey="k" onPress={() => $.ui.open({ id: PANE, title: 'Cat corner', focus: true })} />
         </Box>
         {others}
       </Box>
@@ -384,7 +437,7 @@ export const register: Register = on => {
         {base}
         <Box flexDirection="row" gap={1}>
           {face('err')}
-          <Text dimColor>{pick(ERR_LINES, e.props.tool_use_id)}</Text>
+          <Text dimColor>{named(pick(ERR_LINES, e.props.tool_use_id), await read($, names))}</Text>
         </Box>
       </Box>
     )
@@ -410,7 +463,7 @@ export const register: Register = on => {
   on('ui.render', { component: 'TurnDuration' }, async ($, e, next) => {
     const base = await next(e)
     if ((await read($, isHidden)) || (await read($, detail)) === 'lite' || e.props.waitingFor) return base
-    const line = quip('turn', await read($, scene), hourOf(Date.now()), e.props.durationMs)
+    const line = named(quip('turn', await read($, scene), hourOf(Date.now()), e.props.durationMs), await read($, names))
     const { Box, Text, face, vector, svg } = kit($.ui.resolve(e), e.surface)
     // under the engine's line, not beside it: its row already runs the width of the terminal
     return (
@@ -457,7 +510,7 @@ export const register: Register = on => {
       <Box flexDirection="column">
         <Box flexDirection="row" gap={1}>
           {face('run')}
-          <Text dimColor>{quip('ask', await read($, scene))}</Text>
+          <Text dimColor>{named(quip('ask', await read($, scene)), await read($, names))}</Text>
         </Box>
         {base}
       </Box>
@@ -485,7 +538,7 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
     if ((await read($, isHidden)) || (await read($, detail)) === 'lite' || e.props.isDraft) return next(e)
-    const tail = ` · ${quip('hint', await read($, scene), hourOf(Date.now()))}`
+    const tail = ` · ${named(quip('hint', await read($, scene), hourOf(Date.now())), await read($, names))}`
     return next({ ...e, props: { ...e.props, tail } })
   }).catch(($, e, next) => next(e))
 
@@ -500,7 +553,7 @@ export const register: Register = on => {
         {base}
         <Box flexDirection="row" gap={1}>
           {face('ok')}
-          <Text dimColor>{`critter-buddy: ${quip('greet', await read($, scene), hourOf(Date.now()))}`}</Text>
+          <Text dimColor>{`critter-buddy: ${named(quip('greet', await read($, scene), hourOf(Date.now())), await read($, names))}`}</Text>
         </Box>
       </Box>
     )

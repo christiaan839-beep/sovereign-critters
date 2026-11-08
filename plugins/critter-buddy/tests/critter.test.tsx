@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Look, Scene } from '../types'
-import { CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
+import { suggest, NAMES_DEFAULT, cleanName, named, CAT_H, CAT_W, CRIT_W, LAPTOP_W, H, PORTRAIT_W, canvasOf, paintBigSvg, portraitCanvas, catchIn, faceRuns, faceSvg, initial, paintOrbSvg, paintSvg, paintWizardSvg, svgOf, isAsleep, paint, paintBig, paintOrb, paintWizard, quip, react, startGame, step, WIZARD_COLS } from '../hooks/scene'
 
 test('the cat sprite is rectangular, sixteen by twenty, in every pose', () => {
   const base = { ...initial(), cols: 40, cx: -40, kx: 6 }
@@ -170,6 +170,135 @@ test('the footer says what is happening, and does not repeat the plugin name', a
   expect(said.some(x => /critter/i.test(x ?? ''))).toBe(false)
 })
 
+test('names go into every line at the last moment, and a typed name is made safe', () => {
+  expect(named('{cat} and {pip}. {cat}.')).toBe('Biscuit and Pip. Biscuit.')
+  expect(named('{cat} watches {pip}', { cat: 'Marmalade', pip: 'Nib' })).toBe('Marmalade watches Nib')
+  expect(named('no names here')).toBe('no names here')
+  expect(NAMES_DEFAULT).toEqual({ cat: 'Biscuit', pip: 'Pip' })
+  expect(cleanName('  Mar<b>malade  ')).toBe('Marbmalade')
+  expect(cleanName('x'.repeat(40)).length).toBe(16)
+  expect(cleanName('Nib \u{1F9D9}')).toBe('Nib')
+  expect(cleanName("O'Hara-Smith")).toBe("O'Hara-Smith")
+  expect(cleanName('<>')).toBe('')
+})
+
+test('/critter name renames the cat everywhere, and refuses what it cannot print', async ($, on) => {
+  stub(on)
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const run = async (args: string) => JSON.stringify(await $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never))
+  expect(await run('name cat Marmalade')).toMatch(/The cat is Marmalade/)
+  expect(await run('pet')).toMatch(/Marmalade allows it/)
+  expect(await run('name pip Nib')).toMatch(/wizard critter is Nib/)
+  expect(await run('treat')).toMatch(/Nib is sure/)
+  expect(await run('name cat')).toMatch(/Usage/)
+  expect(await run('name dog Rex')).toMatch(/Usage/)
+  expect(await run('name cat <>')).toMatch(/Usage/)
+})
+
+test('the wizard has three forms: by the hour, the gold star always, the violet bolt always', async ($, on) => {
+  const solo = (o: Partial<Scene>) => canvasOf({ ...initial(), cols: 40, cx: 3, kx: -60, kdir: 1, look: 'wizard' as const, wt: 8, tick: 0, ...o }, 40)
+  const keys = (c: string[][], k: string) => c.flat().filter(x => k.includes(x)).length
+  expect(keys(solo({ form: 'gold', night: true }), 'm')).toBeGreaterThan(0) // the gold star, even at night
+  expect(keys(solo({ form: 'bolt', night: false }), 'm')).toBe(0) // not the star
+  expect(keys(solo({ form: 'auto', night: false }), 'm')).toBeGreaterThan(0)
+  expect(keys(solo({ form: 'auto', night: true }), 'm')).toBe(0) // by night the bolt hat
+  stub(on)
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const run = async (args: string) => JSON.stringify(await $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never))
+  expect(await run('wizard bolt')).toMatch(/violet bolt/)
+  expect(await run('wizard gold')).toMatch(/gold star/)
+  expect(await run('wizard auto')).toMatch(/follows the hour/)
+  expect(await run('wizard purple')).toMatch(/Usage/)
+})
+
+test('a commit, a green run, a skill and a long turn each bring the wizard out; a short turn does not', () => {
+  const s = initial()
+  expect(react(s, 'commit').look).toBe('wizard')
+  expect(react(s, 'test').look).toBe('wizard')
+  expect(react(s, 'spell').look).toBe('wizard')
+  const long = react(s, 'turn', 5 * 60_000)
+  expect(long.look).toBe('wizard')
+  expect(react(s, 'turn', 5_000).look).toBe('done')
+  // the cast is brief: after a few beats the wizard goes back to resting, or to the cup
+  let c = react(s, 'commit')
+  for (let i = 0; i < 14; i++) c = step(c)
+  expect(c.look).toBe('idle')
+  let l = { ...long, label: 'done, 3 tools' }
+  for (let i = 0; i < 14; i++) l = step(l)
+  expect(l.look).toBe('done')
+})
+
+test('sound plays only when asked for, and a toast greets a commit and a green run', async ($, on) => {
+  stub(on)
+  const played: string[] = []
+  const toasts: string[] = []
+  on('tool.call', () => ({ result: 'ok' }) as never)
+  on('ui.status', () => ({ value: undefined }))
+  on('ui.toast', (_: unknown, e: { text: string }) => { toasts.push(e.text); return { value: undefined } })
+  on('audio.play', (_: unknown, e: { clip: { asset?: string } }) => { played.push(e.clip.asset ?? ''); return { value: undefined } })
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const run = (args: string) => $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never)
+  await $.tool.call({ tool: 'Skill' } as never)
+  await run('pet')
+  expect(played).toEqual([]) // off until asked
+  expect(JSON.stringify(await run('sound maybe'))).toMatch(/Usage/)
+  expect(JSON.stringify(await run('sound on'))).toMatch(/Sound is on/)
+  await $.tool.call({ tool: 'Skill' } as never)
+  await run('pet')
+  expect(played).toEqual(['sounds/cast.wav', 'sounds/purr.wav'])
+  await run('sound off')
+  await run('pet')
+  expect(played.length).toBe(2)
+  await $.tool.call({ tool: 'Bash', command: 'git commit -m "x"' } as never)
+  await $.tool.call({ tool: 'Bash', command: 'npm test' } as never)
+  expect(toasts.some(x => /Pip drew a star/.test(x))).toBe(true)
+  expect(toasts.some(x => /Biscuit allows it/.test(x))).toBe(true)
+})
+
+test('the critter and the cat never overlap while both wander, at any width', () => {
+  for (const cols of [90, 100, 130]) {
+    for (const seed of [3, 7, 11]) {
+      let s = { ...initial(), cols, seed, cx: 4, kx: cols - CAT_W }
+      let worst = Infinity
+      for (let i = 0; i < 1200; i++) {
+        s = step({ ...s, idle: 0 })
+        if (s.look === 'coder' || s.mode === 'sit') continue
+        worst = Math.min(worst, Math.max(s.cx - (s.kx + CAT_W), s.kx - (s.cx + CRIT_W))) // the gap between them, negative if they overlap
+      }
+      expect(worst).toBeGreaterThanOrEqual(0)
+    }
+  }
+})
+
+test('/critter offers its subcommands as you type, in the cat\'s voice, and only then', () => {
+  const words = (text: string, n = NAMES_DEFAULT) => suggest(text, text.length, n).map(r => r.text)
+  expect(words('/critter ')).toContain('pet')
+  expect(words('/critter ')).toContain('stage')
+  expect(words('/critter ca')).toEqual(['cast', 'cat'])
+  expect(words('/critter pet')).toEqual([]) // already whole
+  expect(words('/critter cat ')).toContain('orange')
+  expect(words('/critter cat ti')).toEqual([])
+  expect(words('/critter cat ta')).toEqual(['tabby'])
+  expect(words('/critter wizard b')).toEqual(['bolt'])
+  expect(words('/critter sound ')).toEqual(['on', 'off'])
+  expect(words('/critter name ')).toEqual(['cat', 'pip'])
+  expect(suggest('/critter pe', 11, { cat: 'Marmalade', pip: 'Nib' })[0]!.description).toBe('Marmalade allows it')
+  // not for anything else, and not away from the end of the draft
+  expect(words('hello ')).toEqual([])
+  expect(words('/critter')).toEqual([])
+  expect(words('/diary ')).toEqual([])
+  expect(suggest('/critter pe', 3)).toEqual([])
+})
+
 test('the wizard paces beside the orb while Claude works, and stays inside his frame', () => {
   const s = { ...initial(), cols: 40 }
   // the empty cells left of his leftmost pixel, over all rows: one more when he steps right
@@ -183,9 +312,9 @@ test('the wizard paces beside the orb while Claude works, and stays inside his f
 test('the cat keeps count and curls up to sleep', () => {
   let s = initial()
   for (let i = 0; i < 3; i++) s = react(s, 'error')
-  expect(s.log[s.log.length - 1]).toMatch(/three/)
+  expect(s.log[s.log.length - 1]).toMatch(/Three now/)
   s = react(s, 'error')
-  expect(s.log[s.log.length - 1]).toMatch(/already awake/)
+  expect(s.log[s.log.length - 1]).toMatch(/already watching/)
   let t = initial()
   for (let i = 0; i < 10; i++) t = react(t, 'commit')
   expect(t.log[t.log.length - 1]).toMatch(/Ten/)
@@ -218,8 +347,8 @@ test('the cat sits up facing you, in every coat, and /critter cat takes them all
 
 test('the voice follows what happened and the hour, and the same scene always says the same line', () => {
   const s = initial()
-  expect(quip('turn', s, 12, 3_000)).toMatch(/cat|gone/)
-  expect(quip('turn', s, 12, 60_000)).toMatch(/wizard/)
+  expect(quip('turn', s, 12, 3_000)).toMatch(/\{cat\}|gone/)
+  expect(quip('turn', s, 12, 60_000)).toMatch(/\{pip\}/)
   expect(quip('turn', s, 12, 300_000)).toMatch(/dozed|naps|moved house/)
   const rough = { ...s, stats: { ...s.stats, errors: 1 }, log: ['It failed. I was already awake. I knew.'] }
   expect(quip('turn', rough, 12, 60_000)).toMatch(/error|blames|bumpy/)
@@ -229,7 +358,7 @@ test('the voice follows what happened and the hour, and the same scene always sa
   expect(quip('turn', s, 12, 3_000)).toBe(quip('turn', { ...s }, 12, 3_000))
   const next = react(s, 'turn', 3_000)
   expect(quip('turn', next, 12, 3_000)).not.toBe('')
-  expect(quip('hint', { ...s, look: 'wizard' })).toBe('the wizard is casting')
+  expect(quip('hint', { ...s, look: 'wizard' })).toBe('{pip} is casting')
   expect(quip('hint', { ...s, look: 'idle', idle: 150 })).toBe('both asleep')
   expect(quip('ask', { ...s, trust: 10 })).toMatch(/opinions/)
 })
@@ -405,16 +534,16 @@ test('every row of the transcript wears a face by what the call did, and lite ta
   }
   expect(await seen('ToolUse', use, /▐▪█▪▌|▐\^█\^▌/)).toBeDefined() // a finished call: happy eyes
   expect(await seen('ToolUse', { ...use, isErrored: true }, /×/)).toBeDefined()
-  expect(await seen('ToolResult', { tool_use_id: 't1', tool: 'Bash', output: {}, isErrored: true }, /cat|wizard|harmed/)).toBeDefined()
-  expect(await seen('ToolResult', { tool_use_id: 't1', tool: 'Bash', output: {}, isErrored: false }, /cat|wizard|harmed/)).toBeUndefined()
+  expect(await seen('ToolResult', { tool_use_id: 't1', tool: 'Bash', output: {}, isErrored: true }, /Biscuit|Pip|harmed/)).toBeDefined()
+  expect(await seen('ToolResult', { tool_use_id: 't1', tool: 'Bash', output: {}, isErrored: false }, /Biscuit|Pip|harmed/)).toBeUndefined()
   expect(await seen('ToolGroup', { calls: [], isActive: true, isExpanded: false }, /▐/)).toBeDefined()
-  expect(await seen('TurnDuration', { word: 'Baked', durationMs: 3000 }, /cat|gone/)).toBeDefined()
+  expect(await seen('TurnDuration', { word: 'Baked', durationMs: 3000 }, /Biscuit|gone/)).toBeDefined()
   expect(await seen('TurnDuration', { word: 'Baked', durationMs: 300_000 }, /dozed|naps|moved house/)).toBeDefined()
   expect(await seen('InfoNotice', { text: 'Sonnet', command: null }, /critter-buddy: .* · \/critter/)).toBeDefined()
   // lite: the band, the wizard and the orb stay; the rows of the transcript go bare
   await $.command.run({ command: 'critter', args: 'lite', origin: { kind: 'composer' }, presentation: {} } as never)
   expect(await seen('ToolUse', use, /▐/)).toBeUndefined()
-  expect(await seen('TurnDuration', { word: 'Baked', durationMs: 3000 }, /cat|gone/)).toBeUndefined()
+  expect(await seen('TurnDuration', { word: 'Baked', durationMs: 3000 }, /Biscuit|gone/)).toBeUndefined()
   // party: messages wear a face as well
   await $.command.run({ command: 'critter', args: 'party', origin: { kind: 'composer' }, presentation: {} } as never)
   expect(await seen('AssistantMessage', { text: 'hello', isFirstOfReply: true }, /▐/)).toBeDefined()
@@ -500,7 +629,7 @@ test('the critter walks, turns at both ends, jumps, and sits still at the laptop
   let jumped = false
   for (let i = 0; i < 600; i++) { s = step(s); xs.add(s.cx); jumped ||= s.jt > 0; expect(s.cx).toBeGreaterThanOrEqual(0) }
   expect(Math.min(...xs)).toBe(0)
-  expect(Math.max(...xs)).toBeGreaterThan(30)
+  expect(Math.max(...xs)).toBeGreaterThan(20) // the stretch of the bar the cat leaves it
   expect(jumped).toBe(true)
   expect(run(at({ look: 'coder', cx: 10 }), 20).cx).toBe(10)
 })
@@ -532,7 +661,7 @@ test('the cat finds a cup on the bar and knocks it off, and the diary hears of i
 
 test('what happens in the session changes how they act, and the cat says so', () => {
   const e = react(at({}), 'error')
-  expect(e.mode).toBe('pounce'); expect(e.stats.errors).toBe(1); expect(e.log[0]).toMatch(/knew/)
+  expect(e.mode).toBe('pounce'); expect(e.stats.errors).toBe(1); expect(e.log[0]).toMatch(/watching/)
   expect(react(at({}), 'test').jt).toBe(1)
   expect(react(at({}), 'commit').stats.commits).toBe(1)
   expect(react(at({}), 'deny').mode).toBe('swat')
@@ -591,7 +720,7 @@ test('/critter takes its subcommands and leaves /pet to the mod that owns it', a
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   const said = async (args: string) =>
     (await $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never)) as { text?: string }
-  expect((await said('pet')).text).toMatch(/petted/)
+  expect((await said('pet')).text).toMatch(/Biscuit allows it/)
   expect((await said('treat')).text).toMatch(/treat/)
   expect((await said('nap')).text).toMatch(/asleep/)
   expect((await said('spell')).text).toMatch(/cast/)

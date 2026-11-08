@@ -175,7 +175,7 @@ const critterPx = (s: Scene, step: 0 | 1): Px => {
     happy: s.look === 'done',
     breath: s.tick % 16 < 8,
     morph: wiz ? Math.round(Math.min(1, s.wt / 8) * 16) / 16 : 0,
-    night: s.night,
+    night: s.form === 'bolt' ? true : s.form === 'gold' ? false : s.night,
     bolt: wiz && s.wt >= 8 ? ((Math.floor(s.tick / 2) % 2) + 1) as 1 | 2 : 0,
   }
   const key = `${o.kit}${o.aura}${o.walk}${o.arms}${+o.cast}${+o.blink}${+o.happy}${+o.breath}|${o.morph}|${+o.night}${o.bolt}`
@@ -321,7 +321,7 @@ const keyFor = (s: Scene): string => (s.variant === 'pair' ? (s.night ? 'night' 
 
 // ---- state ----------------------------------------------------------------
 export const initial = (): Scene => ({
-  tick: 0, cols: 80, look: 'idle', label: 'ready', tools: 0, skills: 0, night: false, idle: 0, wt: 0,
+  form: 'auto', tick: 0, cols: 80, look: 'idle', label: 'ready', tools: 0, skills: 0, night: false, idle: 0, wt: 0,
   cx: 4, cdir: 1, jt: 0, kx: 60, kdir: -1, mode: 'loaf', mt: 0, target: 40, seed: 7, variant: 'orange',
   trust: 60, joy: 60, fx: [], game: { on: false, lane: 1, row: 0, score: 0, best: 0 },
   stats: { turns: 0, errors: 0, pets: 0, commits: 0, tests: 0, denials: 0, knocks: 0 }, log: [],
@@ -338,13 +338,13 @@ export const poke = (s: Scene, mode: CatMode): Scene => ({ ...s, mode, mt: 0 })
 
 // The cat keeps count. A round number gets a line of its own; every other one gets the usual.
 const ERROR_LINES: Record<number, string> = {
-  3: 'That is three. I am keeping count.', 5: 'Five. The wizard has stopped looking up.', 10: 'Ten. I have started a list. It is mostly this.',
+  3: 'Three now. {cat} is keeping a list.', 5: 'Five. {pip} has stopped looking up.', 10: 'Ten. The list is mostly this.',
 }
 const TEST_LINES: Record<number, string> = {
-  5: 'The fifth green run. I may stand up.', 10: 'Ten passes. I will sit on the laptop to celebrate.', 25: 'Twenty-five. I no longer check.',
+  5: 'Five green runs. {cat} may stand up.', 10: 'Ten. {cat} sits on the laptop to celebrate.', 25: 'Twenty-five. Nobody checks any more.',
 }
 const COMMIT_LINES: Record<number, string> = {
-  5: 'Five commits. A village in the history.', 10: 'Ten. A small town. I want a window seat.', 25: 'Twenty-five. The history needs a cat.',
+  5: 'Five commits. A village in the history.', 10: 'Ten. A small town. {cat} wants a window seat.', 25: 'Twenty-five. The history needs a bigger cat.',
 }
 /** The line for the n-th event when n is a round one; `exported` so the tests can pin it. */
 export const milestone = (n: number, lines: Record<number, string>): string | undefined => lines[n]
@@ -355,37 +355,38 @@ export const react = (s: Scene, ev: Reaction, arg = 0): Scene => {
   switch (ev) {
     case 'error':
       return { ...poke(woke, 'pounce'), joy: clamp(s.joy - 6), stats: { ...s.stats, errors: s.stats.errors + 1 },
-        log: say(s, milestone(s.stats.errors + 1, ERROR_LINES) ?? 'It failed. I was already awake. I knew.') }
+        log: say(s, milestone(s.stats.errors + 1, ERROR_LINES) ?? 'That broke. {cat} was already watching it.') }
     case 'test':
       return { ...woke, jt: 1, joy: clamp(s.joy + 6), stats: { ...s.stats, tests: s.stats.tests + 1 },
-        fx: addFx(s, ...sparks(s.cx + 6, 3)), log: say(s, milestone(s.stats.tests + 1, TEST_LINES) ?? 'Tests passed. I allow it.') }
+        look: 'wizard', wt: 8, label: 'green', fx: addFx(s, ...sparks(s.cx + 6, 3)), log: say(s, milestone(s.stats.tests + 1, TEST_LINES) ?? 'Green. {cat} allows it.') }
     case 'commit':
       return { ...woke, jt: 1, joy: clamp(s.joy + 8), stats: { ...s.stats, commits: s.stats.commits + 1 },
-        fx: addFx(s, ...sparks(s.cx + 6, 4)), log: say(s, milestone(s.stats.commits + 1, COMMIT_LINES) ?? 'A commit. A small god, in the history.') }
+        look: 'wizard', wt: 8, label: 'committed', fx: addFx(s, ...sparks(s.cx + 6, 4)), log: say(s, milestone(s.stats.commits + 1, COMMIT_LINES) ?? 'A commit. {pip} drew a small star in the history.') }
     case 'turn': {
       const mins = Math.round(arg / 60000)
       const long = arg > 120000
-      return { ...(long ? poke(woke, 'yawn') : woke), jt: long ? 0 : 1, look: 'done', label: 'done', fx: addFx(s, ...sparks(s.cx + 6, 3)),
+      return { ...(long ? poke(woke, 'yawn') : woke), jt: long ? 0 : 1, look: long ? 'wizard' : 'done', wt: long ? 8 : s.wt, label: 'done', // a long turn ends with one last bolt before the coffee
+        fx: addFx(s, ...sparks(s.cx + 6, 3)),
         stats: { ...s.stats, turns: s.stats.turns + 1 },
-        log: say(s, long ? `That took ${mins} minutes. I slept through most of it, and I would again.` : 'Turn over. Back to the loaf.') }
+        log: say(s, long ? `That took ${mins} minutes. {cat} slept through most of it and would again.` : 'Done. {pip} bows. {cat} did not look up.') }
     }
     case 'ask':
-      return { ...poke(woke, 'alert'), log: say(s, 'It is asking you. It never asks me.') }
+      return { ...poke(woke, 'alert'), log: say(s, '{pip} is asking you something. {cat} was not consulted.') }
     case 'deny':
       return { ...poke(woke, 'swat'), stats: { ...s.stats, denials: s.stats.denials + 1 },
-        fx: addFx(s, ...sparks(s.kx + 14, 2)), log: say(s, 'Denied. Good. I would have done it myself.') }
+        fx: addFx(s, ...sparks(s.kx + 14, 2)), log: say(s, 'Denied. {cat} would have done it with one paw.') }
     case 'pet':
       return { ...poke(woke, 'purr'), trust: clamp(s.trust + 6), stats: { ...s.stats, pets: s.stats.pets + 1 },
-        fx: addFx(s, ...hearts(s, 3)), log: say(s, s.trust < 30 ? 'Petted. I am still angry. Continue.' : 'Petted. I did not ask. Continue.') }
+        fx: addFx(s, ...hearts(s, 3)), log: say(s, s.trust < 30 ? '{cat} allows it. {cat} is still angry. Continue.' : '{cat} allows it. Do not stop.') }
     case 'treat':
       return { ...poke(woke, 'follow'), trust: clamp(s.trust + 3), joy: clamp(s.joy + 8), jt: 1,
         target: s.cx + (s.cdir === 1 ? -14 : 14),
-        fx: addFx(s, { k: 'treat', x: s.cx + 5, y: 12, vx: 0, vy: -1, life: 10 }), log: say(s, 'A treat. The wizard thinks it was for him.') }
+        fx: addFx(s, { k: 'treat', x: s.cx + 5, y: 12, vx: 0, vy: -1, life: 10 }), log: say(s, 'A treat. {pip} is sure it was his.') }
     case 'nap':
-      return { ...poke(s, 'loaf'), look: 'idle', label: 'napping', idle: 200, log: say(s, 'Nap time. Both of us. Do not look at the screen.') }
+      return { ...poke(s, 'loaf'), look: 'idle', label: 'napping', idle: 200, log: say(s, '{cat} and {pip} nap. Do not look at the screen.') }
     case 'spell':
       return { ...woke, look: 'wizard', label: 'casting', wt: 0, jt: 1, joy: clamp(s.joy + 4), fx: addFx(s, ...sparks(s.cx + 6, 5)),
-        log: say(s, 'The wizard cast something. Nothing happened. He seems happy.') }
+        log: say(s, '{pip} cast something. Nothing happened. He is delighted.') }
   }
 }
 
@@ -403,6 +404,8 @@ export const catchIn = (s: Scene, lane: 0 | 1 | 2): Scene => {
 export const step = (s: Scene): Scene => {
   const n: Scene = { ...s, tick: s.tick + 1, mt: s.mt + 1, idle: s.idle + 1, seed: rnd(s.seed) }
   // "done" is a few seconds of celebration, then the pair settle to idle so they can nap again
+  if (s.look === 'wizard' && (s.label === 'green' || s.label === 'committed') && s.idle > 10) ((n.look = 'idle'), (n.label = 'ready')) // a cast with a reason is brief
+  if (s.look === 'wizard' && s.label.startsWith('done') && s.idle > 10) n.look = 'done'
   if (s.look === 'done' && s.idle > 24) ((n.look = 'idle'), (n.label = 'ready'))
   n.wt = s.look === 'wizard' ? Math.min(60, s.wt + 1) : 0 // how long the hat has been building
   const max = Math.max(0, s.cols - CAT_W)
@@ -413,9 +416,12 @@ export const step = (s: Scene): Scene => {
   if (s.look !== 'coder' && s.look !== 'chef' && !asleep) {
     const speed = calm ? 1 : 2
     n.cx = s.cx + s.cdir * speed
-    const room = Math.max(0, s.cols - CAT_W - CRIT_W - 4) // the critter keeps to the stretch of the bar the cat leaves it
-    if (n.cx >= room) ((n.cx = room), (n.cdir = -1))
-    if (n.cx <= 0) ((n.cx = 0), (n.cdir = 1))
+    // the critter keeps to the stretch of the bar the cat leaves it: left of the cat if the cat is to its right, else right of it
+    const catRight = s.kx >= s.cx
+    const lo = catRight ? 0 : Math.min(s.cols - CRIT_W, s.kx + CAT_W + 2)
+    const hi = catRight ? Math.max(0, Math.min(s.cols - CRIT_W, s.kx - CRIT_W - 2)) : Math.max(0, s.cols - CRIT_W)
+    if (n.cx >= hi) ((n.cx = Math.max(lo, hi)), (n.cdir = -1))
+    if (n.cx <= lo) ((n.cx = lo), (n.cdir = 1))
   }
   if (s.jt > 0) n.jt = s.jt >= 9 ? 0 : s.jt + 1
   else if (calm && !asleep && n.seed % 53 === 0) n.jt = 1
@@ -472,7 +478,7 @@ export const step = (s: Scene): Scene => {
       if (s.mt === 4 && cup) {
         n.fx = s.fx.map(f => (f === cup ? { ...f, vx: 1.5 * n.kdir, vy: 2, life: 14 } : f))
         n.stats = { ...s.stats, knocks: s.stats.knocks + 1 }
-        n.log = say(s, 'Knocked a cup off the bar. I meant it.')
+        n.log = say(s, 'A cup, off the bar. {cat} meant it.')
       }
       if (s.mt > 8) ((n.mode = 'loaf'), (n.mt = 0))
       break
@@ -499,6 +505,10 @@ export const step = (s: Scene): Scene => {
   }
   // the pair's moods drift back to even
   if (s.tick % 40 === 0) { n.joy = s.joy + (s.joy > 60 ? -1 : s.joy < 60 ? 1 : 0); if (s.idle > 400) n.trust = clamp(s.trust - 1) }
+  // whatever the cat just did, it stays out of the critter: if the two would overlap it stops at the critter's edge
+  if (n.kx < n.cx + CRIT_W + 2 && n.cx < n.kx + CAT_W + 2 && s.mode !== 'sit' && s.mode !== 'follow') {
+    n.kx = s.kx >= s.cx ? Math.min(max, n.cx + CRIT_W + 2) : Math.max(0, n.cx - CAT_W - 2)
+  }
   return n
 }
 
@@ -689,6 +699,14 @@ export const paintBig = (s: Scene): Run[][] => {
   })
 }
 
+// ---- names ---------------------------------------------------------------------
+// The lines say {cat} and {pip}; what the person called them is put in at the last moment, so a rename changes every line at once.
+export type Names = { cat: string; pip: string }
+export const NAMES_DEFAULT: Names = { cat: 'Biscuit', pip: 'Pip' }
+export const named = (line: string, n: Names = NAMES_DEFAULT): string => line.replaceAll('{cat}', n.cat).replaceAll('{pip}', n.pip)
+/** A name the person typed, made safe to print: letters, digits, spaces, hyphens and apostrophes, 16 at most. */
+export const cleanName = (raw: string): string => raw.replace(/[^\p{L}\p{N} '-]/gu, '').trim().slice(0, 16)
+
 // ---- voice -----------------------------------------------------------------
 // What the pair say outside the diary. Every line is picked from what just happened (how long the turn took, whether
 // anything failed, the hour in Johannesburg), and the pick is a function of the scene, never of chance, so a replay says
@@ -697,14 +715,14 @@ export type Voice = 'turn' | 'ask' | 'greet' | 'hint'
 
 const pickBy = (pool: readonly string[], s: Scene): string => pool[(s.stats.turns + s.stats.commits + s.seed) % pool.length]!
 
-const TURN_FAST = ['the cat did not look up', 'quick. the cat is unimpressed', 'gone before the cat blinked']
-const TURN_MID = ['the wizard approves', 'the wizard nodded once', 'a clean cast, says the wizard']
-const TURN_LONG = ['the wizard dozed off', 'the cat has moved house since', 'long enough for two naps']
-const TURN_ROUGH = ['the cat saw that error first', 'the wizard blames the cat', 'bumpy. the wizard is calm about it']
-const MORNING = ['good morning. the wizard is up first', 'morning. the cat has not decided yet']
-const DAY = ['the wizard is at the orb', 'daylight. the cat took the warm spot']
-const EVENING = ['evening. the wizard lit the lamp', 'the cat is awake now, as promised']
-const NIGHT = ['night shift. antennae out', 'the glass is dark. the wizard keeps the orb lit']
+const TURN_FAST = ['{cat} did not look up', 'quick. {cat} is unimpressed', 'gone before {cat} blinked']
+const TURN_MID = ['{pip} approves', '{pip} nodded once', 'a clean cast, says {pip}']
+const TURN_LONG = ['{pip} dozed off', '{cat} has moved house since', 'long enough for two naps']
+const TURN_ROUGH = ['{cat} saw that error first', '{pip} blames {cat}', 'bumpy. {pip} is calm about it']
+const MORNING = ['good morning. {pip} is up first', 'morning. {cat} has not decided yet']
+const DAY = ['{pip} is at the orb', 'daylight. {cat} took the warm spot']
+const EVENING = ['evening. {pip} lit the lamp', '{cat} is awake now, as promised']
+const NIGHT = ['night shift. antennae out', 'the glass is dark. {pip} keeps the orb lit']
 
 /** `hour` is the hour in Africa/Johannesburg, 0 to 23. `ms` is only read for the turn line. */
 export const quip = (kind: Voice, s: Scene, hour = 12, ms = 0): string => {
@@ -713,12 +731,36 @@ export const quip = (kind: Voice, s: Scene, hour = 12, ms = 0): string => {
       if (s.stats.errors > 0 && s.log.some(l => /fail/i.test(l)) && ms < 120_000) return pickBy(TURN_ROUGH, s)
       return pickBy(ms < 10_000 ? TURN_FAST : ms < 120_000 ? TURN_MID : TURN_LONG, s)
     case 'ask':
-      return s.trust < 30 ? 'the cat is watching you decide, and has opinions' : s.skills > 2 ? 'the wizard would cast it, if asked' : 'the cat is watching you decide'
+      return s.trust < 30 ? '{cat} is watching you decide, and has opinions' : s.skills > 2 ? '{pip} would cast it, if asked' : '{cat} is watching you decide'
     case 'greet': {
       const pool = hour >= 18 || hour < 5 ? NIGHT : hour < 11 ? MORNING : hour < 17 ? DAY : EVENING
       return `${pickBy(pool, s)} · /critter`
     }
     case 'hint':
-      return s.look === 'wizard' ? 'the wizard is casting' : s.mode === 'sit' ? 'the cat is on the laptop' : s.look === 'idle' && s.idle > 100 ? 'both asleep' : '/critter pet'
+      return s.look === 'wizard' ? '{pip} is casting' : s.mode === 'sit' ? '{cat} is on the laptop' : s.look === 'idle' && s.idle > 100 ? 'both asleep' : '/critter pet'
   }
+}
+
+// ---- the typeahead -------------------------------------------------------------
+export type Suggestion = { text: string; label: string; description: string }
+const COATS_LIST = ['orange', 'ink', 'brown', 'tabby', 'ginger', 'black', 'tuxedo', 'cream', 'grey', 'siamese', 'pair']
+/** What `/critter ` offers as you type it. Pure: the draft in, rows out; only at the end of the draft, and only for /critter. */
+export const suggest = (text: string, cursor: number, n: Names = NAMES_DEFAULT): Suggestion[] => {
+  const m = /^\/critter\s+(?:(cat|wizard|sound|talk|name)\s+)?(\S*)$/.exec(text)
+  if (!m || cursor !== text.length) return []
+  const [, group, typed = ''] = m
+  const row = (word: string, description: string): Suggestion => ({ text: word, label: word, description })
+  const list: Suggestion[] =
+    group === 'cat' ? COATS_LIST.map(c => row(c, c === 'orange' ? `${n.cat}'s own coat` : c === 'pair' ? 'follows day and night' : `${n.cat} in ${c}`))
+    : group === 'wizard' ? [row('auto', 'gold star by day, bolt hat by night'), row('gold', 'always the gold star'), row('bolt', 'always the violet bolt')]
+    : group === 'sound' ? [row('on', 'a cast chime and a purr'), row('off', 'quiet again')]
+    : group === 'talk' ? [row('on', `${n.cat} speaks after a turn; one small model call each`), row('off', `${n.cat} keeps their own counsel`)]
+    : group === 'name' ? [row('cat', `rename ${n.cat}`), row('pip', `rename ${n.pip}`)]
+    : [
+        row('pet', `${n.cat} allows it`), row('treat', `${n.pip} is sure it is his`), row('cast', `${n.pip} casts something`), row('nap', 'both of them sleep'),
+        row('stage', 'the critter alone on an empty stage'), row('corner', `${n.cat}'s corner: moods, diary, a game`), row('diary', `what ${n.cat} wrote`),
+        row('cat', 'choose a coat'), row('wizard', 'choose the wizard'), row('name', 'rename them'), row('sound', 'chime and purr'), row('talk', `let ${n.cat} speak`),
+        row('lite', 'the bar, the wizard and the orb'), row('full', 'and the rows of the transcript'), row('party', 'and every message'), row('hide', 'out of sight'), row('show', 'back again'),
+      ]
+  return list.filter(r => r.text.startsWith(typed.toLowerCase()) && r.text !== typed)
 }
