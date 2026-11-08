@@ -1,0 +1,55 @@
+# mods
+
+![mods: eight switches](.claude-plugin/icon.png)
+
+The control room for the sovereign-critters mods. Type `/mods` and one pane opens, on the right, with every mod in it: whether it is on, a switch for each, and a button for each of its own panes.
+
+```
+/mods
+```
+
+## What the pane does
+
+- **Lists every mod** with its version and a symbol and word for its state: `●` on, `○` off, `–` not installed. Never colour alone.
+- **Switches each one on or off.** The switch asks the plugin manager (`claude plugin enable` and `claude plugin disable`), then says plainly that a restart applies it. A mod you switched since this session began is marked "restart to apply" until you do.
+- **Installs the missing ones.** A mod that is not installed shows an `install` button; `/mods install all` adds every one.
+- **Opens each mod's own panes**: the cat corner and the stage, the diary, the week, the postcard, the crab's note, the stunt and everywhere panes. It runs that mod's own slash command, so the mod draws its own pane.
+
+## Commands
+
+| Command | Does |
+| --- | --- |
+| `/mods` | Opens the control room. |
+| `/mods list` | The same list as plain lines: works where no pane can open (a headless run, a chat panel). |
+| `/mods on <mod>`, `/mods off <mod>` | Switches a mod. `<mod>` is its name (`critter-buddy`) or a short name (`critter`, `diary`, `bell`). |
+| `/mods install <mod\|all>` | Installs a missing mod, or all of them. |
+| `/mods open <mod> [label]` | Puts the mod's own command in the prompt box (`/critter corner`) for you to send. |
+
+## Look and feel
+
+When critter-buddy is on, the pane also holds its dials: feel (calm, warm, playful, still), reach (lite, full, party), the pair (show, hide) and sound (on, off). Each button runs that mod's own `/critter` command.
+
+## What it never does
+
+- It makes no network request and sends no telemetry. The only thing it starts is the `claude plugin` command on your own machine, and only with a fixed command line built from its list of eight mods: nothing you type is ever passed to a command line, and a name that is not on the list is refused.
+- It cannot switch itself off (use `claude plugin disable mods` for that).
+- It keeps nothing of its own: the plugin manager is the truth, and it is asked each time.
+- Where there is no plugin manager (a cloud or chat session without the CLI), it says so and draws nothing that could do nothing.
+
+## Install
+
+```
+/plugin marketplace add christiaan839-beep/sovereign-critters
+/plugin install mods@sovereign-critters
+```
+
+Plugins load in a new session. Then `/mods install all` adds the rest.
+
+## Check
+
+```
+claude plugin validate . --strict
+claude plugin test .
+```
+
+Apache-2.0. Not affiliated with Anthropic.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One command before a commit or a release: validate and test the root and all eight plugins, check every sound,
+# One command before a commit or a release: validate and test the root and all nine plugins, check every sound,
 # and scan the files for what must never be published. Exits non-zero on any real failure; runs every step first.
 # Needs: the claude CLI, python3, git, grep. Run from anywhere: bash tools/preflight.sh
 set -u

@@ -28,7 +28,7 @@ for p in plugins/*/; do (cd $p && claude plugin validate . --strict && claude pl
 claude plugin validate . --strict
 ```
 
-All eight plugins and the marketplace must pass. Search the tree for anything that should not be public: keys, personal paths, model IDs.
+All nine plugins and the marketplace must pass. Search the tree for anything that should not be public: keys, personal paths, model IDs.
 
 Read the not-affiliated lines in the READMEs once against Anthropic's trademark guidelines.
 

@@ -31,7 +31,7 @@ jobs:
       - name: Install the Claude Code CLI
         run: npm install -g @anthropic-ai/claude-code@2.1.319
 
-      # Validates and tests the root and all eight plugins, checks the sounds, and scans for home paths, model ids,
+      # Validates and tests the root and all nine plugins, checks the sounds, and scans for home paths, model ids,
       # secret-shaped strings, emails and merge markers. Exits non-zero on any real failure.
       - name: Preflight
         run: bash tools/preflight.sh

@@ -11,6 +11,11 @@
       "description": "The wizard, the cat, a stage, names, a cast chime and a purr, a diary the model can read, and a Day and Night backdrop."
     },
     {
+      "name": "mods",
+      "source": "./plugins/mods",
+      "description": "/mods: the control room. One pane lists every mod, switches each on or off, installs the missing ones, and opens each mod's own panes."
+    },
+    {
       "name": "build-bell",
       "source": "./plugins/build-bell",
       "description": "A counter-bell strike and a toast when a long command or a long turn finishes."
