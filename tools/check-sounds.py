@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
-"""Check every sound of critter-buddy: 16-bit mono 44.1 kHz, audible, never clipped, no click at either end, a sensible length.
+"""Check every .wav of a plugin: 16-bit mono 44.1 kHz, audible, never clipped, no click at either end, a sensible length.
     python3 tools/check-sounds.py plugins/critter-buddy/sounds
-Exits 1 on the first sound that fails."""
+Exits 1 if any sound fails or none is found."""
+import glob
+import os
 import struct
 import sys
 import wave
 
 LENGTHS = {"cast": (0.8, 2.0), "purr": (0.8, 2.0), "paw": (0.15, 0.5), "paper": (0.25, 0.7), "chime": (0.8, 2.0)}
+ANY = (0.05, 3.0)  # a sound this table does not know still has to be a sensible length
 bad = []
-for name, (lo, hi) in LENGTHS.items():
+names = sorted(os.path.splitext(os.path.basename(f))[0] for f in glob.glob(f"{sys.argv[1]}/*.wav"))
+if not names: bad.append("no .wav files found")
+for name in names:
+    lo, hi = LENGTHS.get(name, ANY)
     try:
         w = wave.open(f"{sys.argv[1]}/{name}.wav")
     except Exception as e:
