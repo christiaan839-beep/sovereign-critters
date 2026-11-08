@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Entry } from '../types'
-import { lineOf, markdownOf } from '../hooks/register'
+import { addTool, addTurn, dayOf, lineOf, markdownOf, weekOf } from '../hooks/register'
 
 // 1_000_000_000_000 ms is 2001-09-09 01:46:40 UTC, so 03:46 in Johannesburg.
 const AT = 1_000_000_000_000
@@ -111,4 +111,42 @@ test('the pane lists what happened and has its buttons, on every surface', async
     expect(await ui.find({ key: 'close' })).toBeDefined()
     await ui.unmount()
   }
+})
+
+// 2026-11-08 is a Sunday; 22:30 UTC is already Monday 00:30 in Johannesburg.
+const SUN = Date.UTC(2026, 10, 8, 10)
+const DAY = 86_400_000
+
+test('a day is the Johannesburg calendar day, so late evening UTC belongs to tomorrow', () => {
+  expect(dayOf(SUN)).toBe('2026-11-08')
+  expect(dayOf(Date.UTC(2026, 10, 8, 21, 59))).toBe('2026-11-08')
+  expect(dayOf(Date.UTC(2026, 10, 8, 22, 0))).toBe('2026-11-09')
+})
+
+test('calls and turns count into their day and the list keeps 14 days, oldest dropped', () => {
+  let d = addTool([], SUN, 'Read', true)
+  d = addTool(d, SUN + 1000, 'Bash', false)
+  d = addTurn(d, SUN + 2000, 4000)
+  expect(d).toEqual([{ day: '2026-11-08', tools: 2, failed: 1, turns: 1, ms: 4000, by: { Read: 1, Bash: 1 } }])
+  let long = [] as ReturnType<typeof addTool>
+  for (let i = 0; i < 20; i++) long = addTool(long, SUN + i * DAY, 'Read', true)
+  expect(long).toHaveLength(14)
+  expect(long[0]!.day).toBe(dayOf(SUN + 6 * DAY))
+})
+
+test('the week lists seven days oldest first, marks quiet ones, and names the busiest tools', () => {
+  expect(weekOf([], SUN)).toContain('Nothing yet.')
+  let d = addTool([], SUN - 2 * DAY, 'Read', true)
+  d = addTool(d, SUN - 2 * DAY, 'Read', true)
+  d = addTool(d, SUN, 'Bash', false)
+  d = addTurn(d, SUN, 90_000)
+  const w = weekOf(d, SUN)
+  expect(w).toContain('# This week')
+  expect(w.indexOf('Mon 11-02')).toBeLessThan(w.indexOf('Sun 11-08'))
+  expect(w).toContain('- Fri 11-06  2 tool calls · 0 turns')
+  expect(w).toContain('- Sat 11-07  quiet')
+  expect(w).toContain('- Sun 11-08  1 tool call, 1 failed · 1 turn · 1 min 30 s')
+  expect(w).toContain('3 tool calls, 1 failed, 1 turn, 1 min 30 s of Claude working.')
+  expect(w).toContain('Busiest: Read 2, Bash 1.')
+  expect(w).not.toContain('11-01')
 })

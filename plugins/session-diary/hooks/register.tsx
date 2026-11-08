@@ -1,10 +1,12 @@
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
-import type { Entry } from '../types'
+import type { Day, Entry } from '../types'
 
 const entries = atom({ plugin: 'session-diary', key: 'entries' } as const, [] as Entry[], { shape: 'entries-1' })
+const days = atom({ plugin: 'session-diary', key: 'days' } as const, [] as Day[], { shape: 'days-1' })
 const PANE = 'session-diary'
+const KEEP_DAYS = 14
 const KEEP = 300 // the diary keeps the last 300 lines of the session
 
 // Africa/Johannesburg is UTC+2, no daylight saving.
@@ -36,6 +38,41 @@ export const markdownOf = (list: readonly Entry[]): string => {
   return out.join('\n').replace(/\n{3,}/g, '\n\n')
 }
 
+// ---- the week -----------------------------------------------------------------
+const NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+/** The Johannesburg calendar day of an instant, as YYYY-MM-DD. */
+export const dayOf = (ms: number): string => new Date(ms + 7_200_000).toISOString().slice(0, 10)
+const emptyDay = (day: string): Day => ({ day, tools: 0, failed: 0, turns: 0, ms: 0, by: {} })
+const touch = (list: readonly Day[], at: number, f: (d: Day) => Day): Day[] => {
+  const key = dayOf(at)
+  const rest = list.filter(d => d.day !== key)
+  return [...rest, f(list.find(d => d.day === key) ?? emptyDay(key))].sort((a, b) => (a.day < b.day ? -1 : 1)).slice(-KEEP_DAYS)
+}
+/** Count one tool call into its day. Pure. */
+export const addTool = (list: readonly Day[], at: number, tool: string, ok: boolean): Day[] =>
+  touch(list, at, d => ({ ...d, tools: d.tools + 1, failed: d.failed + (ok ? 0 : 1), by: { ...d.by, [tool]: (d.by[tool] ?? 0) + 1 } }))
+/** Count one finished turn into its day. Pure. */
+export const addTurn = (list: readonly Day[], at: number, ms: number): Day[] => touch(list, at, d => ({ ...d, turns: d.turns + 1, ms: d.ms + ms }))
+
+/** The last seven days up to and including `now`, a line a day, then the totals and the three busiest tools. */
+export const weekOf = (list: readonly Day[], now: number): string => {
+  const keys = Array.from({ length: 7 }, (_, i) => dayOf(now - (6 - i) * 86_400_000))
+  const rows = keys.map(k => list.find(d => d.day === k) ?? emptyDay(k))
+  if (rows.every(d => d.tools === 0 && d.turns === 0)) return '# This week\n\nNothing yet.\n'
+  const out = ['# This week', '']
+  for (const d of rows) {
+    const name = NAMES[(((Math.floor(Date.parse(`${d.day}T00:00:00Z`) / 86_400_000) + 4) % 7) + 7) % 7]
+    out.push(d.tools === 0 && d.turns === 0 ? `- ${name} ${d.day.slice(5)}  quiet` : `- ${name} ${d.day.slice(5)}  ${d.tools} tool call${d.tools === 1 ? '' : 's'}${d.failed ? `, ${d.failed} failed` : ''} · ${d.turns} turn${d.turns === 1 ? '' : 's'} · ${span(d.ms)}`)
+  }
+  const sum = (f: (d: Day) => number) => rows.reduce((n, d) => n + f(d), 0)
+  const by: Record<string, number> = {}
+  for (const d of rows) for (const [t, n] of Object.entries(d.by)) by[t] = (by[t] ?? 0) + n
+  const top = Object.entries(by).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, 3).map(([t, n]) => `${t} ${n}`)
+  out.push('', `${sum(d => d.tools)} tool call${sum(d => d.tools) === 1 ? '' : 's'}, ${sum(d => d.failed)} failed, ${sum(d => d.turns)} turn${sum(d => d.turns) === 1 ? '' : 's'}, ${span(sum(d => d.ms))} of Claude working.`)
+  if (top.length) out.push(`Busiest: ${top.join(', ')}.`)
+  return out.join('\n') + '\n'
+}
+
 export const register: Register = on => {
   let turnStart = 0
   let tools = 0
@@ -56,6 +93,7 @@ export const register: Register = on => {
       tools += 1
       if (!ok) errors += 1
       await update($, entries, (list: Entry[]): Entry[] => [...list, { kind: 'tool', at: started, tool: e.tool, ms, ok } as Entry].slice(-KEEP))
+      await update($, days, (list: Day[]): Day[] => addTool(list, started, e.tool, ok))
     } catch {
       // a diary that cannot write never holds up the tool
     }
@@ -67,6 +105,7 @@ export const register: Register = on => {
       const now = await $.clock.now()
       const ms = turnStart ? now - turnStart : 0
       await update($, entries, (list: Entry[]): Entry[] => [...list, { kind: 'turn', at: now, tools, errors, ms } as Entry].slice(-KEEP))
+      await update($, days, (list: Day[]): Day[] => addTurn(list, now, ms))
       tools = 0; errors = 0; turnStart = 0
     } catch {
       // see above
@@ -76,7 +115,7 @@ export const register: Register = on => {
 
   on('session.start', async ($, e, next) => {
     try {
-      await $.command.register({ name: 'diary', description: 'Open the session diary: every tool call, its time, and a line for each turn. /diary copy puts it on the clipboard as markdown; /diary clear empties it.' })
+      await $.command.register({ name: 'diary', description: 'Open the session diary: every tool call, its time, and a line for each turn. /diary copy puts it on the clipboard as markdown; /diary clear empties it; /diary week sums up the last seven days (/diary week copy for markdown).' })
     } catch {
       $.ui.log('session-diary: /diary is taken by another plugin')
     }
@@ -88,6 +127,11 @@ export const register: Register = on => {
     if (sub === 'clear') {
       await update($, entries, () => [] as Entry[])
       return { text: 'The diary is empty.' }
+    }
+    if (sub === 'week' || sub === 'week copy') {
+      const text = weekOf(await read($, days), await $.clock.now())
+      if (sub === 'week copy') { await $.ui.copy({ text }); return { text: 'Copied the week as markdown.' } }
+      return { text: text.replace(/^# /, '') }
     }
     if (sub === 'copy') {
       const text = markdownOf(await read($, entries))
