@@ -1108,3 +1108,27 @@ export const recordSession = (prev: Habits | undefined, cwd: string, hour: numbe
   }
   return { habits }
 }
+
+// ---- the band holds its shape: one row of status, one row of buttons, at any width ----
+const BUTTON_PAD = 6 // the hotkey chip and the padding around a button's label
+const SHORT_CONTROLS: Controls = { pet: 'pet', feed: 'feed', cast: 'cast', nap: 'nap', corner: 'corner' }
+/** The button labels that fit one row of `cols` cells: the full words, or the short ones when the full ones would wrap. */
+export const fitControls = (c: Controls, cols: number): Controls => {
+  const words = [c.pet, c.feed, c.cast, c.nap, c.corner]
+  const width = words.reduce((a, w) => a + w.length + BUTTON_PAD, 0) + (words.length - 1)
+  return width <= cols ? c : SHORT_CONTROLS
+}
+/**
+ * The status as one row: the label, then a dim rest (the cat's mood and the glass line). When the row is too wide the mood goes
+ * first, then the usage is cut with an ellipsis, so the band never grows a row the desktop did not count.
+ */
+export const statusParts = (label: string, mood: string, usage: string, cols: number): [string, string] => {
+  if (label.length >= cols) return [label.slice(0, Math.max(0, cols - 1)) + '…', '']
+  const fits = (rest: string) => label.length + 1 + rest.length <= cols
+  const base = `· cat ${mood}`
+  const tries = usage ? [`${base} · ${usage}`, `· ${usage}`] : [base]
+  for (const t of tries) if (fits(t)) return [label, t]
+  const room = cols - label.length - 1
+  const last = tries[tries.length - 1]!
+  return [label, room >= 2 ? last.slice(0, room - 1) + '…' : '']
+}

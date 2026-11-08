@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.18.1
+
+- The band keeps its shape at any width, after a photo of the real window showed two faults: the glass line sat on top of the status and the buttons, and in a narrower window the five buttons wrapped to a second row and clipped the row beneath.
+- The status is now one row: the label, then the cat's mood and the glass line. When the row is too wide the mood goes first, then the glass line is cut with an ellipsis.
+- The five buttons keep the full words while they fit one row (79 cells, 88 when the cat is sulking) and the short ones (pet, feed, cast, nap, corner) the moment they would not.
+
 ## 0.18.0
 
 - The cat learns your habits across sessions, kept as counts and hashes: the hours you come at and a short hash of each folder (the last 50), never a path or a name, and nothing leaves the plugin's own store.

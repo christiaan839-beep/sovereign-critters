@@ -1586,3 +1586,29 @@ test('the habit line fires at exactly three in five, and a store that holds too 
   expect(cleanHabits(big)?.seen).toHaveLength(50)
   expect(cleanHabits(big)?.seen[0]).toBe('h10') // the oldest ten go
 })
+
+import { fitControls, statusParts } from '../hooks/scene'
+
+test('five buttons always fit one row: the full words when they fit, the short ones the moment they do not', () => {
+  const warm = controlLabels(initial(), 'unbothered', NAMES_DEFAULT) // 11 + 12 + 9 + 3 + 10 letters
+  expect(fitControls(warm, 79)).toEqual(warm) // 45 + 5 x 6 + 4 gaps = 79: exactly fits
+  expect(fitControls(warm, 78)).toEqual({ pet: 'pet', feed: 'feed', cast: 'cast', nap: 'nap', corner: 'corner' })
+  const sulk = controlLabels(initial(), 'sulking', NAMES_DEFAULT)
+  expect(fitControls(sulk, 88)).toEqual(sulk)
+  expect(fitControls(sulk, 87).pet).toBe('pet')
+  expect(fitControls(warm, 20).corner).toBe('corner') // never shorter than the short words
+})
+
+test('the status is one row, whatever the glass says: the mood goes first, then the usage is cut with an ellipsis', () => {
+  const usage = 'Biscuit is rationing treats · 100% of the five hours gone' // 57
+  const len = (p: [string, string]) => (p[1] ? p[0].length + 1 + p[1].length : p[0].length) // an empty rest draws no gap
+  expect(statusParts('running a command', 'unbothered', '', 96)).toEqual(['running a command', '· cat unbothered'])
+  expect(statusParts('running a command', 'unbothered', usage, 96)).toEqual(['running a command', `· cat unbothered · ${usage}`]) // 94 wide
+  expect(statusParts('running a command', 'unbothered', usage, 95)[1]).toBe(`· cat unbothered · ${usage}`) // exactly fits
+  expect(statusParts('running a command', 'unbothered', usage, 93)).toEqual(['running a command', `· ${usage}`]) // one cell less: the mood goes first
+  const tight = statusParts('running a command', 'unbothered', usage, 40)
+  expect(len(tight)).toBe(40)
+  expect(tight[1].endsWith('…')).toBe(true)
+  for (const c of [20, 30, 50, 80]) expect(len(statusParts('napping', 'sulking', usage, c))).toBeLessThanOrEqual(c)
+  expect(len(statusParts('a label much too long for a narrow window', 'sulking', usage, 12))).toBeLessThanOrEqual(12)
+})

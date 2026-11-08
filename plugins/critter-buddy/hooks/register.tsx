@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, cleanMemory, cleanStreak, doctorLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import { fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, cleanMemory, cleanStreak, doctorLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
 import { hourSast, dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
 import type { Flight, Streak } from './world'
 import type { Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
@@ -509,7 +509,8 @@ export const register: Register = on => {
     // Other mods draw here too (usage-line, snoozing-pet): keep their rows beneath ours.
     const others = await next(e)
     const rows = paint({ ...s, cols })
-    const lb = controlLabels(s, moodOf(s), nm)
+    const lb = fitControls(controlLabels(s, moodOf(s), nm), cols)
+    const [statusMain, statusRest] = statusParts(s.label, moodOf(s), usageText ? named(usageText, nm) : '', cols)
     return (
       <Box flexDirection="column">
         {vector ? (
@@ -520,10 +521,9 @@ export const register: Register = on => {
         ) : rowsOf(Text, rows, 'r')}
         {/* the status on its own line, one row of buttons under it; air is a spacer row, not a margin, because the desktop does not count margins when it sizes this region and would clip the row beneath */}
         <Box key="status" flexDirection="row" alignItems="center" justifyContent="center" columnGap={1}>
-          <Text key="label">{s.label}</Text>
-          <Text key="mood" dimColor>{`· cat ${moodOf(s)}`}</Text>
+          <Text key="label">{statusMain}</Text>
+          {statusRest ? <Text key="mood" dimColor>{statusRest}</Text> : null}
         </Box>
-        {usageText ? <Box key="usage" flexDirection="row" justifyContent="center"><Text dimColor>{named(usageText, nm)}</Text></Box> : null}
         <Box key="controls" flexDirection="row" flexWrap="wrap" alignItems="center" justifyContent="center" columnGap={1}>
           <Button key="pet" label={lb.pet} hotkey="p" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'pet')); await ring($, 'purr') }} />
           <Button key="treat" label={lb.feed} hotkey="t" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'treat'))} />
