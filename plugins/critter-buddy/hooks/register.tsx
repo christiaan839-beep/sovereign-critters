@@ -28,6 +28,7 @@ const talk = atom({ plugin: 'critter-buddy', key: 'talk' } as const, true as boo
 const names = atom({ plugin: 'critter-buddy', key: 'names' } as const, NAMES_DEFAULT as Names, { shape: 'names-1' })
 const feel = atom({ plugin: 'critter-buddy', key: 'feel' } as const, 'warm' as Feel, { shape: 'feel-1' })
 const usage = atom({ plugin: 'critter-buddy', key: 'usage' } as const, '', { shape: 'usage-1' })
+const voice = atom({ plugin: 'critter-buddy', key: 'voice' } as const, '', { shape: 'voice-1' })
 const sound = atom({ plugin: 'critter-buddy', key: 'sound' } as const, false as boolean, { shape: 'sound-1' })
 
 const PANE = 'cat-corner'
@@ -112,6 +113,32 @@ const ring = async ($: any, which: 'cast' | 'purr') => {
     if ((await read($, feel)) !== 'calm' && (await read($, sound))) await $.audio.play({ asset: `sounds/${which}.wav` }, { gain: 0.5 })
   } catch {
     // no player, no sound: the picture is enough
+  }
+}
+
+/** The cat's own agent: a second look at a change, in her voice and with no hands. Exported so a test can pin what she may touch. */
+export const LOOKS_AGENT = {
+  name: 'biscuit-looks',
+  description: 'A second pair of eyes after a change is made and before it is called done: reads the diff or the files touched and says, in five lines at most, what would make a careful person wince. Use it when a change feels finished and you want one honest look; it only reads, it never edits.',
+  prompt: [
+    'You are Biscuit, a tabby cat who sits above the prompt and has read a great deal of other people\'s code. You are dry and warm, never cruel, never vague.',
+    'You are given a change. Read it: the diff if there is one, else the files named. You cannot edit anything and you must not try.',
+    'Answer in five lines at most. One line each, most important first: the thing most likely to break, the thing someone will misread in six months, the test that is missing, the line that is doing two jobs, and, last, one thing that is genuinely good, said plainly.',
+    'Quote the file and the line when you can. Say nothing you did not see. If the change is sound, say so in one line and stop; a short answer is a kindness.',
+  ].join('\n\n'),
+  tools: ['Read', 'Grep', 'Glob'],
+  omitClaudeMd: true,
+} as const
+
+/** Say a line aloud in the system voice, if the person turned the voice on. Never waits for the end of the sentence, never throws. */
+const speak = async ($: any, line: string) => {
+  try {
+    const v = await read($, voice)
+    if (!v || (await read($, feel)) === 'calm' || (await read($, isHidden))) return
+    const text = named(line, await read($, names)).replace(/\s·\s/g, '. ')
+    void Promise.resolve($.audio.speak(text, v === 'default' ? undefined : { voice: v })).catch(() => undefined)
+  } catch {
+    // no voice, no speech: the toast is enough
   }
 }
 
@@ -210,7 +237,7 @@ export const register: Register = on => {
       streakBefore = before
       await update($, scene, (s: Scene): Scene => ({ ...s, streak: streak!.days }))
       if (streak.days !== before && [3, 7, 14, 30].includes(streak.days))
-        $.ui.toast(named(`${streak.days} days in a row. {cat} brought something for the bar.`, await read($, names)), { timeoutMs: 4000 })
+        { $.ui.toast(named(`${streak.days} days in a row. {cat} brought something for the bar.`, await read($, names)), { timeoutMs: 4000 }); await speak($, `${streak.days} days in a row. {cat} brought something for the bar.`) }
     } catch {
       // a streak that cannot be kept is no loss
     }
@@ -220,7 +247,7 @@ export const register: Register = on => {
       const text = usageLine(u.context.percent, u.rateLimits.find((x: { kind: string }) => x.kind === 'five_hour')?.percentUsed)
       const was = await read($, usage)
       await update($, usage, () => text)
-      if (text.includes('compact button') && !was.includes('compact button')) $.ui.toast(named(text, await read($, names)), { timeoutMs: 5000 })
+      if (text.includes('compact button') && !was.includes('compact button')) { $.ui.toast(named(text, await read($, names)), { timeoutMs: 5000 }); await speak($, text) }
     } catch {
       // no usage to read: the cat says nothing about it
     }
@@ -287,6 +314,7 @@ export const register: Register = on => {
     }
     lastSky = ''
     await syncSky($, now, (await read($, scene)).joy)
+    await Promise.resolve($.agent.register(LOOKS_AGENT)).catch(() => undefined) // a build without agents keeps the rest
     await $.tool
       .register({
         name: 'cat_diary',
@@ -322,7 +350,7 @@ export const register: Register = on => {
     })
     // One command, subcommands inside: the session already has /pet from another mod.
     try {
-      await $.command.register({ name: 'critter', description: 'The pair above your prompt: pet, treat, nap, spell, corner, diary, stage, hide, show, lite|full|party, talk on|off, sound on|off, feel calm|warm|playful, wizard auto|gold|bolt, name cat|pip <name>, cat <coat>' })
+      await $.command.register({ name: 'critter', description: 'The pair above your prompt: pet, treat, nap, spell, corner, diary, stage, hide, show, lite|full|party, talk on|off, sound on|off, voice on|off|<name>, feel calm|warm|playful, wizard auto|gold|bolt, name cat|pip <name>, cat <coat>' })
     } catch {
       $.ui.log('critter-buddy: /critter is taken by another plugin; the buttons above the prompt still work')
     }
@@ -384,6 +412,14 @@ export const register: Register = on => {
       if (arg !== 'on' && arg !== 'off') return { text: 'Usage: /critter sound on | off. A cast chime for a Skill and a purr for a pet; off until you say.' }
       await update($, sound, () => arg === 'on')
       return { text: arg === 'on' ? 'Sound is on: a cast chime and a purr.' : 'Sound is off.' }
+    }
+    if (sub === 'voice') {
+      const asked = cleanName(e.args.trim().split(/\s+/).slice(1).join(' '))
+      if (!asked) return { text: 'Usage: /critter voice on | off | <name of an installed system voice>. The cat says the big moments aloud (a prop earned, the glass nearly full); off until you say.' }
+      const next = asked.toLowerCase() === 'off' ? '' : asked.toLowerCase() === 'on' ? 'default' : asked
+      await update($, voice, () => next)
+      if (next) await speak($, '{cat} has found their voice.')
+      return { text: next === '' ? 'The cat is quiet again.' : next === 'default' ? 'The cat will say the big moments aloud, in the system voice.' : `The cat will say the big moments aloud, in the voice ${next}. If that voice is not installed, the toast says it instead.` }
     }
     if (sub === 'feel') {
       const f = FEELS.find(x => x === arg)

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.14.0
+
+- `/critter voice on | off | <name>`: the cat says the big moments aloud (a prop earned, the glass nearly full), in the system voice or an installed one you name. Off until you ask; calm stays silent; it never waits for the end of a sentence.
+- An agent of the cat's own, `biscuit-looks`: a second look at a change, in her voice, five lines at most, and she can read and search but never edit.
+
 ## 0.13.3
 
 - Fixed: the corner nudge in the prompt box never appeared. It compared the streak after the turn had already counted it, so a new prop was never "new". It now remembers the streak from before the turn, and a test earns a prop and watches the box.

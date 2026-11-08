@@ -66,6 +66,8 @@ declare module 'claude-code' {
       feel: Shaped<'calm' | 'warm' | 'playful'>
       /** The cat's line about how full the context window is; empty while there is nothing to say. */
       usage: Shaped<string>
+      /** Whether the big moments are spoken aloud: empty is off, `default` the system voice, anything else the name of an installed system voice. */
+      voice: Shaped<string>
     }
   }
 }

@@ -1274,3 +1274,61 @@ test('painted words never overlap: a link or a file inside a code span stays ins
   for (let i = 1; i < runs.length; i++) expect(runs[i]!.start).toBeGreaterThanOrEqual(runs[i - 1]!.end)
   expect(runs.map(r => text.slice(r.start, r.end))).toEqual(['`cat @a.ts https://x.io/y`', '@b.ts'])
 })
+
+test('the voice is off until asked, says the big moments in the system voice or a named one, and a calm cat stays silent', async ($, on) => {
+  stub(on)
+  const spoken: { text: string; voice?: string }[] = []
+  on('audio.speak', (_: unknown, e: { text: string; voice?: string }) => { spoken.push({ text: e.text, voice: e.voice }); return { value: { via: 'system' } } as never })
+  on('ui.status', () => ({ value: undefined }))
+  on('ui.toast', () => ({ value: undefined }))
+  on('turn.complete', () => ({ text: 'done' }))
+  on('model.complete', () => ({ value: { isAnswered: false, text: '', usage: {} } }) as never)
+  on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1_000_000, percent: 95 }, rateLimits: [] } }) as never)
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const run = async (args: string) => JSON.stringify(await $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never))
+  expect(await run('voice')).toMatch(/Usage: \/critter voice/)
+  await $.turn.complete({ answer: 'done' } as never) // the glass is 95% full, but the voice is off
+  expect(spoken).toEqual([])
+  expect(await run('voice on')).toMatch(/system voice/)
+  expect(spoken).toEqual([{ text: 'Biscuit has found their voice.', voice: undefined }])
+  expect(await run('voice Samantha')).toMatch(/voice Samantha/)
+  expect(spoken[1]).toEqual({ text: 'Biscuit has found their voice.', voice: 'Samantha' })
+  await run('feel calm')
+  await run('voice Daniel')
+  expect(spoken).toHaveLength(2) // calm: told, not spoken
+  await run('feel warm')
+  await run('voice off')
+  expect(await run('voice Daniel')).toMatch(/voice Daniel/)
+  await run('voice off')
+  const before = spoken.length
+  await $.turn.complete({ answer: 'done' } as never)
+  expect(spoken).toHaveLength(before) // off: nothing, whatever happened
+})
+
+test('the cat offers a reading agent that can look but not touch', async ($, on) => {
+  stub(on)
+  const made: Record<string, unknown>[] = []
+  on('agent.register', (_: unknown, e: Record<string, unknown>) => { made.push(e); return { value: { agent: 'critter-buddy:biscuit-looks' } } as never })
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  expect(made).toHaveLength(1)
+  const a = made[0] as { name: string; description: string; prompt: string; tools: string[] }
+  expect(a.name).toBe('biscuit-looks')
+  expect(a.tools).toEqual(['Read', 'Grep', 'Glob'])
+  for (const hands of ['Edit', 'Write', 'Bash', 'NotebookEdit']) expect(a.tools).not.toContain(hands)
+  expect(a.description).toMatch(/never edits/)
+  expect(a.prompt).toMatch(/cannot edit anything/)
+  expect(a.prompt).toMatch(/five lines at most/)
+})
+
+test('the draft knows /critter voice: on and off in teal, a name is not a stray word', () => {
+  expect(draftRuns('/critter voice on').map(r => r.color)).toEqual(['#d97757', '#4fa39a', '#4fa39a'])
+  expect(draftRuns('/critter voice Samantha').map(r => r.color)).toEqual(['#d97757', '#4fa39a', '#4fa39a'])
+  expect(suggest('/critter voice ', 15).map(r => r.text)).toEqual(['on', 'off'])
+  expect(suggest('/critter vo', 11).map(r => r.text)).toEqual(['voice'])
+})

@@ -42,9 +42,10 @@ The cat keeps its trust in you across sessions in `$.store`; it falls by 8 for e
 | `/critter wizard auto`, `gold`, `bolt` | The wizard by the hour, the gold star always, or the violet bolt always. |
 | `/critter feel calm`, `warm`, `playful` | How lively they are. Calm: still, no sparks, no sound. Warm: the usual (default). Playful: more hops and sparks. |
 | `/critter sound on`, `off` | A cast chime for a Skill and a purr for a pet. Off until you ask. |
+| `/critter voice on`, `off`, `<name>` | The cat says the big moments aloud (a prop earned, the glass nearly full) in the system voice, or in an installed voice you name. Off until you ask; calm stays silent. |
 | `/critter hide`, `show` | Explicit; bare `/critter hide` toggles. |
 
-It draws above other mods' rows in the same place and registers only `/critter`.
+It draws above other mods' rows in the same place and registers `/critter` and one agent, `biscuit-looks`: a second look at a change that can read and search but never edit, five lines at most.
 
 ## Check
 
