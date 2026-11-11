@@ -10,9 +10,9 @@ def fake(passing=7, validated=True):
 
 
 MEASURED = {**{n: fake() for n in quality.FACTS['order']}, '_hooks_fail_open': True}
-UNCHANGED = lambda sha, name: 0  # noqa: E731  no commit touched the plugin since the fact
-CHANGED = lambda sha, name: 3  # noqa: E731
-UNKNOWN = lambda sha, name: None  # noqa: E731  the commit a fact names is not in this history
+UNCHANGED = lambda sha, name, paths=None: 0  # noqa: E731  no commit touched the plugin since the fact
+CHANGED = lambda sha, name, paths=None: 3  # noqa: E731
+UNKNOWN = lambda sha, name, paths=None: None  # noqa: E731  the commit a fact names is not in this history
 
 FULL = {
     'reviews': [
@@ -64,6 +64,21 @@ class Gates(unittest.TestCase):
     def test_guard_needs_no_fail_open_because_it_fails_closed_on_purpose(self):
         g = quality.gates('guard', {**MEASURED, '_hooks_fail_open': False}, FULL, UNCHANGED)
         self.assertEqual(g['failopen'], 'met')
+
+
+class Scope(unittest.TestCase):
+    def test_a_change_to_the_hooks_makes_the_review_the_sighting_and_the_docs_audit_stale(self):
+        touched = lambda sha, name, paths=None: 1 if 'hooks' in (paths or ()) else 0  # noqa: E731
+        g = quality.gates('forge', MEASURED, FULL, touched)
+        self.assertEqual(g['review'], 'stale')
+        self.assertEqual(g['seen'], 'stale')
+        self.assertEqual(g['docs'], 'stale')  # the docs audit is also about the code the docs describe
+
+    def test_a_readme_edit_leaves_the_code_review_and_the_sighting_fresh_but_not_the_docs_audit(self):
+        readme_only = lambda sha, name, paths=None: 1 if paths and 'README.md' in paths else 0  # noqa: E731
+        g = quality.gates('forge', MEASURED, FULL, readme_only)
+        self.assertEqual((g['review'], g['seen'], g['failfirst']), ('met', 'met', 'met'))
+        self.assertEqual(g['docs'], 'stale')
 
 
 class Verdict(unittest.TestCase):
@@ -129,7 +144,14 @@ class Render(unittest.TestCase):
         self.assertEqual(sorted(quality.FACTS['order']), folders)
         self.assertEqual(sorted(quality.FACTS['plugins']), folders)
 
+    def test_the_whole_repository_facts_are_listed_before_the_mods(self):
+        text = quality.render(MEASURED, UNCHANGED)
+        self.assertLess(text.index('## The whole repository'), text.index('## The lead mods'))
+        self.assertIn('gitleaks over the full git history', text)
+
     def test_every_witnessed_fact_names_the_commit_it_was_about(self):
+        for r in quality.FACTS.get('repo', []):
+            self.assertTrue(r.get('at') and r.get('date'), r)
         for name, f in quality.FACTS['plugins'].items():
             entries = f['reviews'] + f['seen'] + f.get('coldInstall', []) + ([f['failFirst']] if f.get('failFirst') else [])
             for e in entries:

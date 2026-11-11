@@ -7,8 +7,9 @@ Two kinds of fact, kept apart so neither can be inflated:
   witnessed  independent reviews, a docs audit, sightings in the real app, a cold install by someone else, a new test watched
              failing first. Written by people in tools/quality-facts.json, each with the date and the commit it was about.
 
-A witnessed fact is fresh only while that plugin has not changed since the commit it was about. A change after the review means
-look again, so a green mark can never describe code nobody looked at.
+A witnessed fact is fresh only while the part of the plugin it is about has not changed since the commit it was about (a review and
+a sighting: the hooks, tests and sounds; the docs audit: the README and the hooks; a cold install: the whole plugin). A change there
+means look again, so a green mark can never describe code nobody looked at.
 
 The bar, eight gates per mod: tests pass; strict validation; hooks fail open (guard: closed on purpose); new tests watched failing
 first; an independent code review with no open high finding; seen working in the desktop app; docs audited against the code; a cold
@@ -44,9 +45,17 @@ def run(*cmd):
     return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
 
 
-def commits_since(sha, name):
-    """How many commits touched this plugin after the one a fact was about; None if that commit is unknown."""
-    r = run('git', 'rev-list', '--count', f'{sha}..HEAD', '--', os.path.join('plugins', name))
+# What a fact is about, so only a change to that makes it stale: a review of the code and a sighting are about the hooks, the tests and
+# the sounds (a README fix or a version bump does not touch them); the docs audit is about the README and the code it describes; a
+# cold install is about the whole plugin.
+CODE = ('hooks', 'tests', 'sounds')
+DOCS = ('README.md', 'hooks')
+WHOLE = ('.',)
+
+
+def commits_since(sha, name, paths=WHOLE):
+    """How many commits touched these parts of this plugin after the one a fact was about; None if that commit is unknown."""
+    r = run('git', 'rev-list', '--count', f'{sha}..HEAD', '--', *[os.path.join('plugins', name, p) for p in paths])
     return int(r.stdout.strip()) if r.returncode == 0 and r.stdout.strip().isdigit() else None
 
 
@@ -72,12 +81,12 @@ def measure(counts_file=None):
     return out
 
 
-def fresh(entries, name, since):
+def fresh(entries, name, since, paths=WHOLE):
     """Of these witnessed facts, 'met' if one is fresh, 'stale' if some exist but every one is out of date, else 'open'."""
     if not entries:
         return 'open'
     for e in entries:
-        n = since(e.get('at', ''), name) if e.get('at') else None
+        n = since(e.get('at', ''), name, paths) if e.get('at') else None
         if n == 0:
             return 'met'
     return 'stale'
@@ -96,11 +105,11 @@ def gates(name, measured, facts, since=commits_since):
         'tests': 'met' if m['passing'] > 0 else 'open',
         'valid': 'met' if m['validated'] else 'open',
         'failopen': 'met' if (name == 'guard' or measured['_hooks_fail_open']) else 'open',
-        'failfirst': fresh(ff, name, since),
-        'review': fresh(code, name, since),
-        'seen': fresh(desk, name, since),
-        'docs': fresh(docs, name, since),
-        'cold': fresh(f.get('coldInstall', []), name, since),
+        'failfirst': fresh(ff, name, since, CODE),
+        'review': fresh(code, name, since, CODE),
+        'seen': fresh(desk, name, since, CODE),
+        'docs': fresh(docs, name, since, DOCS),
+        'cold': fresh(f.get('coldInstall', []), name, since, WHOLE),
     }
     return g
 
@@ -122,7 +131,7 @@ def render(measured, since=commits_since):
         'What has been checked for each mod, against a release bar, as facts with dates. A row says what was checked and when, never how good the mod is, and it never claims more than its evidence.',
         '',
         '- **Measured** (the version, tests passing, strict validation, hooks that fail open): read from the plugins by `tools/quality.py`, so they cannot drift. `bash tools/preflight.sh` tells you when this file is out of date; `python3 tools/quality.py --write` brings it up to date.',
-        '- **Witnessed** (reviews, sightings in the real app, a cold install, new tests watched failing first): written by people in `tools/quality-facts.json`, each with the date and the commit it was about. A witnessed fact is **fresh** only while that plugin has not changed since that commit; after any change it shows **stale** until someone looks again.',
+        '- **Witnessed** (reviews, sightings in the real app, a cold install, new tests watched failing first): written by people in `tools/quality-facts.json`, each with the date and the commit it was about. A witnessed fact is **fresh** only while the part of the plugin it is about has not changed since that commit (a review or a sighting: the hooks, tests and sounds; the docs audit: the README and the hooks; a cold install: the whole plugin). After such a change it shows **stale** until someone looks again.',
         '',
         '## The release bar',
         '',
@@ -135,6 +144,9 @@ def render(measured, since=commits_since):
     for n in FACTS['order']:
         lines.append(f'| {n} | ' + ' | '.join(word[G[n][k]] for k, _ in GATES) + f' | {verdict(n, G[n])} |')
     lines += ['', 'met: done, and nothing has changed since. stale: done, but the plugin has changed since, so it needs another look. open: not done yet.', '']
+    if FACTS.get('repo'):
+        lines += ['## The whole repository', '']
+        lines += [f'- {r["date"]} (at {r["at"]}): {r["what"]}. Found: {r["found"]}.' for r in FACTS['repo']] + ['']
     for i, name in enumerate(FACTS['order']):
         m, f = measured[name], FACTS['plugins'][name]
         if i == 3:

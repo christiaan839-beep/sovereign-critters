@@ -3,7 +3,7 @@
 What has been checked for each mod, against a release bar, as facts with dates. A row says what was checked and when, never how good the mod is, and it never claims more than its evidence.
 
 - **Measured** (the version, tests passing, strict validation, hooks that fail open): read from the plugins by `tools/quality.py`, so they cannot drift. `bash tools/preflight.sh` tells you when this file is out of date; `python3 tools/quality.py --write` brings it up to date.
-- **Witnessed** (reviews, sightings in the real app, a cold install, new tests watched failing first): written by people in `tools/quality-facts.json`, each with the date and the commit it was about. A witnessed fact is **fresh** only while that plugin has not changed since that commit; after any change it shows **stale** until someone looks again.
+- **Witnessed** (reviews, sightings in the real app, a cold install, new tests watched failing first): written by people in `tools/quality-facts.json`, each with the date and the commit it was about. A witnessed fact is **fresh** only while the part of the plugin it is about has not changed since that commit (a review or a sighting: the hooks, tests and sounds; the docs audit: the README and the hooks; a cold install: the whole plugin). After such a change it shows **stale** until someone looks again.
 
 ## The release bar
 
@@ -13,7 +13,7 @@ Eight gates. The lead mods (the first three) must meet all eight before release.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | critter-buddy | met | met | met | stale | stale | stale | stale | open | Not ready: 5 of 8 open |
 | mods | met | met | met | open | open | open | stale | open | Not ready: 5 of 8 open |
-| guard | met | met | met | stale | stale | open | open | open | Not ready: 5 of 8 open |
+| guard | met | met | met | met | met | open | stale | open | Not ready: 3 of 8 open |
 | session-diary | met | met | met | open | open | open | stale | open | Not ready: 5 of 8 open |
 | build-bell | met | met | met | open | open | open | stale | open | Not ready: 5 of 8 open |
 | crab | met | met | met | open | open | open | stale | open | Not ready: 5 of 8 open |
@@ -22,6 +22,11 @@ Eight gates. The lead mods (the first three) must meet all eight before release.
 | forge | met | met | met | open | open | open | stale | open | Not ready: 5 of 8 open |
 
 met: done, and nothing has changed since. stale: done, but the plugin has changed since, so it needs another look. open: not done yet.
+
+## The whole repository
+
+- 2026-11-11 (at 1fbc7d5): gitleaks over the full git history. Found: no leaks (re-run on 107 commits the same day).
+- 2026-11-11 (at d6bd248): a cold clone installs and passes preflight. Found: it does (checked in the audit session; this is a reproducibility check, not the cold install by someone else that the bar asks for).
 
 ## The lead mods
 
@@ -96,11 +101,13 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell where a push goes, the push waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
-| Verdict | Not ready: 5 of 8 open |
+| Verdict | Not ready: 3 of 8 open |
 
 **Independent reviews**
 
 - 2026-11-11 (at 5a3a16d): independent red-team for ways past it. Found: 5 bypasses (piped scripts, an alias made on the line, xargs -I%, hidden command names), all fixed with a test that failed first; 2 gaps documented.
+- 2026-11-11 (at 1fbc7d5): second independent red-team round, run by the audit session (about 280 spellings of pushes to main and of force pushes). Found: no bypass.
+- 2026-11-11 (at 5a3a16d): documentation audit against the code. Found: the claim of no network and nothing read outside the session was corrected to say that guard runs git locally.
 
 **New tests watched failing first**
 

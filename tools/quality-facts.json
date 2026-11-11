@@ -81,6 +81,22 @@
           "at": "5a3a16d",
           "kind": "security",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "second independent red-team round, run by the audit session (about 280 spellings of pushes to main and of force pushes)",
+          "found": "no bypass",
+          "at": "1fbc7d5",
+          "kind": "security",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "documentation audit against the code",
+          "found": "the claim of no network and nothing read outside the session was corrected to say that guard runs git locally",
+          "at": "5a3a16d",
+          "kind": "docs",
+          "openHigh": 0
         }
       ],
       "seen": [],
@@ -216,5 +232,19 @@
       "failFirst": null,
       "coldInstall": []
     }
-  }
+  },
+  "repo": [
+    {
+      "date": "2026-11-11",
+      "at": "1fbc7d5",
+      "what": "gitleaks over the full git history",
+      "found": "no leaks (re-run on 107 commits the same day)"
+    },
+    {
+      "date": "2026-11-11",
+      "at": "d6bd248",
+      "what": "a cold clone installs and passes preflight",
+      "found": "it does (checked in the audit session; this is a reproducibility check, not the cold install by someone else that the bar asks for)"
+    }
+  ]
 }
