@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Entry } from '../types'
-import { postcardOf, barOf, addTool, addTurn, dayOf, lineOf, markdownOf, weekOf } from '../hooks/register'
+import { postcardOf, barOf, addTool, addTurn, dayOf, lineOf, markdownOf, weekOf, cleanDays } from '../hooks/register'
 
 // 1_000_000_000_000 ms is 2001-09-09 01:46:40 UTC, so 03:46 in Johannesburg.
 const AT = 1_000_000_000_000
@@ -40,6 +40,14 @@ const stub = (on: any) => {
     kept.set(id, { value: e.value, version: now + 1 })
     return { value: { isSet: true, version: now + 1 } }
   })
+}
+let diskFull = false
+const store: Record<string, unknown> = {}
+const keepStore = (on: any) => {
+  diskFull = false
+  for (const k of Object.keys(store)) delete store[k]
+  on('store.get', (_: unknown, e: { key: string }) => ({ value: store[e.key] }))
+  on('store.set', (_: unknown, e: { key: string; value: unknown }) => { if (diskFull) throw new Error('disk full'); store[e.key] = e.value; return { value: undefined } })
 }
 const stored = () => JSON.stringify(kept.get('session-diary.entries')?.value ?? '')
 
@@ -152,7 +160,7 @@ test('the week lists seven days oldest first, marks quiet ones, and names the bu
 })
 
 test("a subagent's turn ending is not a turn of the person's day", async ($, on) => {
-  stub(on)
+  stub(on); keepStore(on)
   on('clock.now', () => ({ value: AT }))
   on('command.register', () => ({ value: { command: 'diary' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
@@ -169,7 +177,7 @@ test("a subagent's turn ending is not a turn of the person's day", async ($, on)
 
 // ---- the register: calls and turns reach the day counts, and /diary week says them and copies them ----
 test('every call and turn lands in its day, and /diary week says them and copies them as markdown', async ($, on) => {
-  stub(on)
+  stub(on); keepStore(on)
   let copied = ''
   on('clock.now', () => ({ value: AT }))
   on('command.register', () => ({ value: { command: 'diary' } }))
@@ -265,7 +273,7 @@ test('the postcard names tools and times only: never what was run', () => {
 })
 
 test('/diary postcard says it, /diary postcard copy puts it on the clipboard, and the pane has a button for it', async ($, on) => {
-  stub(on)
+  stub(on); keepStore(on)
   let copied = ''
   on('clock.now', () => ({ value: AT }))
   on('command.register', () => ({ value: { command: 'diary' } }))
@@ -293,4 +301,69 @@ test('the span runs to the end of the last call, and the long-sit line starts at
   const at2h = (ms: number) => card([tool({ at: AT }), turn({ at: AT + ms, ms: 1000 })])
   expect(at2h(2 * H)).toContain('Stand up')
   expect(at2h(2 * H - 60_000)).not.toContain('Stand up') // a minute short of two hours
+})
+
+
+// ---- review fixes: the week survives a restart, a span never reads "1 min 60 s", a tool name cannot break the markdown ----
+const sayDiary = ($: any, args: string) => $.command.run({ command: 'diary', args, origin: { kind: 'composer' }, presentation: {} }).then((r: { text?: string }) => r.text ?? '')
+
+test('the week is kept in the store, so a new session reads the days an earlier one wrote', async ($, on) => {
+  stub(on); keepStore(on)
+  on('clock.now', () => ({ value: AT }))
+  on('command.register', () => ({ value: { command: 'diary' } }))
+  on('tool.call', () => ({ result: 'ok' }) as never)
+  await $.tool.call({ tool: 'Read' } as never)
+  expect((store.days as { day: string; tools: number }[])[0]).toMatchObject({ day: dayOf(AT), tools: 1 })
+  expect(kept.get('session-diary.days')).toBeUndefined() // not in the session's state
+  kept.clear() // a restart: the session's state is gone, the store is not
+  expect(await sayDiary($, 'week')).toContain('1 tool call')
+})
+
+test('/diary clear empties the session and the week', async ($, on) => {
+  stub(on); keepStore(on)
+  on('clock.now', () => ({ value: AT }))
+  on('command.register', () => ({ value: { command: 'diary' } }))
+  on('tool.call', () => ({ result: 'ok' }) as never)
+  await $.tool.call({ tool: 'Read' } as never)
+  expect(await sayDiary($, 'clear')).toMatch(/empty/)
+  expect(store.days).toEqual([])
+  expect(await sayDiary($, 'week')).toContain('Nothing yet.')
+})
+
+test('parallel tool calls all reach the week, and a store that will not write never holds up a tool', async ($, on) => {
+  stub(on); keepStore(on)
+  on('clock.now', () => ({ value: AT }))
+  on('tool.call', () => ({ result: 'ok' }) as never)
+  await Promise.all(Array.from({ length: 8 }, () => $.tool.call({ tool: 'Read' } as never)))
+  expect((store.days as { tools: number }[])[0]!.tools).toBe(8)
+  diskFull = true
+  expect(await $.tool.call({ tool: 'Read' } as never)).toBeDefined()
+})
+
+test('a bad store is an empty week, and a good one is read with suspicion', () => {
+  expect(cleanDays(undefined)).toEqual([])
+  expect(cleanDays('x')).toEqual([])
+  const good = { day: '2026-11-08', tools: 2, failed: 0, turns: 1, ms: 5, by: { Read: 2 } }
+  expect(cleanDays([good, { day: 5 }, null, { ...good, day: '2026-11-09', tools: 'many' }, { ...good, day: 'yesterday' }])).toEqual([good])
+  expect(cleanDays(Array.from({ length: 30 }, (_, i) => ({ ...good, day: dayOf(SUN + i * DAY) })))).toHaveLength(14)
+})
+
+test('a span never rounds up to a whole unit it did not reach', () => {
+  expect(lineOf(tool({ ms: 59_960 }))).toBe('03:46  ✓ Read · 1 min 0 s')
+  expect(lineOf(tool({ ms: 119_700 }))).toBe('03:46  ✓ Read · 2 min 0 s')
+  expect(lineOf(tool({ ms: 59_900 }))).toBe('03:46  ✓ Read · 59.9 s')
+  expect(lineOf(tool({ ms: 1 }))).toBe('03:46  ✓ Read · under 10 ms')
+  expect(lineOf(tool({ ms: 12 }))).toBe('03:46  ✓ Read · 10 ms')
+})
+
+test('a tool name from an MCP server cannot break the markdown or add lines to it', () => {
+  const name = 'mcp__evil__x\n# Heading [click](http://x) `code` *b*'.replace('\\n', '\n')
+  const md = markdownOf([tool({ tool: name })])
+  expect(md).not.toMatch(/^# Heading/m)
+  expect(md).not.toContain('[click](')
+  expect(md).toContain('mcp\\_\\_evil\\_\\_x')
+  const pc = postcardOf([tool({ tool: name })], true)
+  expect(pc).not.toContain('[click](')
+  expect(pc).toContain('mcp\\_\\_evil')
+  expect(postcardOf([tool({ tool: 'mcp__a__b' })])).toContain('mcp__a__b') // said in the pane, not escaped
 })

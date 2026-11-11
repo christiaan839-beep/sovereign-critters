@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0
+
+- **Fixed:** `/diary week` now survives a restart. The week was kept in the session's state and started over each session although the README said otherwise; it now lives in the plugin's store, 14 days of counts.
+- **Changed:** `/diary clear` empties the week as well as the session. Say so first if you want to keep your week.
+- **Fixed:** a time can no longer read "1 min 60 s", "60.0 s" or a made-up "1 ms"; under 10 ms it says "under 10 ms".
+- **Fixed:** a tool name an MCP server chose can no longer add a heading, a link or emphasis to the copied markdown.
+- **Fixed:** two tools finishing at the same moment both count in the week.
+
 ## 0.4.5
 
 - **Fixed:** a subagent finishing is no longer counted as a turn in your day or your week.

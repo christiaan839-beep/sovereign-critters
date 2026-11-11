@@ -8,13 +8,13 @@
 - **A line for each turn**: how many tools it used, how many failed, how long it ran.
 - **Copy as markdown**: the whole session as a list you can paste into a note or a pull request.
 
-It stores tool names and times only. It never reads the command, the file or the prompt, so there is nothing in it to leak. It keeps the last 300 lines of a session.
+It stores tool names and times only. It never reads the command, the file or the prompt, so there is nothing in it to leak. The session keeps its last 300 lines and is forgotten when the session ends; the week keeps only counts (calls, failures, turns, time, tool names) for 14 days in the plugin's own store, so it survives a restart.
 
 | Command | Does |
 | --- | --- |
 | `/diary` | Opens the pane. |
 | `/diary copy` | Puts the diary on the clipboard as markdown. |
-| `/diary clear` | Empties it. |
+| `/diary clear` | Empties this session's diary and the week. |
 | `/diary week` | The last seven days, a bar a day (`/diary week copy` for markdown). |
 | `/diary postcard` | This session on one screen: time, turns, calls, busiest hour, tools used most (`/diary postcard copy` for markdown). |
 
@@ -22,7 +22,7 @@ In the pane: `c` copies, `p` copies the postcard, `x` clears, `q` closes.
 
 ## What it never does
 
-- It makes no network request and sends no telemetry. The diary and the week stay in the plugin's own `$.state` on this machine.
+- It makes no network request and sends no telemetry. The session diary stays in the plugin's `$.state` and the week in its `$.store`, both on this machine.
 - It copies to the clipboard only when you press copy or run a `copy` command.
 
 ## Install

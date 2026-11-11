@@ -132,11 +132,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The others
 
-### session-diary 0.4.5
+### session-diary 0.5.0
 
 | | |
 | --- | --- |
-| Tests passing | 20 |
+| Tests passing | 26 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |

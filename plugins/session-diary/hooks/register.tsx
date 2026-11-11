@@ -4,7 +4,6 @@ import type { Register } from 'claude-code'
 import type { Day, Entry } from '../types'
 
 const entries = atom({ plugin: 'session-diary', key: 'entries' } as const, [] as Entry[], { shape: 'entries-1' })
-const days = atom({ plugin: 'session-diary', key: 'days' } as const, [] as Day[], { shape: 'days-1' })
 const PANE = 'session-diary'
 const KEEP_DAYS = 14
 const KEEP = 300 // the diary keeps the last 300 lines of the session
@@ -14,12 +13,21 @@ const clock = (ms: number) => {
   const m = Math.floor(ms / 60_000) + 120
   return `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
 }
-const span = (ms: number) => (ms < 950 ? `${Math.max(1, Math.round(ms / 10) * 10)} ms` : ms < 60_000 ? `${(Math.round(ms / 100) / 10).toFixed(1)} s` : `${Math.floor(ms / 60_000)} min ${Math.round((ms % 60_000) / 1000)} s`)
+/** A time in the unit it reached: under 10 ms says so, and a rounding never turns 59.96 s into "60.0 s" or 1 min 59.7 s into "1 min 60 s". */
+const span = (ms: number): string => {
+  if (ms < 10) return 'under 10 ms'
+  if (ms < 950) return `${Math.round(ms / 10) * 10} ms`
+  if (ms < 59_950) return `${(Math.round(ms / 100) / 10).toFixed(1)} s`
+  const total = Math.round(ms / 1000)
+  return `${Math.floor(total / 60)} min ${total % 60} s`
+}
+/** A name from outside (an MCP server picks its tools' names) said in markdown: no emphasis, link, heading or line of its own. */
+const mdName = (name: string): string => name.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/[\\`*_{}[\]()<>#+!|~&]/g, '\\$&')
 
 /** One line of the pane. Pure, so the pane, the markdown and the tests all say the same thing. */
-export const lineOf = (x: Entry): string =>
+export const lineOf = (x: Entry, md = false): string =>
   x.kind === 'tool'
-    ? `${clock(x.at)}  ${x.ok ? '✓' : '✗'} ${x.tool} · ${span(x.ms)}`
+    ? `${clock(x.at)}  ${x.ok ? '✓' : '✗'} ${md ? mdName(x.tool) : x.tool} · ${span(x.ms)}`
     : `${clock(x.at)}  turn · ${x.tools} tool${x.tools === 1 ? '' : 's'}${x.errors ? `, ${x.errors} failed` : ''} · ${span(x.ms)}`
 
 /** The whole diary as markdown, newest last, tool lines nested under the turn they belong to. */
@@ -28,8 +36,8 @@ export const markdownOf = (list: readonly Entry[]): string => {
   const out = ['# Session diary', '']
   let open = false
   for (const x of list) {
-    if (x.kind === 'tool') { out.push(`- ${lineOf(x)}`); open = true; continue }
-    out.push(open ? '' : '', `**${lineOf(x)}**`, '')
+    if (x.kind === 'tool') { out.push(`- ${lineOf(x, true)}`); open = true; continue }
+    out.push(open ? '' : '', `**${lineOf(x, true)}**`, '')
     open = false
   }
   const calls = list.filter(x => x.kind === 'tool')
@@ -42,6 +50,20 @@ export const markdownOf = (list: readonly Entry[]): string => {
 const NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 /** The Johannesburg calendar day of an instant, as YYYY-MM-DD. */
 export const dayOf = (ms: number): string => new Date(ms + 7_200_000).toISOString().slice(0, 10)
+/** The week as the store holds it, read with suspicion: a bad entry is dropped, a bad store is an empty week, fourteen days at most. */
+export const cleanDays = (raw: unknown): Day[] => {
+  if (!Array.isArray(raw)) return []
+  const num = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0
+  const out: Day[] = []
+  for (const d of raw as Record<string, unknown>[]) {
+    if (!d || typeof d !== 'object' || typeof d.day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(d.day)) continue
+    if (!num(d.tools) || !num(d.failed) || !num(d.turns) || !num(d.ms) || !d.by || typeof d.by !== 'object' || Array.isArray(d.by)) continue
+    const by: Record<string, number> = {}
+    for (const [k, v] of Object.entries(d.by as Record<string, unknown>).slice(0, 200)) if (num(v)) by[k.slice(0, 80)] = v
+    out.push({ day: d.day, tools: d.tools, failed: d.failed, turns: d.turns, ms: d.ms, by })
+  }
+  return out.sort((a, b) => (a.day < b.day ? -1 : 1)).slice(-KEEP_DAYS)
+}
 const emptyDay = (day: string): Day => ({ day, tools: 0, failed: 0, turns: 0, ms: 0, by: {} })
 const touch = (list: readonly Day[], at: number, f: (d: Day) => Day): Day[] => {
   const key = dayOf(at)
@@ -62,7 +84,7 @@ export const barOf = (n: number, max: number, width = 12): string => {
 }
 
 /** The last seven days up to and including `now`, a line a day, then the totals and the three busiest tools. */
-export const weekOf = (list: readonly Day[], now: number): string => {
+export const weekOf = (list: readonly Day[], now: number, md = false): string => {
   const keys = Array.from({ length: 7 }, (_, i) => dayOf(now - (6 - i) * 86_400_000))
   const rows = keys.map(k => list.find(d => d.day === k) ?? emptyDay(k))
   if (rows.every(d => d.tools === 0 && d.turns === 0)) return '# This week\n\nNothing yet.\n'
@@ -75,7 +97,7 @@ export const weekOf = (list: readonly Day[], now: number): string => {
   const sum = (f: (d: Day) => number) => rows.reduce((n, d) => n + f(d), 0)
   const by: Record<string, number> = {}
   for (const d of rows) for (const [t, n] of Object.entries(d.by)) by[t] = (by[t] ?? 0) + n
-  const top = Object.entries(by).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, 3).map(([t, n]) => `${t} ${n}`)
+  const top = Object.entries(by).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, 3).map(([t, n]) => `${md ? mdName(t) : t} ${n}`)
   out.push('', `${sum(d => d.tools)} tool call${sum(d => d.tools) === 1 ? '' : 's'}, ${sum(d => d.failed)} failed, ${sum(d => d.turns)} turn${sum(d => d.turns) === 1 ? '' : 's'}, ${span(sum(d => d.ms))} of Claude working.`)
   if (top.length) out.push(`Busiest: ${top.join(', ')}.`)
   const best = rows.reduce((a, d) => (d.tools > a.tools ? d : a), rows[0]!)
@@ -92,7 +114,7 @@ const dur = (ms: number): string => {
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 /** A one-screen summary of the session as markdown: how long, how many turns, the busiest hour, the tools used most. Names and times only. */
-export const postcardOf = (list: readonly Entry[]): string => {
+export const postcardOf = (list: readonly Entry[], md = false): string => {
   if (!list.length) return '# Session postcard\n\nNothing yet.\n'
   const start = Math.min(...list.map(x => x.at))
   const end = Math.max(...list.map(x => (x.kind === 'tool' ? x.at + x.ms : x.at)))
@@ -105,7 +127,7 @@ export const postcardOf = (list: readonly Entry[]): string => {
   for (const [h, n] of hours) if (!busy || n > busy[1]) busy = [h, n]
   const by: Record<string, number> = {}
   for (const x of calls) by[x.tool] = (by[x.tool] ?? 0) + 1
-  const top = Object.entries(by).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, 3).map(([t, n]) => `${t} ${n}`)
+  const top = Object.entries(by).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, 3).map(([t, n]) => `${md ? mdName(t) : t} ${n}`)
   const out = ['# Session postcard', '', `- ${dur(end - start)}, ${clock(start)} to ${clock(end)}`]
   out.push(`- ${plural(turns.length, 'turn')}, Claude working ${dur(turns.reduce((n, x) => n + x.ms, 0))}`)
   out.push(`- ${plural(calls.length, 'tool call')}, ${failed} failed`)
@@ -116,6 +138,17 @@ export const postcardOf = (list: readonly Entry[]): string => {
   if (list.length >= KEEP) out.push(`(The diary keeps the last ${KEEP} lines, so the start of a long session may be missing.)`, '')
   return out.join('\n').replace(/\n{3,}/g, '\n\n')
 }
+
+// The week lives in $.store (one key, `days`), not in the session's state, so it survives a restart. Writes are
+// queued one behind another because the store has no compare-and-set: two tools finishing together must both count.
+const DAYS = 'days'
+let queue: Promise<unknown> = Promise.resolve()
+const bump = ($: any, f: (list: Day[]) => Day[]): Promise<void> => {
+  const run = queue.then(async () => { await $.store.set(DAYS, f(cleanDays(await $.store.get(DAYS)))) })
+  queue = run.catch(() => undefined)
+  return run
+}
+const week = async ($: any): Promise<Day[]> => cleanDays(await Promise.resolve($.store.get(DAYS)).catch(() => undefined))
 
 export const register: Register = on => {
   let turnStart = 0
@@ -139,9 +172,10 @@ export const register: Register = on => {
       const ok = ran.deny === undefined && ran.isError !== true
       tools += 1
       if (!ok) errors += 1
-      await Promise.all([ // two atoms that do not depend on each other
-        update($, entries, (list: Entry[]): Entry[] => [...list, { kind: 'tool', at: started, tool: e.tool, ms, ok } as Entry].slice(-KEEP)),
-        update($, days, (list: Day[]): Day[] => addTool(list, started, e.tool, ok)),
+      const name = String(e.tool).replace(/[\u0000-\u001f\u007f]+/g, ' ').slice(0, 80)
+      await Promise.allSettled([ // the session's lines and the week do not depend on each other; neither failing stops the other
+        update($, entries, (list: Entry[]): Entry[] => [...list, { kind: 'tool', at: started, tool: name, ms, ok } as Entry].slice(-KEEP)),
+        bump($, list => addTool(list, started, name, ok)),
       ])
     } catch {
       // a diary that cannot write never holds up the tool
@@ -156,9 +190,9 @@ export const register: Register = on => {
       const ms = turnStart ? now - turnStart : 0
       const [t, er] = [tools, errors]
       tools = 0; errors = 0; turnStart = 0
-      await Promise.all([
+      await Promise.allSettled([
         update($, entries, (list: Entry[]): Entry[] => [...list, { kind: 'turn', at: now, tools: t, errors: er, ms } as Entry].slice(-KEEP)),
-        update($, days, (list: Day[]): Day[] => addTurn(list, now, ms)),
+        bump($, list => addTurn(list, now, ms)),
       ])
     } catch {
       // see above
@@ -179,15 +213,16 @@ export const register: Register = on => {
     const sub = e.args.trim()
     if (sub === 'clear') {
       await update($, entries, () => [] as Entry[])
-      return { text: 'The diary is empty.' }
+      try { await $.store.set(DAYS, []) } catch { return { text: 'This session is empty, but the week could not be cleared: the store would not take it.' } }
+      return { text: 'The diary and the week are empty.' }
     }
     if (sub === 'week' || sub === 'week copy') {
-      const text = weekOf(await read($, days), await $.clock.now())
+      const text = weekOf(await week($), await $.clock.now(), sub === 'week copy')
       if (sub === 'week copy') { await $.ui.copy({ text }); return { text: 'Copied the week as markdown.' } }
       return { text: text.replace(/^# /, '') }
     }
     if (sub === 'postcard' || sub === 'postcard copy') {
-      const text = postcardOf(await read($, entries))
+      const text = postcardOf(await read($, entries), sub === 'postcard copy')
       if (sub === 'postcard copy') { await $.ui.copy({ text }); return { text: 'Copied the postcard as markdown.' } }
       return { text: text.replace(/^# /, '') }
     }
@@ -218,7 +253,7 @@ export const register: Register = on => {
         ))}
         <Box flexDirection="row" columnGap={1}>
           <Button key="copy" label="copy as markdown" hotkey="c" onPress={async () => { await $.ui.copy({ text: markdownOf(await read($, entries)) }) }} />
-          <Button key="postcard" label="postcard" hotkey="p" onPress={async () => { await $.ui.copy({ text: postcardOf(await read($, entries)) }) }} />
+          <Button key="postcard" label="postcard" hotkey="p" onPress={async () => { await $.ui.copy({ text: postcardOf(await read($, entries), true) }) }} />
           <Button key="clear" label="clear" hotkey="x" onPress={() => update($, entries, () => [] as Entry[])} />
           <Button key="close" label="close" hotkey="q" onPress={() => $.ui.close({ id: PANE })} />
         </Box>
