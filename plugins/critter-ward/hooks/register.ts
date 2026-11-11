@@ -690,12 +690,15 @@ function note(sub: string, args: string[], changes: Changes) {
     // Making, moving or copying a branch, or setting an upstream, may give a branch an upstream; -m and -c may
     // rename the branch checked out.
     const upstream = args.some(a => /^(-u|-t|--track|--set-upstream-to|--unset-upstream)/.test(a))
-    // -mNAME is not a form git accepts, but reading it as one costs nothing and cannot be a way past the guard.
-    const moved = flagValue(args, 'mMcC', ['move', 'copy'])
-    const target = moved.name && !moved.name.startsWith('-') && !named.includes(moved.name) ? [...named, moved.name] : named
+    // -m, -M, -c and -C take no value in git: the names are the words after the options, so -mf is -m -f. A bundle
+    // that ends in the flag with a name stuck on (-Mmain, which git rejects) is read as that name, to stay on the safe side.
+    const flag = flagValue(args, 'mMcC', ['move', 'copy'])
+    const stuck = flag.found && !named.length && flag.name && !flag.name.startsWith('-') ? [flag.name] : []
+    const target = [...named, ...stuck]
+    const moved = flag.found
     if (args.some(a => /^(-[dD]|--delete)$/.test(a)) || (!target.length && !upstream)) return
     changes.fresh.push('HEAD', ...target)
-    if (moved.found && target.length) head(target[target.length - 1]!)
+    if (moved && target.length) head(target[target.length - 1]!)
   } else if (sub === 'symbolic-ref') {
     if (args.some(a => /^(-d|--delete)$/.test(a)) || named.length < 2) return
     if (named[0] === 'HEAD') head(branch(named[1]!))
