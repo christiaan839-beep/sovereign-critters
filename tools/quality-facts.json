@@ -69,12 +69,21 @@
           "at": "5a3a16d",
           "kind": "docs",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review (injection, state, card painter, README claims)",
+          "found": "one high finding (an unreadable plugin list looked like \"nothing installed\") and four smaller ones fixed with tests; open and not fixed: the pane is not re-read after a failed or timed-out switch, \"install all\" hides which installs failed, session start waits up to 20 s on the plugin manager, a double press runs the CLI twice",
+          "at": "3c843c2",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [],
       "gaps": [
         "the index cards have not been photographed in the real app",
-        "no independent code review yet"
+        "a failed or timed-out switch leaves the pane stale",
+        "\"install all\" does not say which installs failed"
       ],
       "failFirst": null,
       "coldInstall": []
@@ -145,12 +154,21 @@
           "at": "10f284e",
           "kind": "code",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review (timing, storage, privacy, claims)",
+          "found": "nothing high; open and not fixed: the week is held in session-scoped state so the README promise of 14 days does not hold after a restart, \"/diary clear\" leaves the week counts, a duration can print \"1 min 60 s\" or \"1 ms\", an MCP tool name goes unescaped into the postcard. Privacy confirmed: names and times only",
+          "at": "3c843c2",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [],
       "gaps": [
         "never seen in the real app",
-        "no independent code review yet"
+        "the 14-day week does not survive a restart (session-scoped state)",
+        "/diary clear does not clear the week"
       ],
       "failFirst": null,
       "coldInstall": []
@@ -173,13 +191,22 @@
           "at": "10f284e",
           "kind": "code",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review (timing, failure modes, claims)",
+          "found": "nothing high; open and not fixed: its three settings (minSeconds, sound, shortTurns) have no declared way to be set, a long command rings twice (command and turn), the bell is awaited before the tool result returns, the time may include the permission dialog",
+          "at": "3c843c2",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [],
       "gaps": [
         "never heard or seen in the real app",
         "where its three settings are set is not documented",
-        "no independent code review yet"
+        "its three settings cannot be set (no declared user configuration)",
+        "a long command rings twice"
       ],
       "failFirst": null,
       "coldInstall": []
@@ -194,12 +221,20 @@
           "at": "5a3a16d",
           "kind": "docs",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review (note storage, unicode, folder key)",
+          "found": "one small finding fixed (direction controls could reverse a note); open and not fixed: /crab drop does nothing if the store could not be read at start, two folders writing at once can overwrite each other, the folder key is the raw path as given",
+          "at": "3c843c2",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [],
       "gaps": [
         "never seen in the real app",
-        "no independent code review yet"
+        "/crab drop after a failed store read"
       ],
       "failFirst": null,
       "coldInstall": []
@@ -214,12 +249,20 @@
           "at": "5a3a16d",
           "kind": "docs",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review (timers, cards)",
+          "found": "nothing high; open and not fixed: the 160 ms follow-up timer is not cancelled when the pane closes. Cards show tool names only",
+          "at": "3c843c2",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [],
       "gaps": [
         "never seen in the real app",
-        "no independent code review yet"
+        "the follow-up timer outlives the pane for up to 160 ms"
       ],
       "failFirst": null,
       "coldInstall": []
@@ -234,12 +277,19 @@
           "at": "5a3a16d",
           "kind": "docs",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review (counts, raster)",
+          "found": "nothing high; the raster encoding is right for zero to three tools. Open: ties in the top three go to the tool called first (undocumented)",
+          "at": "3c843c2",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [],
       "gaps": [
-        "never seen in the real app",
-        "no independent code review yet"
+        "never seen in the real app"
       ],
       "failFirst": null,
       "coldInstall": []
@@ -254,12 +304,19 @@
           "at": "5a3a16d",
           "kind": "docs",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review (counting, inputs)",
+          "found": "two found and fixed (a non-string input was counted as text, a very long text could overflow the stack in Node); the README now says what it returns",
+          "at": "3c843c2",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [],
       "gaps": [
-        "never called by the model in the real app",
-        "no independent code review yet"
+        "never called by the model in the real app"
       ],
       "failFirst": null,
       "coldInstall": []
