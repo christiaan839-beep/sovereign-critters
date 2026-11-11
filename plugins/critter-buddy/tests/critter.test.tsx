@@ -382,11 +382,11 @@ test('the cat sits up facing you, in every coat, and /critter cat takes them all
 
 test('the voice follows what happened and the hour, and the same scene always says the same line', () => {
   const s = initial()
-  expect(quip('turn', s, 12, 3_000)).toMatch(/\{cat\}|gone/)
+  expect(quip('turn', s, 12, 3_000)).toMatch(/\{cat\}/)
   expect(quip('turn', s, 12, 60_000)).toMatch(/\{pip\}/)
-  expect(quip('turn', s, 12, 300_000)).toMatch(/dozed|naps|moved house/)
+  expect(quip('turn', s, 12, 300_000)).toMatch(/dozed|stayed up|napped/)
   const rough = { ...s, stats: { ...s.stats, errors: 1 }, log: ['It failed. I was already awake. I knew.'] }
-  expect(quip('turn', rough, 12, 60_000)).toMatch(/error|blames|bumpy/)
+  expect(quip('turn', rough, 12, 60_000)).toMatch(/bumpy|rough patch|fought back/)
   expect(quip('greet', s, 8)).toMatch(/morning/)
   expect(quip('greet', s, 23)).toMatch(/night|glass/)
   expect(quip('greet', s, 17)).toMatch(/evening|awake/)
@@ -582,13 +582,13 @@ test('every row of the transcript wears a face by what the call did, and lite ta
   expect(await seen('ToolResult', { tool_use_id: 't1', tool: 'Bash', output: {}, isErrored: true }, /Biscuit|Pip|harmed/)).toBeDefined()
   expect(await seen('ToolResult', { tool_use_id: 't1', tool: 'Bash', output: {}, isErrored: false }, /Biscuit|Pip|harmed/)).toBeUndefined()
   expect(await seen('ToolGroup', { calls: [], isActive: true, isExpanded: false }, /▐/)).toBeDefined()
-  expect(await seen('TurnDuration', { word: 'Baked', durationMs: 3000 }, /Biscuit|gone/)).toBeDefined()
-  expect(await seen('TurnDuration', { word: 'Baked', durationMs: 300_000 }, /dozed|naps|moved house/)).toBeDefined()
+  expect(await seen('TurnDuration', { word: 'Baked', durationMs: 3000 }, /Biscuit/)).toBeDefined()
+  expect(await seen('TurnDuration', { word: 'Baked', durationMs: 300_000 }, /dozed|stayed up|napped/)).toBeDefined()
   expect(await seen('InfoNotice', { text: 'Sonnet', command: null }, /critter-buddy: .* · \/critter/)).toBeDefined()
   // lite: the band, the wizard and the orb stay; the rows of the transcript go bare
   await $.command.run({ command: 'critter', args: 'lite', origin: { kind: 'composer' }, presentation: {} } as never)
   expect(await seen('ToolUse', use, /▐/)).toBeUndefined()
-  expect(await seen('TurnDuration', { word: 'Baked', durationMs: 3000 }, /Biscuit|gone/)).toBeUndefined()
+  expect(await seen('TurnDuration', { word: 'Baked', durationMs: 3000 }, /Biscuit/)).toBeUndefined()
   // party: messages wear a face as well
   await $.command.run({ command: 'critter', args: 'party', origin: { kind: 'composer' }, presentation: {} } as never)
   expect(await seen('AssistantMessage', { text: 'hello', isFirstOfReply: true }, /▐/)).toBeDefined()
@@ -893,7 +893,7 @@ test('the band puts its status on one line and its buttons on the next, and uses
 test('the buttons say what is true now: a sulking cat is made up with, a casting wizard is not asked to cast, and there is a nap', async ($, on) => {
   const base = { ...initial(), look: 'idle' as Look }
   expect(controlLabels(base, 'unbothered', NAMES_DEFAULT)).toEqual({ pet: 'pet Biscuit', feed: 'feed Biscuit', cast: 'Pip casts', nap: 'nap', corner: 'the corner', mods: 'mods' })
-  expect(controlLabels(base, 'sulking', NAMES_DEFAULT).pet).toBe('make up with Biscuit')
+  expect(controlLabels(base, 'sulking', NAMES_DEFAULT).pet).toBe('say sorry to Biscuit')
   expect(controlLabels({ ...base, look: 'wizard' }, 'pleased', NAMES_DEFAULT).cast).toBe('Pip is casting')
   expect(controlLabels(base, 'pleased', { cat: 'Mog', pip: 'Wick' })).toMatchObject({ pet: 'pet Mog', cast: 'Wick casts' })
   stub(on)
@@ -1706,8 +1706,8 @@ test('a treat is a paw, the diary a page, a prop earned a chime, and calm or off
 import { wizardPoseFor, wizardCanvas, welcomeLine } from '../hooks/scene'
 
 test('the welcome is one dim line, in the pair\'s own names, and only until it has been said', () => {
-  expect(welcomeLine(undefined, NAMES_DEFAULT)).toBe('Biscuit and Pip are here. /critter for the controls')
-  expect(welcomeLine(undefined, { cat: 'Rex', pip: 'Zed' })).toBe('Rex and Zed are here. /critter for the controls')
+  expect(welcomeLine(undefined, NAMES_DEFAULT)).toBe('Good morning. Biscuit and Pip are above your prompt; /critter has the controls.')
+  expect(welcomeLine(undefined, { cat: 'Rex', pip: 'Zed' })).toBe('Good morning. Rex and Zed are above your prompt; /critter has the controls.')
   expect(welcomeLine(true, NAMES_DEFAULT)).toBeUndefined()
   expect(welcomeLine('yes', NAMES_DEFAULT)).toBeUndefined() // anything the store holds counts as said: it never nags twice
 })
@@ -1722,7 +1722,7 @@ test('the first greeting carries the welcome once, writes that it was said, and 
   on('store.get', () => ({ value: undefined }))
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   const ui = await $.ui.mount({ ...row('InfoNotice', { text: 'Sonnet', command: null }), surface: 'terminal' } as never)
-  expect(await ui.find({ type: 'Text', text: /Installed\. Biscuit remains unconvinced\./ })).toBeDefined() // the test clock is 03:46 SAST: the small hours get the deadpan line
+  expect(await ui.find({ type: 'Text', text: /All set\. Biscuit is still deciding/ })).toBeDefined() // the test clock is 03:46 SAST: the small hours get the late-night line
   expect(await ui.find({ type: 'Text', text: /critter-buddy: .* · \/critter/ })).toBeDefined() // the greeting is still there
   expect(written.welcomed).toBe(true)
   await ui.unmount()
@@ -1736,7 +1736,7 @@ test('a welcome already said is not said again', async ($, on) => {
   on('store.get', (_: unknown, e: { key: string }) => ({ value: e.key === 'welcomed' ? true : undefined }))
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   const ui = await $.ui.mount({ ...row('InfoNotice', { text: 'Sonnet', command: null }, 'r-again'), surface: 'terminal' } as never)
-  expect(await ui.find({ type: 'Text', text: /(are here\.|remains unconvinced\.|inspected the premises)/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /(above your prompt|still deciding|looked the place over)/ })).toBeUndefined()
   await ui.unmount()
 })
 
@@ -2255,17 +2255,17 @@ test('/critter sky changes the background of the chat now, says what it did, and
   expect(await run('doctor')).toMatch(/Sky: auto/)
 })
 
-test('the welcome reads the room: plain before noon, dry in the afternoon, deadpan from seven at night, and still only once', () => {
+test('the welcome reads the room: a good morning before noon, an approving afternoon, a kept-company evening from seven, and still only once', () => {
   const n = NAMES_DEFAULT
-  const plain = 'Biscuit and Pip are here. /critter for the controls'
-  const dry = 'Biscuit has inspected the premises. Pip says the idea was his.'
-  const flat = 'Installed. Biscuit remains unconvinced.'
+  const plain = 'Good morning. Biscuit and Pip are above your prompt; /critter has the controls.'
+  const dry = 'Biscuit has looked the place over and approves. Pip would like it known the idea was his.'
+  const flat = 'All set. Biscuit is still deciding, but has stayed up for you.'
   expect(welcomeLine(undefined, n)).toBe(plain) // no hour known: plain
   for (const h of [5, 6, 11]) expect(welcomeLine(undefined, n, h)).toBe(plain)
   for (const h of [12, 15, 18]) expect(welcomeLine(undefined, n, h)).toBe(dry)
   for (const h of [19, 23, 0, 3, 4]) expect(welcomeLine(undefined, n, h)).toBe(flat)
   expect(welcomeLine(true, n, 12)).toBeUndefined() // said once, never again
-  expect(welcomeLine(undefined, { cat: 'Mog', pip: 'Wick' }, 12)).toBe('Mog has inspected the premises. Wick says the idea was his.')
+  expect(welcomeLine(undefined, { cat: 'Mog', pip: 'Wick' }, 12)).toBe('Mog has looked the place over and approves. Wick would like it known the idea was his.')
 })
 
 import { TINTS, tintOf } from '../hooks/world'
@@ -2583,4 +2583,15 @@ test('every /critter word the command answers to is known to the prompt box: tea
   }
   expect(draftRuns('/critter doctorr').find(r => r.start === 9)?.underline).toBe(true) // a word it does not know is still marked
   expect(draftRuns('/critter sky ni').find(r => r.start === 13)).toBeDefined() // and sky takes its phases
+})
+
+import { TURN_FAST, TURN_MID, TURN_LONG, TURN_ROUGH, ERR_LINES } from '../hooks/scene'
+
+test('the voice is gentle: no line the pair can say is cold, a guilt trip, or a brush-off', () => {
+  const cold = /unimpress|unconvinc|not impressed|I am fine|do not make it a habit|remains|moved house|blames/i
+  const said: string[] = [...TURN_FAST, ...TURN_MID, ...TURN_LONG, ...TURN_ROUGH, ...ERR_LINES]
+  for (const hour of [0, 3, 5, 8, 12, 17, 19, 23]) said.push(welcomeLine(undefined, NAMES_DEFAULT, hour) ?? '')
+  said.push(react({ ...initial(), trust: 28 }, 'test').log.join(' '))
+  expect(said.filter(l => l).length).toBeGreaterThan(20)
+  for (const line of said) expect(line, line).not.toMatch(cold)
 })

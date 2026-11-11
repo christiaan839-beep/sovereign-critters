@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { windowWidth, fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, wizardPoseFor, isQuiet, motionTick, welcomeLine, cleanMemory, cleanStreak, doctorLines, paneColumns, withSky, backdropFailure, backdropOutcome, surfaceOf, newProbe, noteBeat, perfLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import { windowWidth, fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, wizardPoseFor, isQuiet, motionTick, welcomeLine, ERR_LINES, cleanMemory, cleanStreak, doctorLines, paneColumns, withSky, backdropFailure, backdropOutcome, surfaceOf, newProbe, noteBeat, perfLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
 import { TINTS, tintOf, tintFor, SKY_CHOICES, hourSast, dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, RIDGE_FAR, thinkingOf, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
 import type { Flight, SkyChoice, Streak } from './world'
 import type { SoundName, Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
@@ -48,12 +48,6 @@ const BUILD = /\b(build|compile|install|docker|make|cargo|gradle|mvn|webpack|tsc
 const TEST = /\b(pytest|vitest|jest|mocha)\b|\b(npm|pnpm|yarn|bun|cargo|go)\s+(run\s+)?test\b|plugin test/
 const COMMIT = /\bgit\s+commit\b/
 const DAY = 86_400_000
-const ERR_LINES = [
-  '{cat} was not surprised.',
-  '{pip} says that was on purpose.',
-  '{cat} knocked it over first.',
-  'Nothing was harmed. Mostly.',
-]
 
 let liveCols = 80
 let windowCols = 80 // the whole window, uncapped: the doctor reports this, the band is drawn at liveCols
@@ -368,7 +362,7 @@ export const register: Register = on => {
     if (mem) {
       const days = mem.lastSeen ? Math.max(0, Math.floor((now - mem.lastSeen) / DAY)) : 0
       const trust = returnTrust(mem.trust, days)
-      await update($, scene, (s: Scene): Scene => ({ ...s, trust, log: [...s.log, days >= 1 ? `You are back after ${days} day${days === 1 ? '' : 's'}. I am fine.` : 'Back already. Good.'] }))
+      await update($, scene, (s: Scene): Scene => ({ ...s, trust, log: [...s.log, days >= 1 ? `You are back after ${days} day${days === 1 ? '' : 's'}. {cat} missed you and will deny it.` : 'Back so soon. Good: {cat} kept your seat warm.'] }))
     }
     // The cat learns your habits: counts and hashes only, and at most one remark a session.
     try {

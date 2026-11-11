@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.29.0
+
+- **Changed: a warmer voice, the first minute first.** The pair are still themselves (Biscuit proud, Pip a little grand) but they are plainly on your side. The welcome now says "Good morning. Biscuit and Pip are above your prompt", "Biscuit has looked the place over and approves. Pip would like it known the idea was his", or, late, "All set. Biscuit is still deciding, but has stayed up for you". Coming back: "Biscuit missed you and will deny it" after days away, "Biscuit kept your seat warm" the same day. A failed command gets "Biscuit was not surprised, and is still on your side" or "Nothing was harmed. Mostly. Try again." The button when Biscuit sulks says "say sorry to Biscuit", and a sulk lifts with "Biscuit has forgiven you, and is not quite done being dramatic". The lines after a turn follow the same rules: say what happened, never at your expense, never a guilt trip.
+- A test now reads every one of those lines and fails if one turns cold ("unimpressed", "I am fine", "blames"). The rest of the pair's lines are still in their older, drier voice and are next.
+
 ## 0.28.6
 
 - **Changed: the band is a sky from edge to edge.** On the desktop app the picture now spans the whole band in colour (blue by day, rose at dawn, violet at dusk, indigo at night, greyed by weather) with opaque ground and ridges; the white at the left, where the ground faded to clear, is gone. The sun or moon moved to the left so the cat never covers it. The width is estimated at 8 px a column, so a window that measures differently may show a thin strip of the horizon colour on the left.

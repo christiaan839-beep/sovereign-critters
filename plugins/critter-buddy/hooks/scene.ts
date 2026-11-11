@@ -762,10 +762,11 @@ const pickBy = (pool: readonly string[], s: Scene): string => pool[(s.stats.turn
 /** The greeting's pick: one line a day, a new one tomorrow (a pool of two or more never repeats on consecutive days), the same on every reopen that day. */
 export const pickByDay = (pool: readonly string[], ms: number): string => pool[Math.floor((ms + 7_200_000) / 86_400_000) % pool.length]!
 
-const TURN_FAST = ['{cat} did not look up', 'quick. {cat} is unimpressed', 'gone before {cat} blinked']
-const TURN_MID = ['{pip} approves', '{pip} nodded once', 'a clean cast, says {pip}']
-const TURN_LONG = ['{pip} dozed off', '{cat} has moved house since', 'long enough for two naps']
-const TURN_ROUGH = ['{cat} saw that error first', '{pip} blames {cat}', 'bumpy. {pip} is calm about it']
+/** The line after a turn, by how long it took and whether it was rough: the pair are on your side. */
+export const TURN_FAST = ['quick one: {cat} barely had time to stretch', 'that was quick, and {cat} noticed', 'done before {cat} finished a yawn']
+export const TURN_MID = ['{pip} approves, warmly', '{pip} nodded, and meant it', 'a clean cast, says {pip}, proudly']
+export const TURN_LONG = ['a long one. {pip} kept you company, then dozed', 'that took a while. {pip} stayed up as long as he could', 'a long stretch: {cat} napped, and {pip} watched over you']
+export const TURN_ROUGH = ['bumpy one. {cat} saw it first and stayed with you', 'a rough patch. {pip} is calm about it, and so are you', 'that one fought back. {cat} stayed close']
 const MORNING = [
   'good morning. {pip} is up first',
   'morning. {cat} has not decided yet',
@@ -982,7 +983,7 @@ export const diaryMarkdown = (lines: string[], n: Names = NAMES_DEFAULT): string
 export type Controls = { pet: string; feed: string; cast: string; nap: string; corner: string; mods?: string }
 /** The label of each button on the bar. A cat that is sulking is made up with, not petted; a wizard mid-cast is not asked to cast. */
 export const controlLabels = (s: Scene, mood: string, n: Names = NAMES_DEFAULT): Controls => ({
-  pet: mood === 'sulking' ? `make up with ${n.cat}` : `pet ${n.cat}`,
+  pet: mood === 'sulking' ? `say sorry to ${n.cat}` : `pet ${n.cat}`,
   feed: `feed ${n.cat}`,
   cast: s.look === 'wizard' ? `${n.pip} is casting` : `${n.pip} casts`,
   nap: 'nap',
@@ -1204,7 +1205,7 @@ export const doctorLines = (d: DoctorInput): string[] => {
 export const returnTrust = (trust: number, days: number): number => Math.max(40, trust - (days >= 1 ? days : 0) * 8)
 
 /** The line a sulking cat says when work lifts it out of the sulk (30 and over); nothing for a cat that was not sulking. */
-const forgives = (s: Scene, gain: number): string[] => (s.trust < 30 && s.trust + gain >= 30 ? ['{cat} has decided to forgive you. Do not make it a habit.'] : [])
+const forgives = (s: Scene, gain: number): string[] => (s.trust < 30 && s.trust + gain >= 30 ? ['{cat} has forgiven you, and is not quite done being dramatic.'] : [])
 
 const COUNT = / \(×(\d+)\)$/
 /** Lines are appended to the diary; the same line twice in a row is one line with a count, keeping the first time. */
@@ -1238,9 +1239,9 @@ export const wizardPoseFor = (raw: string, vector = true): 'asleep' | 'tipped' |
 /** The one dim line a first-ever session carries under the greeting; anything in the store means it has been said. */
 export const welcomeLine = (said: unknown, names: { cat: string; pip: string }, hour?: number): string | undefined => {
   if (said) return undefined
-  if (hour === undefined || (hour >= 5 && hour < 12)) return `${names.cat} and ${names.pip} are here. /critter for the controls`
-  if (hour >= 12 && hour < 19) return `${names.cat} has inspected the premises. ${names.pip} says the idea was his.`
-  return 'Installed. ' + `${names.cat} remains unconvinced.` // the small hours and the evening: she is not impressed
+  if (hour === undefined || (hour >= 5 && hour < 12)) return `Good morning. ${names.cat} and ${names.pip} are above your prompt; /critter has the controls.`
+  if (hour >= 12 && hour < 19) return `${names.cat} has looked the place over and approves. ${names.pip} would like it known the idea was his.`
+  return `All set. ${names.cat} is still deciding, but has stayed up for you.` // the small hours and the evening: kept company, not lectured
 }
 
 // ---- habits: what the cat learns of you across sessions, kept as counts and hashes, never as paths or names ----
@@ -1348,3 +1349,11 @@ export const paintBig: typeof paintBigRaw = memo(paintBigRaw)
 export const paintSvg: typeof paintSvgRaw = memo(paintSvgRaw)
 export const paintWizardSvg: typeof paintWizardSvgRaw = memo(paintWizardSvgRaw)
 export const paintBigSvg: typeof paintBigSvgRaw = memo(paintBigSvgRaw)
+
+/** What the pair say when a command fails: never at your expense. */
+export const ERR_LINES = [
+  '{cat} was not surprised, and is still on your side.',
+  '{pip} says that was on purpose. It was a good try.',
+  '{cat} knocked it over first, so you are in good company.',
+  'Nothing was harmed. Mostly. Try again.',
+]
