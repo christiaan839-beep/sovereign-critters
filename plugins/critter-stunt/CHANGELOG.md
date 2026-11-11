@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2
+
+- Docs: the README says that mods are early access: they load only where function hooks are enabled, and the engine may change without notice. No behaviour change.
+
 ## 0.2.1
 
 - **Fixed:** the call is counted after the tool runs and is not waited for; a state that hangs can no longer hold up a tool.

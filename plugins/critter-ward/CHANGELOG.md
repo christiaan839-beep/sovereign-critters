@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2
+
+- Docs: the README says that mods are early access: they load only where function hooks are enabled, and the engine may change without notice. No behaviour change.
+
 ## 0.3.1
 
 - Docs: the README says that in auto mode a question from the guard may be answered without reaching you, and why it stays a question and not a refusal. No behaviour change.

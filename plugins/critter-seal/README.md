@@ -35,3 +35,7 @@ It is best effort and no substitute for keeping secrets out of reach.
 - It can hold back a download it should not: a command that fetches a remote secret file to your machine (`scp host.example:/app/.env .`) looks like a send. It keeps a file open by `exec 3<>/dev/tcp/...` and writes to it later only if both are on one line piece. It does not read the text of a remote command (`ssh host 'cat .env'` is held).
 - A host it cannot read (`$URL`) when a secret goes with it is put to you as a question instead of refused; a host it read and found unlisted is refused. In a permission mode that answers questions for you (auto mode), the question may be answered without reaching you; that was seen with critter-latch on 2026-11-11. It stays a question on purpose: refusing would stop every send whose address is a variable. Hosts in the settings may be written as `github.com`, `*.github.com` or `https://github.com`.
 - It fails closed for a line that names a sender and that it cannot read; any other command goes on as if the mod were not there.
+
+## Early access
+
+Mods load only where Claude Code has function hooks enabled, and the mod engine they are written against may change between releases without notice. Tests pin this mod's behaviour; when the engine moves, expect a patch release that follows it.

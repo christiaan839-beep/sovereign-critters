@@ -84,6 +84,13 @@ test('the crab says "you left this" for a note from an earlier session and "hold
   expect(labelFor(300, 200)).toBe('holding:')
 })
 
+test('a note from an earlier session says how old it is, in whole days', () => {
+  expect(labelFor(NOW - DAY + 1, NOW)).toBe('you left this:') // under a day: no age
+  expect(labelFor(NOW - DAY, NOW)).toBe('you left this yesterday:')
+  expect(labelFor(NOW - 2 * DAY - 5, NOW)).toBe('you left this 2 days ago:')
+  expect(labelFor(NOW - 40 * DAY, NOW)).toBe('you left this 40 days ago:')
+})
+
 test('the band is two lines that never exceed the width they are given, at every width', () => {
   const note = { text: 'ask Mira which migration she ran before the deploy, and whether the seed file changed', at: 1 }
   for (const width of [8, 20, 40, 68, 120]) {
@@ -172,7 +179,7 @@ test('a note held in one folder is not shown in another, and a new session in th
   expect(await run($, '')).toMatch(/holding nothing/i)
   await begin($, '/work/atlas') // a new session in the folder
   const ui = await $.ui.mount({ plugin: 'critter-crab', surface: 'terminal', ...BAND })
-  expect((await ui.find({ type: 'Text', text: /^you left this:/ }))?.text).toBe('you left this: rebase before the review')
+  expect((await ui.find({ type: 'Text', text: /^you left this/ }))?.text).toBe('you left this 2 days ago: rebase before the review')
   await ui.unmount()
   expect(await run($, '')).toMatch(/rebase before the review/)
 })

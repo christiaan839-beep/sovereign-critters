@@ -35,7 +35,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The lead mods
 
-### critter-buddy 0.30.2
+### critter-buddy 0.30.3
 
 | | |
 | --- | --- |
@@ -69,7 +69,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - the corner and the stage have not been seen in the real app
 - the cat overlapping Pip when a side panel opens was seen once and not reproduced
 
-### critter-mods 0.7.0
+### critter-mods 0.7.1
 
 | | |
 | --- | --- |
@@ -101,7 +101,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the index cards have not been photographed in the real app
 
-### critter-ward 0.3.1
+### critter-ward 0.3.2
 
 | | |
 | --- | --- |
@@ -137,7 +137,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The others
 
-### critter-diary 0.6.1
+### critter-diary 0.6.2
 
 | | |
 | --- | --- |
@@ -173,7 +173,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - /diary clear does not clear the week
 - never seen in the real app
 
-### critter-bell 0.6.1
+### critter-bell 0.6.2
 
 | | |
 | --- | --- |
@@ -207,11 +207,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never heard or seen in the real app
 
-### critter-crab 0.3.2
+### critter-crab 0.4.0
 
 | | |
 | --- | --- |
-| Tests passing | 27 |
+| Tests passing | 28 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -240,7 +240,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app
 
-### critter-stunt 0.2.1
+### critter-stunt 0.2.2
 
 | | |
 | --- | --- |
@@ -273,7 +273,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app
 
-### critter-tally 0.2.1
+### critter-tally 0.2.2
 
 | | |
 | --- | --- |
@@ -305,7 +305,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app
 
-### critter-measure 0.2.1
+### critter-measure 0.2.2
 
 | | |
 | --- | --- |
@@ -337,7 +337,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never called by the model in the real app
 
-### critter-clock 0.1.1
+### critter-clock 0.1.2
 
 | | |
 | --- | --- |
@@ -367,7 +367,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the hourly toast has not been seen in the real app
 
-### critter-ledger 0.1.1
+### critter-ledger 0.1.2
 
 | | |
 | --- | --- |
@@ -398,7 +398,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - never seen in the real app; token counts come from the engine's per-turn usage, not checked against a bill
 - the toast for passing a limit has not been seen in the real app
 
-### critter-latch 0.1.2
+### critter-latch 0.1.3
 
 | | |
 | --- | --- |
@@ -429,7 +429,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the fixes after the review have not been reviewed again
 
-### critter-seal 0.1.2
+### critter-seal 0.1.3
 
 | | |
 | --- | --- |

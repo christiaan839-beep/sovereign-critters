@@ -13,7 +13,7 @@ Start a new session afterwards: plugins load at start-up.
 
 In the desktop app you can do the same from the interface: click **+** next to the prompt box, then **Plugins**, **Add marketplace** with `christiaan839-beep/sovereign-critters`, then **Add plugin**.
 
-> **Early access.** Mods run on Claude Code's mod engine (`$`, `register(on)`, `claude plugin test`), which is early access and can change without notice. Each mod here is pinned by tests and checked in `QUALITY.md`; when the engine moves, expect a patch release that follows it.
+> **Early access.** Mods run on Claude Code's mod engine (`$`, `register(on)`, `claude plugin test`), which is early access: mods load only where function hooks are enabled, and the engine can change without notice. Each mod here is pinned by tests and checked in `QUALITY.md`; when the engine moves, expect a patch release that follows it.
 
 ## What is here
 

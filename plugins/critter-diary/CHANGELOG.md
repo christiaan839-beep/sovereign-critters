@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.2
+
+- Docs: the README says that mods are early access: they load only where function hooks are enabled, and the engine may change without notice. No behaviour change.
+
 ## 0.6.1
 
 - **Fixed:** the session's lines are now written behind the tool's result, like the week; a state that hangs can no longer hold up a tool.

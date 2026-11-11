@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.2
+
+- Docs: the README says that mods are early access: they load only where function hooks are enabled, and the engine may change without notice. No behaviour change.
+
 ## 0.6.1
 
 - Docs: the README title and the rename note below used the old name or listed things the bell never stored.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.30.3
+
+- Docs: the README says that mods are early access: they load only where function hooks are enabled, and the engine may change without notice. No behaviour change.
+
 ## 0.30.2
 
 - **Gentler voice, all the way down:** the greetings, the weekday lines and the warnings no longer scold, nag or watch you (for example "is not working, you are", "counting your keystrokes", "no undo"). A test now checks every line the pair can say.

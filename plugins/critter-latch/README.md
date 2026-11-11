@@ -32,3 +32,7 @@ It is best effort and no substitute for a backup or for version control.
 - It never reads file contents, keeps nothing and sends nothing.
 
 A command it stopped is refused. A command it could not read (a `$VAR` target, an `eval` of something unknown) is put to you as a question instead, so a false alarm costs one click. In a permission mode that answers questions for you (auto mode), the question may be answered without reaching you: that was seen on 2026-11-11, and it is why only what the guard truly cannot read is a question. To run a refused command anyway, run it yourself in a terminal.
+
+## Early access
+
+Mods load only where Claude Code has function hooks enabled, and the mod engine they are written against may change between releases without notice. Tests pin this mod's behaviour; when the engine moves, expect a patch release that follows it.

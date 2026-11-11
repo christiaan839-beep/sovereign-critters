@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.1
+
+- Docs: the README says that mods are early access: they load only where function hooks are enabled, and the engine may change without notice. No behaviour change.
+
 ## 0.7.0
 
 - **Four more mods in the control room:** critter-clock, critter-ledger, critter-latch and critter-seal now have cards, switches and install buttons (12 mods in all). `/mods open clock` and `/mods open ledger` run their commands; latch and seal have nothing to open, they work quietly.

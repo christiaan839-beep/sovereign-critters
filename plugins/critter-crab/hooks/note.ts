@@ -90,8 +90,13 @@ export const fit = (s: string, width: number): string => {
   return out + '…'
 }
 
-/** "you left this:" for a note from an earlier session, "holding:" for one held since this session began. */
-export const labelFor = (noteAt: number, sessionAt: number): string => (noteAt < sessionAt ? 'you left this:' : 'holding:')
+/** "holding:" for a note held since this session began; for one from an earlier session, "you left this:" and its age in whole days,
+ * so an old note is not mistaken for a fresh one. */
+export const labelFor = (noteAt: number, sessionAt: number): string => {
+  if (noteAt >= sessionAt) return 'holding:'
+  const days = Math.floor((sessionAt - noteAt) / 86_400_000)
+  return days < 1 ? 'you left this:' : days === 1 ? 'you left this yesterday:' : `you left this ${days} days ago:`
+}
 
 export const HINT = '/crab drop when it is done'
 /** The two lines beside the crab, each cut to the width it is given. */
