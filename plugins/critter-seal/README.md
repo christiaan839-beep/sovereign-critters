@@ -1,5 +1,7 @@
 # critter-seal
 
+![critter-seal: Keeps your secrets on your machine.](preview.png)
+
 An opt-in guard that keeps secrets on your machine. It holds back a command that sends a secret to a host you have not listed.
 
 ```

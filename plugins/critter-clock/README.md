@@ -1,5 +1,7 @@
 # critter-clock
 
+![critter-clock: Time here, and time Claude worked.](preview.png)
+
 How long this session has run, and how much of it Claude spent working. Type `/clock`. It also says so once on each full hour, if you leave that on.
 
 ```

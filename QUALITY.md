@@ -101,11 +101,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the index cards have not been photographed in the real app
 
-### critter-ward 0.2.3
+### critter-ward 0.3.0
 
 | | |
 | --- | --- |
-| Tests passing | 71 |
+| Tests passing | 79 |
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
@@ -337,7 +337,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never called by the model in the real app
 
-### critter-clock 0.1.0
+### critter-clock 0.1.1
 
 | | |
 | --- | --- |
@@ -367,7 +367,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app
 
-### critter-ledger 0.1.0
+### critter-ledger 0.1.1
 
 | | |
 | --- | --- |
@@ -397,7 +397,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app; token counts come from the engine's per-turn usage, not checked against a bill
 
-### critter-latch 0.1.0
+### critter-latch 0.1.1
 
 | | |
 | --- | --- |
@@ -428,7 +428,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the fixes after the review have not been reviewed again
 
-### critter-seal 0.1.0
+### critter-seal 0.1.1
 
 | | |
 | --- | --- |

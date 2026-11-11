@@ -48,6 +48,9 @@ for s in plugins/*/sounds; do
   if python3 tools/check-sounds.py "$s" >"$TMP/s.log" 2>&1; then ok "$s sounds"; else bad "$s sounds"; sed 's/^/      /' "$TMP/s.log"; fi
 done
 
+# 3b. the icons that are drawn by a tool are the ones on disk
+if python3 tools/icons.py --check >"$TMP/i.log" 2>&1; then ok 'icons match tools/icons.py'; else bad 'an icon differs from what tools/icons.py draws'; sed 's/^/      /' "$TMP/i.log"; fi
+
 # 4. hygiene: the files a commit would carry (tracked, plus new and not ignored), text only
 if git rev-parse --git-dir >/dev/null 2>&1; then
   git ls-files -co --exclude-standard -z | tr '\0' '\n' | grep -v -e '^\.clawness/' -e '^tools/out/' -e '^tools/preflight\.sh$' >"$TMP/files"

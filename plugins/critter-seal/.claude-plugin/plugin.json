@@ -1,6 +1,6 @@
 {
   "name": "critter-seal",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "Apache-2.0",
   "icon": "./.claude-plugin/icon.png",
   "description": "Opt-in guard that holds back a command sending a secret file or a key-shaped value to a host you have not listed. It matches shapes and never prints, stores or sends a secret. Best effort: it reads the command, not the traffic.",

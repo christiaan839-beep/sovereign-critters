@@ -2,25 +2,23 @@
 
 Kept so a long run survives a context summary. Newest state first. Update it in the same commit as the work.
 
-## Done on this branch (`claude/fix-ward-bypass-mods-rename-b23643`, nothing pushed)
+## Done and on main
 
-- [x] critter-ward 0.2.3: attached, `=`, bundled and repeated branch flags; fuzzed against real git.
-- [x] critter-mods 0.6.1: the five renamed mods show their own start-up steps.
-- [x] README titles of bell, diary, measure and ward carry the new names.
-- [x] New mods, 0.1.0: critter-clock, critter-ledger, critter-latch, critter-seal.
-- [x] Two independent review rounds on latch and seal; every finding fixed with a test that failed first.
-- [x] latch: `git switch -f`, `--discard-changes` and `--pathspec-from-file`, from git's option tables.
+- [x] critter-ward 0.3.0: round two of the independent review (641 lines against real git, 50 past the guard); the spellings the header promised to read are fixed, each with a test that failed first. The README says plainly that it stops accidents and is not a security boundary.
+- [x] critter-ward 0.2.3, critter-mods 0.7.0, critter-crab 0.3.2, and the four new mods (clock, ledger, latch, seal), landed in pull request 4.
+- [x] Three independent review rounds on latch and seal; every finding fixed with a test that failed first.
+- [x] Icons for the four new mods, drawn by `tools/icons.py` and held to it by preflight; a poster each, from `tools/posters.sh` (0.1.1).
+- [x] All thirteen installed and switched on from the local marketplace.
 
-## In flight
+## Open
 
-- [x] Third independent review round on latch and seal: findings fixed (latch 58 tests, seal 55).
-- [ ] A fourth round only if the founder wants one: each round found fewer and smaller holes, but spelling-based guards will keep missing things (scripts, aliases, multi-step encoding). Say so in the release notes instead of promising a clean bill.
+- [ ] A fourth review round on latch and seal only if the founder wants one: each round found fewer and smaller holes, but spelling-based guards will keep missing things (scripts, aliases, multi-step encoding). The READMEs say so instead of promising a clean bill.
+- [x] critter-ward puts a line that runs an expansion (`eval "$(…)"`) to the person through `tool.check`, the way latch and seal ask (in 0.3.0, three tests, the first watched failing).
 
 ## Needs the founder
 
-- [ ] Look at the four new mods in the real app (none has been seen live; icons are placeholders, no poster art).
-- [x] Added the four to the `/mods` control room (critter-mods 0.7.0, 64 tests).
-- [ ] Decide on the PR. The guard blocks pushes to main, so nothing here is pushed.
+- [ ] Look at the four new mods in the real app, in a new session: `/clock`, `/ledger`, a held `git reset --hard`, a held send of `.env`. None has been seen live. Record each sighting in `tools/quality-facts.json`.
+- [ ] The release bar: the reviews and the docs audit went stale with these changes, and the cold install by someone else is still open for every mod.
 - [ ] Marketplace: the Claude Marketplace article lists partner agents bought with committed spend; it says nothing about free open-source mods. Ask how a free mod gets listed before planning for it.
 
 ## To verify (read from Anthropic's `mods/` README in `anthropics/claude-code`, summarised, not tested here)
