@@ -567,3 +567,23 @@ test('one flaky read does not wipe a good list, and a switch that failed but hap
   broken = true
   expect(await run($, 'list')).toMatch(/Mods: 6 of 8 on/) // the last good list stands
 })
+
+
+// ---- third review ----
+test('before any read of the plugin manager has worked, /mods list says it cannot reach it instead of dropping something', async ($, on) => {
+  setup($, on, LIST, undefined, argv => (argv.includes('list') ? { value: { ...PROCESS_OK, exitCode: 1, stdout: '', stderr: 'down' } } : undefined))
+  await begin($)
+  expect(await run($, 'list')).toMatch(/cannot reach the plugin manager/i)
+})
+
+test('a read that fails after a good one says the list is the last one, in /mods list and on the refresh button', async ($, on) => {
+  let broken = false
+  setup($, on, LIST, undefined, argv => (argv.includes('list') && broken ? { value: { ...PROCESS_OK, exitCode: 1, stdout: '', stderr: 'flaky' } } : undefined))
+  await begin($)
+  await new Promise(r => setTimeout(r, 30))
+  broken = true
+  expect(await run($, 'list')).toMatch(/did not answer.*last list/is)
+  const ui = await $.ui.mount({ plugin: 'mods', component: 'Pane', requestId: 'mods', surface: 'terminal', props: { bodyColumns: 80 } } as never)
+  await ui.press({ plugin: 'mods', key: 'refresh' } as never)
+  await ui.unmount()
+})

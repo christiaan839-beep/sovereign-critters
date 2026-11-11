@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.7
+
+- **Fixed:** `/mods list` before the plugin manager has answered says so, instead of "dropped something".
+- **Fixed:** when a read of the plugin manager fails, `/mods list` and the refresh button say they are showing the last list.
+
 ## 0.5.6
 
 - **Fixed:** no mod claims "restart to load" before the control room knows what this session loaded; the first good read of the plugin manager settles it, even if the first one timed out.

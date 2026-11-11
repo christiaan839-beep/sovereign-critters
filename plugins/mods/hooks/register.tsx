@@ -41,9 +41,10 @@ const readNotes = async ($: any, path: string): Promise<Notes | undefined> => {
 const seed = (list: Installed[] | undefined) => {
   if (list && !S.loaded) S.loaded = new Set(list.filter(x => x.enabled).map(x => x.id.split('@')[0]!))
 }
-const loadedHas = (id: string): boolean => (S.loaded ? S.loaded.has(id) : stateNow0(id))
-const stateNow0 = (id: string): boolean => !!S.list?.find(x => x.id === idOf(id))?.enabled // unseeded: as it is now, so nothing needs a restart
-const refresh = async ($: any) => {
+const loadedHas = (id: string): boolean => S.loaded?.has(id) ?? false // unseeded means no list either (they are seeded together), so no state is shown
+const STALE = 'The plugin manager did not answer, so this is the last list it gave.'
+/** Reads the plugin manager again; true when it answered, false when the pane is showing the last good list (or none). */
+const refresh = async ($: any): Promise<boolean> => {
   const fresh = await readList($)
   if (fresh) S.list = fresh // one flaky read does not wipe the last good list
   seed(fresh)
@@ -51,6 +52,7 @@ const refresh = async ($: any) => {
   const notes = await Promise.all(found.map(async ([id, path]) => [id, path ? await readNotes($, path) : undefined] as const))
   S.notes = Object.fromEntries(notes)
   redraw($)
+  return fresh !== undefined
 }
 const stateNow = (mod: Mod) => stateOf(mod, S.list ?? [])
 const onCount = () => MODS.filter(m => stateNow(m).state === 'on').length
@@ -180,8 +182,8 @@ export const register: Register = on => {
         return say(opened?.isPlaced === false ? `The control room could not open a pane here, so here is the list.\n${lines().join('\n')}` : `The control room is open: ${onCount()} of ${MODS.length} mods on.`)
       }
       if (sub === 'list' && words.length === 1) {
-        await refresh($)
-        return say(S.list ? lines().join('\n') : CANNOT)
+        const answered = await refresh($)
+        return say(S.list ? `${answered ? '' : `${STALE}\n`}${lines().join('\n')}` : CANNOT)
       }
       if ((sub === 'on' || sub === 'off') && words.length === 2) {
         if (words[1]!.toLowerCase() === HUB) return say('The control room cannot switch itself off: use `claude plugin disable` for that.')
@@ -250,7 +252,7 @@ export const register: Register = on => {
         <Box key="head" flexDirection="row" justifyContent="space-between">
           <Text bold>{S.list ? `Your mods · ${onCount()} of ${MODS.length} on` : 'Your mods'}</Text>
           <Box flexDirection="row" columnGap={1}>
-            <Button key="refresh" label="refresh" hotkey="r" onPress={act(async () => { await refresh($); return 'Refreshed.' })} />
+            <Button key="refresh" label="refresh" hotkey="r" onPress={act(async () => ((await refresh($)) ? 'Refreshed.' : STALE))} />
             <Button key="close" label="close" hotkey="q" onPress={() => $.ui.close({ id: PANE })} />
           </Box>
         </Box>
