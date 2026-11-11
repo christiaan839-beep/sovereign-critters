@@ -129,15 +129,20 @@ export const register: Register = on => {
 
   // Every tool, timed. The call's input is never read: the diary holds names and times, not what was run.
   on('tool.call', async ($, e, next) => {
-    const started = await $.clock.now()
+    // The clock is asked now and awaited with the tool's answer, so reading it never delays the tool.
+    const begun = Promise.resolve($.clock.now())
+    begun.catch(() => undefined)
     const ran = await next(e)
     try {
+      const started = await begun
       const ms = (await $.clock.now()) - started
       const ok = ran.deny === undefined && ran.isError !== true
       tools += 1
       if (!ok) errors += 1
-      await update($, entries, (list: Entry[]): Entry[] => [...list, { kind: 'tool', at: started, tool: e.tool, ms, ok } as Entry].slice(-KEEP))
-      await update($, days, (list: Day[]): Day[] => addTool(list, started, e.tool, ok))
+      await Promise.all([ // two atoms that do not depend on each other
+        update($, entries, (list: Entry[]): Entry[] => [...list, { kind: 'tool', at: started, tool: e.tool, ms, ok } as Entry].slice(-KEEP)),
+        update($, days, (list: Day[]): Day[] => addTool(list, started, e.tool, ok)),
+      ])
     } catch {
       // a diary that cannot write never holds up the tool
     }
@@ -148,9 +153,12 @@ export const register: Register = on => {
     try {
       const now = await $.clock.now()
       const ms = turnStart ? now - turnStart : 0
-      await update($, entries, (list: Entry[]): Entry[] => [...list, { kind: 'turn', at: now, tools, errors, ms } as Entry].slice(-KEEP))
-      await update($, days, (list: Day[]): Day[] => addTurn(list, now, ms))
+      const [t, er] = [tools, errors]
       tools = 0; errors = 0; turnStart = 0
+      await Promise.all([
+        update($, entries, (list: Entry[]): Entry[] => [...list, { kind: 'turn', at: now, tools: t, errors: er, ms } as Entry].slice(-KEEP)),
+        update($, days, (list: Day[]): Day[] => addTurn(list, now, ms)),
+      ])
     } catch {
       // see above
     }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2
+
+- Timing a command no longer waits on the clock before the command starts.
+
 ## 0.4.1
 
 - The bell and the tick now open with a fade-in (3 ms for the bell, 1 ms for the tick so it keeps its snap), so neither starts with a pop. Found by `tools/check-sounds.py`, which now checks every sound of every plugin.

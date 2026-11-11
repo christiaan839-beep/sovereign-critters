@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2
+
+- Timing a tool call no longer waits on the clock before the tool starts, and each tool's two diary writes are made together.
+
 ## 0.4.1
 
 - The pane's buttons are spaced by a column gap, so none loses its closing bracket in the terminal (the same fault seen in critter-buddy's stage).

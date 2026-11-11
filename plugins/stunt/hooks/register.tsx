@@ -107,8 +107,7 @@ export const register: Register = on => {
   })
 
   on('tool.call', async ($, e, next) => {
-    await update($, calls, list => [...list, e.tool].slice(-COLUMNS))
-    await update($, total, n => n + 1)
+    await Promise.all([update($, calls, list => [...list, e.tool].slice(-COLUMNS)), update($, total, n => n + 1)]) // independent atoms: written together
     return next(e)
   })
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.1
+
+- Opening the control room draws each card once: a card is redrawn only when its mod's name, version, state or notes change.
+
 ## 0.5.0
 
 - Four stamps, four words, never plain ON/OFF: **ON DUTY** (on, and the lead mod), **AWAKE** (on), **NAPPING** (installed and switched off), **ON LEAVE** (not installed). Each stamp has its own mark, so it never relies on colour: a check, an eye, a ZZ, three dots. The plugin manager gives no signal for "used this week", so critter-buddy is ON DUTY when on and the others are AWAKE; nothing counts your use.

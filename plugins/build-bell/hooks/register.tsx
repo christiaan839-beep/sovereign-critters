@@ -43,10 +43,12 @@ export const register: Register = (on, options) => {
   }).catch(($, e, next) => next(e))
 
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
-    const started = await $.clock.now()
+    // The clock is asked now and awaited with the tool's answer, so reading it never delays the tool.
+    const begun = Promise.resolve($.clock.now())
+    begun.catch(() => undefined)
     const ran = await next(e)
     try {
-      const took = (await $.clock.now()) - started
+      const took = (await $.clock.now()) - (await begun)
       if (took >= minSeconds * 1000 && ran.deny === undefined) {
         $.ui.toast(bellLine(took, ran.isError === true), { timeoutMs: 6000 })
         if (withSound) await $.audio.play({ asset: 'sounds/bell.wav' }, { gain: 0.6 })

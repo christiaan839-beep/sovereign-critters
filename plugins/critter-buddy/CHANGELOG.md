@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.26.0
+
+- The clock beat is lighter: it keeps what it needs (hidden, the names, the feel, day or night) instead of asking the engine on every beat, so a beat while anything moves makes about two engine calls instead of six to eight, a still beat makes one, and a hidden beat makes none. These are checked against the engine every ten seconds.
+- The pictures are drawn once: the cat, the wizard, the orb and the portrait each remember their last few pictures, so a redraw of an unchanged scene costs nothing.
+- `/critter perf` shows the clock's own books: beats run, engine calls and milliseconds per beat.
+
 ## 0.25.1
 
 - The folder tints are tuned from a contact sheet of the real sky colours: by day violet and slate read as the same grey and teal and sage as the same mint, so sage is now rose and slate is ocean (a stronger blue), and the ground leans a little harder (13%). Folders you already had on sage or slate move to rose or ocean.

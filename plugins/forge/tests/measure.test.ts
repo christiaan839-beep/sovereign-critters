@@ -1,4 +1,5 @@
 import { expect, test } from 'claude-code/testing'
+import { measure } from '../hooks/register'
 
 test('the model can call measure, and the count is exact', async $ => {
   const ran = await $.tool.call({ tool: 'mcp__forge__measure', text: 'Héllo 👋\nsecond line' })
@@ -19,4 +20,13 @@ test('a final line break ends the last line rather than starting another', async
 test('a character is a code point, so a waving hand with a skin tone counts two', async $ => {
   const ran = await $.tool.call({ tool: 'mcp__forge__measure', text: '\u{1F44B}\u{1F3FD}' })
   expect(ran.result).toBe('2 characters, 1 word, 1 line (the longest 2 characters), 8 bytes')
+})
+
+test('an emoji with a skin tone, a joined family and a combining accent count each code point, and a lone CRLF ends one line', () => {
+  expect(measure('👍🏽').characters).toBe(2) // the thumb and the skin tone
+  expect(measure('👨‍👩‍👧').characters).toBe(5) // three people and two joiners
+  expect(measure('é').characters).toBe(2) // e and the combining acute
+  expect(measure('é').characters).toBe(1)
+  expect(measure('a\r\nb\r\n').lines).toBe(2)
+  expect(measure('👍🏽').bytes).toBe(8)
 })
