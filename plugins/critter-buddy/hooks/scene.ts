@@ -1084,6 +1084,17 @@ export const perfLines = (p: Probe): string[] => {
   ]
 }
 
+// ---- what the host said about the backdrop ------------------------------------
+/** The host's answer to `$.ui.backdrop`, as one line for the doctor: drawn, or not drawn and the reason it gave. */
+export const backdropOutcome = (answer: unknown): { drawn: boolean; text: string } => {
+  if (typeof answer === 'object' && answer !== null && 'isDrawn' in answer) {
+    const a = answer as { isDrawn: unknown; reason?: unknown }
+    if (a.isDrawn === true) return { drawn: true, text: 'drawn' }
+    if (a.isDrawn === false) return { drawn: false, text: `not drawn (${typeof a.reason === 'string' && a.reason ? a.reason : 'the host gave no reason'})` }
+  }
+  return { drawn: false, text: 'not drawn (the host answered something unreadable)' }
+}
+
 // ---- a store that cannot be trusted, and the doctor who reads the rest ----
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 const whole = (v: unknown, lo: number, hi: number, fallback: number): number =>
@@ -1104,13 +1115,14 @@ export const cleanStreak = (raw: unknown): { days: number; last: string } | unde
 
 export const MIN_COLS = 110
 export type DoctorInput = {
-  detail: string; feel: string; sound: boolean; voice: string; talk: boolean; hidden: boolean; cols: number; surface: string; sky?: string; tint?: string
+  detail: string; feel: string; sound: boolean; voice: string; talk: boolean; hidden: boolean; cols: number; surface: string; sky?: string; tint?: string; backdrop?: string
 }
 /** /critter doctor: what is on, what is off and the one command that changes it. */
 export const doctorLines = (d: DoctorInput): string[] => {
   const out = [`Reach: ${d.detail}. Feel: ${d.feel}. Surface: ${d.surface}, ${d.cols} columns.`]
   if (d.tint !== undefined) out.push(d.tint ? `Tint: the sky leans ${d.tint} here. /critter tint off keeps it plain.` : 'Tint: off. /critter tint on lets this folder lean its own colour.')
   if (d.sky) out.push(d.sky === 'auto' ? 'Sky: auto, it follows the hour. /critter sky night holds a phase.' : `Sky: held at ${d.sky}. /critter sky auto lets the hour decide.`)
+  if (d.backdrop !== undefined) out.push(d.surface === 'desktop' ? `Backdrop: ${d.backdrop}.` : 'Backdrop: only the desktop app draws one.')
   if (d.hidden) out.push('The pair are hidden: /critter show brings them back.')
   if (d.cols < MIN_COLS) out.push(`The window is narrow (${d.cols} columns); the stage and the corner want ${MIN_COLS}.`)
   if (d.feel === 'still') out.push(d.sound || d.voice ? 'Still: nothing moves, and the pair are silent, so sound and voice say nothing: /critter feel warm lets them speak.' : 'Still: nothing moves.')

@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { windowWidth, fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, wizardPoseFor, isQuiet, motionTick, welcomeLine, cleanMemory, cleanStreak, doctorLines, newProbe, noteBeat, perfLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import { windowWidth, fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, wizardPoseFor, isQuiet, motionTick, welcomeLine, cleanMemory, cleanStreak, doctorLines, backdropOutcome, newProbe, noteBeat, perfLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
 import { TINTS, tintOf, tintFor, SKY_CHOICES, hourSast, dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, RIDGE_FAR, thinkingOf, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
 import type { Flight, SkyChoice, Streak } from './world'
 import type { SoundName, Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
@@ -57,6 +57,9 @@ const ERR_LINES = [
 
 let liveCols = 80
 let windowCols = 80 // the whole window, uncapped: the doctor reports this, the band is drawn at liveCols
+let skyDrawn = false // whether the host drew the last backdrop we set; a refusal is tried again, not forgotten
+let skyRetryAt = 0 // when a refused backdrop is tried again
+let backdropNote = 'not asked yet' // what the host said, for /critter doctor
 let lastSky = '' // the key of the backdrop last drawn: it is redrawn only when the hour, the season, the weather or the lights change
 const flights = new Map<number, Flight>() // the tool calls in flight, each with its own clock: past 20 s the cat goes to the window
 let flightId = 0
@@ -389,7 +392,7 @@ export const register: Register = on => {
     skyPickLive = await read($, sky)
     folderTint = tintOf(e.cwd ?? '')
     skyTintLive = tintFor(await read($, tint), folderTint)
-    lastSky = ''
+    lastSky = ''; skyDrawn = false; skyRetryAt = 0; backdropNote = 'not asked yet'
     await syncSky($, now, await read($, scene))
     await Promise.resolve($.agent.register(LOOKS_AGENT)).catch(() => undefined) // a build without agents keeps the rest
     await $.tool
@@ -522,7 +525,7 @@ export const register: Register = on => {
     }
     if (sub === 'perf') return { text: perfLines(probe).join('\n') }
     if (sub === 'doctor') {
-      return { text: doctorLines({ detail: await read($, detail), feel: await read($, feel), sound: await read($, sound), voice: await read($, voice), talk: await read($, talk), hidden: (await read($, isHidden)) === true, cols: windowCols, sky: await read($, sky), tint: (await read($, tint)) ? TINTS[folderTint ?? 0]!.name : '', surface: e.surface ?? 'terminal' }).join('\n') }
+      return { text: doctorLines({ detail: await read($, detail), feel: await read($, feel), sound: await read($, sound), voice: await read($, voice), talk: await read($, talk), hidden: (await read($, isHidden)) === true, cols: windowCols, sky: await read($, sky), tint: (await read($, tint)) ? TINTS[folderTint ?? 0]!.name : '', surface: e.surface ?? 'terminal', backdrop: backdropNote }).join('\n') }
     }
     if (sub === 'sky') {
       const pick = SKY_CHOICES.find(x => x === arg)
@@ -982,16 +985,23 @@ const syncSky = async ($: any, now: number, s: { joy: number; fails?: number; lo
   if (live.hidden) return
   const a = skyArgs(now, s.joy, s.fails, thinkingOf(s))
   const key = skyFor(a).key
-  if (key === lastSky) return
+  if (key === lastSky && (skyDrawn || now < skyRetryAt)) return // unchanged and drawn, or refused and not yet time to try again
   lastSky = key
-  await drawBackdrop($, { id: key, glass: glassOf(a.phase) })
+  const outcome = await drawBackdrop($, { id: key, glass: glassOf(a.phase) })
+  skyDrawn = outcome.drawn
+  skyRetryAt = outcome.drawn ? 0 : now + 10_000 // the surface may attach later: ask again in ten seconds, not every beat
 }
 
 // Not every host has a backdrop to draw on: a missing or refused call is not the mod's problem.
-const drawBackdrop = async ($: any, arg: { id: string; glass: ReturnType<typeof glassOf> } | undefined) => {
+const drawBackdrop = async ($: any, arg: { id: string; glass: ReturnType<typeof glassOf> } | undefined): Promise<{ drawn: boolean }> => {
   try {
-    await $.ui.backdrop(arg)
-  } catch {
-    // no backdrop here
+    const answer = await $.ui.backdrop(arg)
+    if (arg === undefined) { backdropNote = 'cleared (the pair are hidden)'; return { drawn: true } }
+    const outcome = backdropOutcome(answer)
+    backdropNote = outcome.text
+    return outcome
+  } catch (err) {
+    backdropNote = `not drawn (the host refused the call: ${err instanceof Error ? err.message : String(err)})`
+    return { drawn: false }
   }
 }

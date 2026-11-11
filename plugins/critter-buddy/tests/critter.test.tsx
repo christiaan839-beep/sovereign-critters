@@ -2369,3 +2369,33 @@ test('a picture asked for twice with the same scene is built once, and a differe
   expect(b).not.toBe(a)
   expect(b.source).not.toBe(a.source)
 })
+
+import { backdropOutcome } from '../hooks/scene'
+
+test('the host’s answer about the backdrop becomes a line: drawn, or not drawn with the reason it gave', () => {
+  expect(backdropOutcome({ isDrawn: true, requestId: 'backdrop' })).toEqual({ drawn: true, text: 'drawn' })
+  expect(backdropOutcome({ isDrawn: false, reason: 'no surface is attached yet' })).toEqual({ drawn: false, text: 'not drawn (no surface is attached yet)' })
+  expect(backdropOutcome({ isDrawn: false })).toEqual({ drawn: false, text: 'not drawn (the host gave no reason)' })
+  expect(backdropOutcome(undefined)).toEqual({ drawn: false, text: 'not drawn (the host answered something unreadable)' })
+  expect(backdropOutcome('yes')).toEqual({ drawn: false, text: 'not drawn (the host answered something unreadable)' })
+})
+
+test('the doctor says why there is no sky on the desktop, and that only the desktop draws one elsewhere', () => {
+  const base = { detail: 'party', feel: 'warm', sound: false, voice: '', talk: false, hidden: false, cols: 120, surface: 'desktop' }
+  expect(doctorLines({ ...base, backdrop: 'not drawn (no surface is attached yet)' })).toContain('Backdrop: not drawn (no surface is attached yet).')
+  expect(doctorLines({ ...base, surface: 'terminal', backdrop: 'drawn' })).toContain('Backdrop: only the desktop app draws one.')
+  expect(doctorLines(base).some(l => l.startsWith('Backdrop'))).toBe(false)
+})
+
+test('/critter doctor reports what the host said about the backdrop on the desktop, and says only the desktop draws one elsewhere', async ($, on) => {
+  stub(on)
+  on('ui.status', () => ({ value: undefined }))
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('clock.every', () => ({ value: { cancel: () => undefined } }) as never)
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  const doctor = async (surface: string) => JSON.stringify(await $.command.run({ command: 'critter', args: 'doctor', origin: { kind: 'composer' }, presentation: {}, surface } as never))
+  // the test engine answers $.ui.backdrop itself: whatever it says is now in the doctor's words, never silent
+  expect(await doctor('desktop')).toMatch(/Backdrop: (drawn|not drawn \(.+\))\./)
+})

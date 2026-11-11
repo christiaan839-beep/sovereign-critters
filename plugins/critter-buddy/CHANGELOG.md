@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.26.1
+
+- **`/critter doctor` says whether the sky is drawn.** On the desktop it adds a `Backdrop:` line: `drawn`, or `not drawn` with the reason the desktop gave. Until now a refusal was thrown away, so an empty window gave no clue why.
+- **A refused backdrop is tried again.** If the desktop could not draw the sky when the session started (for example, the window was not ready), the mod asks again every ten seconds, and when the hour or weather changes, instead of giving up for good.
+
 ## 0.26.0
 
 - The clock beat is lighter: it keeps what it needs (hidden, the names, the feel, day or night) instead of asking the engine on every beat, so a beat while anything moves makes about two engine calls instead of six to eight, a still beat makes one, and a hidden beat makes none. These are checked against the engine every ten seconds.
