@@ -649,6 +649,24 @@ const QUIET = new Set(
 )
 // git commands that note() reads one by one (and that no alias can shadow).
 const NOTED = new Set(['checkout', 'switch', 'rebase', 'branch', 'symbolic-ref', 'config', 'remote'])
+// The name that a flag of `shorts` (or a long option spelling or abbreviating one of `longs`) takes, wherever git
+// reads it from: `-b NAME`, `-bNAME`, `-fbNAME` (a bundle ends at the flag that takes a value), `--orphan NAME`,
+// `--orphan=NAME`. found is false when no such flag is there; name is undefined when one is but its value is missing.
+function flagValue(args: string[], shorts: string, longs: string[]): { found: boolean; name?: string } {
+  for (let k = 0; k < args.length; k++) {
+    const a = args[k]!
+    if (a === '--') break
+    if (a.startsWith('--')) {
+      if (a === '--force' || !spells(a, ...longs)) continue // --force is its own option, not a prefix of --force-create
+      return { found: true, name: a.includes('=') ? a.slice(a.indexOf('=') + 1) : args[k + 1] }
+    }
+    if (!a.startsWith('-') || a.length < 2) continue
+    for (let j = 1; j < a.length; j++) {
+      if (shorts.includes(a[j]!)) return { found: true, name: a.slice(j + 1) || args[k + 1] }
+    }
+  }
+  return { found: false }
+}
 function note(sub: string, args: string[], changes: Changes) {
   const named = args.filter(a => !a.startsWith('-'))
   const head = (b: string) => changes.heads.push(unread(b) ? UNREAD : b)
@@ -656,9 +674,9 @@ function note(sub: string, args: string[], changes: Changes) {
   if (sub === 'checkout' || sub === 'switch') {
     // -b NAME (and its kin) makes and checks out NAME; one word alone is the branch checked out (or a path, or a
     // remote branch the new branch of its last part tracks); - is the branch before, which the guard cannot read.
-    const create = args.findIndex(a => /^(-[bBcC]|--orphan|--create|--force-create)$/.test(a))
-    if (create >= 0) {
-      const made = args[create + 1] ?? UNREAD
+    const create = flagValue(args, 'bBcC', ['orphan', 'create', 'force-create'])
+    if (create.found) {
+      const made = create.name ?? UNREAD
       head(made)
       changes.fresh.push(made)
     } else if (args.includes('-') || args.some(a => a.startsWith('@{'))) changes.heads.push(UNREAD)
@@ -672,9 +690,12 @@ function note(sub: string, args: string[], changes: Changes) {
     // Making, moving or copying a branch, or setting an upstream, may give a branch an upstream; -m and -c may
     // rename the branch checked out.
     const upstream = args.some(a => /^(-u|-t|--track|--set-upstream-to|--unset-upstream)/.test(a))
-    if (args.some(a => /^(-[dD]|--delete)$/.test(a)) || (!named.length && !upstream)) return
-    changes.fresh.push('HEAD', ...named)
-    if (args.some(a => /^(-[mMcC]|--move|--copy)$/.test(a)) && named.length) head(named[named.length - 1]!)
+    // -mNAME is not a form git accepts, but reading it as one costs nothing and cannot be a way past the guard.
+    const moved = flagValue(args, 'mMcC', ['move', 'copy'])
+    const target = moved.name && !moved.name.startsWith('-') && !named.includes(moved.name) ? [...named, moved.name] : named
+    if (args.some(a => /^(-[dD]|--delete)$/.test(a)) || (!target.length && !upstream)) return
+    changes.fresh.push('HEAD', ...target)
+    if (moved.found && target.length) head(target[target.length - 1]!)
   } else if (sub === 'symbolic-ref') {
     if (args.some(a => /^(-d|--delete)$/.test(a)) || named.length < 2) return
     if (named[0] === 'HEAD') head(branch(named[1]!))

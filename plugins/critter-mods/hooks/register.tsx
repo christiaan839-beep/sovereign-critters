@@ -2,7 +2,7 @@ import type { Register } from 'claude-code'
 
 import { cardSvg, dividerSvg } from './card-svg'
 import { DEFAULT_STEPS, DIALS, HUB, MODS, STEPS, SYMBOL, actionFor, cellsOf, fit, installArgv, listLine, parseList, parseTopEntry, restartNeeded, stateOf, statusWord, titleOf, toggleArgv, wrap , STAMP_WORD, orderMods, tierOf} from './catalog'
-import type { Installed, Mod, Notes } from './catalog'
+import type { Installed, Mod, Notes, State, Tier } from './catalog'
 
 const PANE = 'mods'
 const CANNOT = 'The control room cannot reach the plugin manager from this session: run `claude plugin` in a terminal instead.'

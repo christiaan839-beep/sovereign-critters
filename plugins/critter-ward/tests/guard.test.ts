@@ -524,8 +524,34 @@ forms('5. a loop runs its body again, so a push in it takes what later commands 
 ])
 forms('5. under push.default=upstream, an upstream the line sets is not read ahead', configured('feature', 'push.default upstream\n'), [
   ['git checkout -b fix origin/main; git push origin fix', /upstream this line sets/],
+  ['git checkout -Bfix origin/main; git push origin fix', /upstream this line sets/],
+  ['git switch --create=fix origin/main; git push origin fix', /upstream this line sets/],
   ['git branch -u origin/main && git push', /upstream this line sets/],
   ['git checkout -b fix origin/main; git push origin fix:fix', 'ran'],
+])
+
+forms('5. a branch made with its name attached to the flag (or after =) is the branch checked out', ON_FEATURE, [
+  ['git checkout -Bmain origin/x && git push origin HEAD', MAIN],
+  ['git switch -Cmain && git push', MAIN],
+  ['git checkout -bmain && git push', MAIN],
+  ['git switch -cmain && git push', MAIN],
+  ['git checkout --orphan=main && git push origin HEAD', MAIN],
+  ['git checkout --orphan main && git push origin HEAD', MAIN],
+  ['git checkout --orph=main && git push origin HEAD', MAIN],
+  ['git switch --create=master && git push', /master takes changes through a pull request/],
+  ['git switch --force-create=main && git push', MAIN],
+  ['git switch --force-c=main && git push', MAIN],
+  ['git checkout -fbmain && git push', MAIN],
+  ['git checkout -fb main && git push', MAIN],
+  ['git checkout -bfix && git push origin fix', 'ran'],
+  ['git switch --create=fix && git push -u origin fix', 'ran'],
+])
+forms('5. a branch moved or copied with its name attached is the branch checked out', ON_FEATURE, [
+  ['git branch -Mmain && git push', MAIN],
+  ['git branch -mmain && git push origin HEAD', MAIN],
+  ['git branch -Cmain && git push', MAIN],
+  ['git branch -M main && git push', MAIN],
+  ['git branch -Mfix && git push origin fix', 'ran'],
 ])
 
 forms('6. bash -c reads its script past --, other options and their values', ON_FEATURE, [

@@ -69,11 +69,11 @@ export const STEPS: Record<string, string[]> = {
   'critter-buddy': ['Switch it on here, then start a new session.', 'Type /critter to see what you can do.', 'Press pet, feed or the corner above the prompt.'],
   'critter-diary': ['Switch it on here, then start a new session.', 'Work as usual, then type /diary.', 'Type /diary week to see the whole week.'],
   'critter-bell': ['Switch it on here, then start a new session.', 'Run something slow and look away: it rings when done.'],
-  guard: ['Switch it on here, then start a new session.', 'Nothing else to do: it works in the background.'],
-  stunt: ['Switch it on here, then start a new session.', 'Type /stunt to open it.'],
-  crab: ['Switch it on here, then start a new session.', 'Type /crab hold and a note to leave one.', 'Come back to the folder later: the crab has it.'],
-  forge: ['Switch it on here, then start a new session.', 'Ask Claude to count a text exactly.'],
-  everywhere: ['Switch it on here, then start a new session.', 'Type /everywhere to open it.'],
+  'critter-ward': ['Switch it on here, then start a new session.', 'Nothing else to do: it works in the background.'],
+  'critter-stunt': ['Switch it on here, then start a new session.', 'Type /stunt to open it.'],
+  'critter-crab': ['Switch it on here, then start a new session.', 'Type /crab hold and a note to leave one.', 'Come back to the folder later: the crab has it.'],
+  'critter-measure': ['Switch it on here, then start a new session.', 'Ask Claude to count a text exactly.'],
+  'critter-tally': ['Switch it on here, then start a new session.', 'Type /everywhere to open it.'],
 }
 
 /** What a mod's own CHANGELOG says at the top: its newest heading and that entry's first two bullets, cleaned and cut. Release notes, not file times. */
