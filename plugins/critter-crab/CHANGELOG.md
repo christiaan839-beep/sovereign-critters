@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0
+
+- **A note says how old it is.** From an earlier session the band reads "you left this yesterday:" or "you left this 3 days ago:", so a note from last month is not taken for this morning's. Under a day it still says "you left this:". Nothing new is stored: the age comes from when the note was held.
+- Docs: the README says that mods are early access: they load only where function hooks are enabled, and the engine may change without notice. No behaviour change.
+
 ## 0.3.2
 
 - **The crab will not carry a key.** `/crab hold` refuses a note that looks like an access key, a token, a private key block or a `password: …` line, says so without repeating it, and stores nothing. A note is kept as plain text and drawn above the prompt.

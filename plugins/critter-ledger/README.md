@@ -25,3 +25,7 @@ The tokens this session has used, when you ask. Type `/ledger`.
 - It counts what the engine reports to a mod on each turn. A model call a plugin makes in the background may not appear.
 - The count starts when the mod loads. A session you resume starts its count again from then.
 - It is a count, not a bill: it knows nothing about prices or plans.
+
+## Early access
+
+Mods load only where Claude Code has function hooks enabled, and the mod engine they are written against may change between releases without notice. Tests pin this mod's behaviour; when the engine moves, expect a patch release that follows it.

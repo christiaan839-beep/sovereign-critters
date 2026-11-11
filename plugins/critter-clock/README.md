@@ -25,3 +25,7 @@ How long this session has run, and how much of it Claude spent working. Type `/c
 
 - The count starts when the mod loads. A session you resume, or a mod you switch on late, starts its count again from then.
 - "Worked" is the time of finished turns as the engine reports it. A turn you interrupt is counted as the engine counts it.
+
+## Early access
+
+Mods load only where Claude Code has function hooks enabled, and the mod engine they are written against may change between releases without notice. Tests pin this mod's behaviour; when the engine moves, expect a patch release that follows it.

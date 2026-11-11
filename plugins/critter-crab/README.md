@@ -8,7 +8,7 @@ A small pixel crab that holds a note for you. Tell it where you stopped, and it 
 /crab hold ask Mira which migration ran before the deploy
 ```
 
-A band appears above the prompt: the crab, and your note beside it. In the same folder in a later session it says **you left this:** instead of **holding:**.
+A band appears above the prompt: the crab, and your note beside it. In the same folder in a later session it says **you left this:** instead of **holding:**, with its age once it is a day old (**you left this 3 days ago:**).
 
 ## Commands
 
@@ -48,5 +48,10 @@ The first version of this plugin was a band that showed what a hot reload keeps 
 claude plugin validate . --strict
 claude plugin test .
 ```
+
+## Early access
+
+Mods load only where Claude Code has function hooks enabled, and the mod engine they are written against may change between releases without notice. Tests pin this mod's behaviour; when the engine moves, expect a patch release that follows it.
+
 
 Apache-2.0. Not affiliated with Anthropic.

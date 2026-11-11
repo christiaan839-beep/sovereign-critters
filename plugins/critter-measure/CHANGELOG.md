@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2
+
+- Docs: the README says that mods are early access: they load only where function hooks are enabled, and the engine may change without notice. No behaviour change.
+
 ## 0.2.1
 
 - Docs: the README title used the old name, and the rename note listed things it never stored.

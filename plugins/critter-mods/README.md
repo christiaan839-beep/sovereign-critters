@@ -59,4 +59,9 @@ claude plugin validate . --strict
 claude plugin test .
 ```
 
+## Early access
+
+Mods load only where Claude Code has function hooks enabled, and the mod engine they are written against may change between releases without notice. Tests pin this mod's behaviour; when the engine moves, expect a patch release that follows it.
+
+
 Apache-2.0. Not affiliated with Anthropic.

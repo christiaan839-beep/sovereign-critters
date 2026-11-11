@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- Docs: the README says that mods are early access: they load only where function hooks are enabled, and the engine may change without notice. No behaviour change.
+
 ## 0.1.2
 
 - **Fixed: a delete after a `cd` to a folder outside the one you opened is refused, not asked about.** `cd /tmp/x && rm -rf dist` and `cd .. && rm -rf x` were read as "a target the guard cannot read", which is put to you as a question, and where the question did not reach you the delete ran. The guard had read the `cd` all along; it now says the delete reaches outside the folder you opened. Found the first time the mod was seen in the real app. A `cd` nobody can read (`cd $DIR`) is still a question.
