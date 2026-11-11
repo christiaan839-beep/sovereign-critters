@@ -12,7 +12,7 @@ Kept so a long run survives a context summary. Newest state first. Update it in 
 
 ## Open
 
-- [ ] In auto mode a guard's question (`tool.check` returning ask) was answered without reaching the person (seen with latch, 2026-11-11). Latch's README says so. Check the same for seal (a host it cannot read) and ward (a line that runs an expansion), and say so in their READMEs; decide whether either should refuse instead.
+- [x] In auto mode a guard's question was answered without reaching the person (seen with latch, 2026-11-11). Decided by the founder the same day: seal and ward keep asking about what they cannot read, and all three READMEs say what auto mode does with the question (seal 0.1.2, ward 0.3.1).
 - [ ] A fourth review round on latch and seal only if the founder wants one: each round found fewer and smaller holes, but spelling-based guards will keep missing things (scripts, aliases, multi-step encoding). The READMEs say so instead of promising a clean bill.
 - [x] critter-ward puts a line that runs an expansion (`eval "$(…)"`) to the person through `tool.check`, the way latch and seal ask (in 0.3.0, three tests, the first watched failing).
 
