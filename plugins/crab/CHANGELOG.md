@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.4
+
+- **Fixed:** if the store would not read when a session started, `/crab` said it held nothing and `/crab drop` did nothing even once the store was back. Both now ask the store again.
+
 ## 0.2.3
 
 - **Fixed: a note cannot be disguised with Unicode direction controls** (such as a right-to-left override that reverses the text in the band); they are removed like the colour codes and control characters already were.

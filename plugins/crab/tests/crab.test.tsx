@@ -290,3 +290,27 @@ test('even in a window too narrow for the crab the line keeps eight cells, and a
 test('a note cannot be disguised with Unicode direction controls', () => {
   expect(cleanNote('fix ‮gnirts‬ and ⁦x⁩ ‎ok‏')).toBe('fix gnirts and x ok')
 })
+
+// ---- review fix: a note whose first read failed is still there to see and to put down once the store answers ----
+test('after a store that would not read at start, /crab shows the note and /crab drop puts it down once the store answers', async ($, on) => {
+  mock.clock(on, { now: NOW })
+  const key = hashOf('/work/atlas')
+  const store: Record<string, unknown> = { notes: { [key]: { text: 'ask Mira', at: NOW - 1000 } } }
+  let reads = 0
+  on('store.get', (_: unknown, e: { key: string }) => { reads += 1; if (reads === 1) throw new Error('not yet'); return { value: store[e.key] } })
+  on('store.set', (_: unknown, e: { key: string; value: unknown }) => { store[e.key] = e.value; return { value: undefined } })
+  on('command.register', () => ({ value: { command: 'crab' } }))
+  on('session.start', (_: unknown, e: { cwd: string }) => ({ cwd: e.cwd }))
+  on('ui.render', ($: any, e: any) => { const { Text } = $.ui.resolve(e); return <Text>the engine's own band</Text> })
+  await begin($)
+  expect(await run($, '')).toMatch(/Holding: ask Mira/)
+  expect(await run($, 'drop')).toMatch(/put it down/)
+  expect(store.notes).toEqual({})
+})
+
+test('/crab drop with no note and a store that reads fine says there is nothing to put down', async ($, on) => {
+  mock.clock(on, { now: NOW })
+  keep(on)
+  await begin($)
+  expect(await run($, 'drop')).toMatch(/nothing to put down/)
+})

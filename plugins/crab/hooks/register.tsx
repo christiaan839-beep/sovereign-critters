@@ -20,6 +20,7 @@ export const register: Register = on => {
   let key: string | undefined // this folder, as a hash
   let sessionAt = 0 // when this session began, to tell "you left this" from "holding"
   let current: Note | undefined
+  let unread = false // the store would not read at the start: ask it again before saying there is nothing
 
   on('session.start', async ($, e, next) => {
     try {
@@ -28,6 +29,7 @@ export const register: Register = on => {
       current = (await saved($))[key]
     } catch {
       current = undefined // a store that will not read is an empty store; the crab never blocks a session
+      unread = true
     }
     try {
       await $.command.register({ name: 'crab', description: 'The crab holds your place: /crab hold <text> leaves a note for this folder, /crab drop clears it, /crab shows it. It is there again when you come back.' })
@@ -43,6 +45,9 @@ export const register: Register = on => {
     const sub = args.split(/\s+/)[0] ?? ''
     const rest = args.slice(sub.length)
     try {
+      if ((sub === '' || sub === 'drop') && unread && key) {
+        try { current = (await saved($))[key]; unread = false } catch { /* the store still will not answer */ }
+      }
       if (sub === '') return { text: current ? `Holding: ${current.text}` : 'The crab is holding nothing for this folder. /crab hold <text> gives it something.' }
       if (sub === 'hold') {
         const text = cleanNote(rest)
