@@ -52,7 +52,7 @@ export const isAsleep = (s: Scene) => s.look === 'idle' && s.idle > 100
 // ---- the critter: the site's own sprite, ported ----------------------------------
 // This is `founderCritter` from the studio site (src/js/crit.js) drawn on a grid of palette keys instead of a canvas: 22 x 14 cells,
 // three tones of clay lit from the upper left, eyes with a glint, and frames for breathing, blinking, walking, joy and casting.
-// By day it is the wizard of Christiaan's form (a dark purple hat with a gold star, a staff whose orb throws lightning); by night
+// By day it is the wizard form (a dark purple hat with a gold star, a staff whose orb throws lightning); by night
 // it is the antennae critter whose hat carries a violet bolt. The hat builds up from the brim over `morph` 0 to 1.
 export type CritterPose = { aura: number; kit: 'wizard' | 'sherlock' | 'chef' | 'none'; walk: -1 | 0 | 1; arms: 0 | 1; cast: boolean; blink: boolean; happy: boolean; breath: boolean; morph: number; night: boolean; bolt: 0 | 1 | 2; tip?: boolean }
 const ghash = (x: number, y: number) => { const v = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return v - Math.floor(v) }

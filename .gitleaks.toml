@@ -1,0 +1,8 @@
+# Scanner settings for gitleaks (https://github.com/gitleaks/gitleaks). Run: gitleaks git . --no-banner
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "The fake token a session-diary test feeds the diary to prove it is never written down"
+paths = ['''plugins/session-diary/tests/diary\.test\.tsx''']
+regexes = ['''SECRET123''']

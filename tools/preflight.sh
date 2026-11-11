@@ -55,6 +55,14 @@ scan 'secret-shaped strings' '(sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{30,}|
 scan 'email addresses' '[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}' 'a@b\.com|noreply@anthropic\.com|git@github\.com:'
 scan 'event text in a workflow expression' '\$\{\{[^}]*(github\.event|github\.head_ref|github\.actor)' 
 scan 'merge markers' '^(<<<<<<< |>>>>>>> |=======$)'
+scan 'personal names in code' '(Christiaan|Tiaan)([^a-z]|$)' 'christiaan839-beep'
+
+# 5. secrets in the whole git history, when gitleaks is installed (settings in .gitleaks.toml)
+if command -v gitleaks >/dev/null 2>&1 && git rev-parse --git-dir >/dev/null 2>&1; then
+  if gitleaks git . --no-banner -l error >"$TMP/leaks" 2>&1; then ok 'gitleaks: no secrets in history'; else bad 'gitleaks found something'; sed 's/^/      /' "$TMP/leaks" | head -20; fi
+else
+  note 'skip  gitleaks (not installed, or not a git checkout)'
+fi
 
 note
 if [ "$fails" -eq 0 ]; then note 'preflight: all clear'; exit 0; else note "preflight: $fails failure(s)"; exit 1; fi
