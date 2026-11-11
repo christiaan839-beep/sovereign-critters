@@ -2358,3 +2358,14 @@ test('/critter perf answers before any beat has run, and /critter hide still hid
   expect(await run('hide')).toMatch(/The pair are hidden/)
   expect(await run('show')).toMatch(/The pair are back/)
 })
+
+import { paintSvg as paintSvgMemo } from '../hooks/scene'
+
+test('a picture asked for twice with the same scene is built once, and a different scene is a different picture', () => {
+  const s = { ...initial(), cols: 40 }
+  const a = paintSvgMemo(s, 5)
+  expect(paintSvgMemo({ ...s }, 5)).toBe(a) // an equal scene, not the same object: the same picture comes back
+  const b = paintSvgMemo({ ...s, tick: s.tick + 1, mode: 'walk' }, 5)
+  expect(b).not.toBe(a)
+  expect(b.source).not.toBe(a.source)
+})

@@ -606,7 +606,7 @@ export const colourOf = (s: Scene) => {
   return (k: string) => BASE[k] ?? coat[k] ?? (k === 'd' ? shade(coat.o ?? '#d97757') : k === 'w' ? coat.x : undefined) ?? '#d97757'
 }
 
-export const paint = (s: Scene): Run[][] => {
+const paintRaw = (s: Scene): Run[][] => {
   const cols = Math.max(24, s.cols)
   return runsOf(canvasOf(s, cols), colourOf(s))
 }
@@ -626,7 +626,7 @@ export const wizardCanvas = (s: Scene, pose?: WizardPose): string[][] =>
     },
     WIZARD_COLS,
   )
-export const paintWizard = (s: Scene, pose?: WizardPose): Run[][] => runsOf(wizardCanvas(s, pose), colourOf(s))
+const paintWizardRaw = (s: Scene, pose?: WizardPose): Run[][] => runsOf(wizardCanvas(s, pose), colourOf(s))
 
 // ---- vector art -------------------------------------------------------------
 // The desktop draws text art as a smear (its cells are not two pixels tall), but it draws SVG crisply. The same canvas
@@ -655,9 +655,9 @@ export const svgOf = (canvas: string[][], colour: (k: string) => string, px: num
   const source = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" shape-rendering="crispEdges">${rects.join('')}</svg>`
   return { source, width, height }
 }
-export const paintSvg = (s: Scene, px = 5): Svgd => svgOf(canvasOf(s, Math.max(24, s.cols)), colourOf(s), px)
-export const paintWizardSvg = (s: Scene, px = 5, pose?: WizardPose): Svgd => svgOf(wizardCanvas(s, pose), colourOf(s), px)
-export const paintBigSvg = (s: Scene, px = 8): Svgd => svgOf(portraitCanvas(s), colourOf(s), px)
+const paintSvgRaw = (s: Scene, px = 5): Svgd => svgOf(canvasOf(s, Math.max(24, s.cols)), colourOf(s), px)
+const paintWizardSvgRaw = (s: Scene, px = 5, pose?: WizardPose): Svgd => svgOf(wizardCanvas(s, pose), colourOf(s), px)
+const paintBigSvgRaw = (s: Scene, px = 8): Svgd => svgOf(portraitCanvas(s), colourOf(s), px)
 /** The five-cell face as nine by five pixels: eyes by what the call did. */
 export const faceSvg = (kind: FaceKind, tick: number, px = 4): Svgd => {
   const eyes: Record<FaceKind, string[]> = {
@@ -686,14 +686,14 @@ export const faceRuns = (kind: FaceKind, tick: number): Run[] => {
 /** The Sovereign Matrix mark: a glossy clay orb, its shine breathing. Nine cells wide, eight pixel rows. */
 export const ORB = ['..XXXXX..', '.XCHWCDX.', 'XCHWCCDDX', 'XCHCCCDDX', 'XCCCCDDDX', 'XCCDDDDDX', '.XDDDDDX.', '..XXXXX..']
 export const ORB_COLS = 9
-export const paintOrb = (tick: number): Run[][] => {
+const paintOrbRaw = (tick: number): Run[][] => {
   const shine = tick % 6 < 3 ? 'W' : 'H' // lit from the top left; the shine breathes
   const canvas = ORB.map(r => [...r].map(c => (c === 'W' ? shine : c)))
   return runsOf(canvas, k => BASE[k] ?? '#d97757')
 }
 
 /** The same orb, unchanged, as vector art for the desktop. */
-export const paintOrbSvg = (tick: number, px = 5): Svgd =>
+const paintOrbSvgRaw = (tick: number, px = 5): Svgd =>
   svgOf(ORB.map(r => [...r].map(c => (c === 'W' && tick % 6 >= 3 ? 'H' : c))), k => BASE[k] ?? '#d97757', px)
 
 const runsOf = (canvas: string[][], colour: (k: string) => string): Run[][] => {
@@ -725,7 +725,7 @@ export const portraitCanvas = (s: Scene): string[][] =>
   canvasOf({ ...s, cols: PORTRAIT_W, cx: 4, cdir: 1, kx: PORTRAIT_W - CAT_W - 1, kdir: -1, mode: s.mode === 'walk' || s.mode === 'follow' ? 'loaf' : s.mode }, PORTRAIT_W)
 
 /** The portrait: each pixel two cells wide when the pane has room for that, else one, so the cat is never cut off. */
-export const paintBig = (s: Scene): Run[][] => {
+const paintBigRaw = (s: Scene): Run[][] => {
   const canvas = portraitCanvas(s)
   if (s.cols < PORTRAIT_W * 2) return runsOf(canvas, colourOf(s))
   const colour = colourOf(s)
@@ -1242,3 +1242,30 @@ export type SoundName = (typeof SOUND_NAMES)[number]
 
 /** The whole window's width in cells: the wider of the body and the viewport (an open pane narrows the body, not the window); 80 when neither is known. */
 export const windowWidth = (body?: number, viewport?: number): number => Math.max(body ?? 0, viewport ?? 0) || 80
+
+// ---- a picture drawn once ------------------------------------------------------
+/**
+ * The painters, each remembering its last few pictures. The scene is plain data, so the arguments say everything the picture
+ * depends on: a beat that moved nothing (a breath between two blinks, a redraw the host asked for) gets the same picture back
+ * without building the canvas and the vector art again.
+ */
+const memo = <A extends unknown[], R>(fn: (...a: A) => R, size = 6) => {
+  const seen = new Map<string, R>()
+  return (...a: A): R => {
+    const key = JSON.stringify(a)
+    const hit = seen.get(key)
+    if (hit !== undefined) return hit
+    const made = fn(...a)
+    seen.set(key, made)
+    if (seen.size > size) seen.delete(seen.keys().next().value as string)
+    return made
+  }
+}
+export const paint: typeof paintRaw = memo(paintRaw)
+export const paintWizard: typeof paintWizardRaw = memo(paintWizardRaw)
+export const paintOrb: typeof paintOrbRaw = memo(paintOrbRaw)
+export const paintOrbSvg: typeof paintOrbSvgRaw = memo(paintOrbSvgRaw)
+export const paintBig: typeof paintBigRaw = memo(paintBigRaw)
+export const paintSvg: typeof paintSvgRaw = memo(paintSvgRaw)
+export const paintWizardSvg: typeof paintWizardSvgRaw = memo(paintWizardSvgRaw)
+export const paintBigSvg: typeof paintBigSvgRaw = memo(paintBigSvgRaw)
