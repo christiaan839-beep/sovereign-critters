@@ -1,4 +1,4 @@
-# build-bell
+# critter-bell
 
 ![critter-bell: A bell for the long ones](preview.png)
 

@@ -133,7 +133,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The others
 
-### critter-diary 0.6.0
+### critter-diary 0.6.1
 
 | | |
 | --- | --- |
@@ -169,7 +169,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - /diary clear does not clear the week
 - never seen in the real app
 
-### critter-bell 0.6.0
+### critter-bell 0.6.1
 
 | | |
 | --- | --- |
@@ -301,7 +301,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app
 
-### critter-measure 0.2.0
+### critter-measure 0.2.1
 
 | | |
 | --- | --- |

@@ -2,6 +2,7 @@
 
 ## 0.2.3
 
+- The README's title now carries the new name (`critter-ward`); it still said `guard`.
 - **Fixed: a repeated branch flag hid the last one.** `git switch -cf -c main && git push origin HEAD` made main the branch checked out, but the guard read the first `-c`. Git keeps the last of a repeated option and so does the guard now. Found by running about 1,600 generated forms of the create and move flags through real git and the guard; the rows that matter are now tests.
 
 ## 0.2.2

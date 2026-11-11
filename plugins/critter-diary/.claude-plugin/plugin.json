@@ -1,6 +1,6 @@
 {
   "name": "critter-diary",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "/diary opens a pane that keeps what Claude did this session: every tool call with how long it took and whether it failed, a line for each turn, and a button that copies it all as markdown. It stores tool names and times only, never the commands or the files.",
   "author": {
     "name": "Sovereign Matrix"

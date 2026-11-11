@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.1
+
+- The README's title now carries the new name (`critter-diary`); it still said `session-diary`. No behaviour change.
+
 ## 0.6.0
 
 - **Renamed from `session-diary` to `critter-diary`**, so the whole family shares one name and none is a bare common word. The slash commands are unchanged. To move over: update the marketplace, install `critter-diary`, and remove the old plugin; anything it stored (a crab note, the diary's week) starts fresh under the new name.
