@@ -28,7 +28,7 @@ test('a heredoc body is text, not commands', () => {
 })
 
 test('find -exec and its kin run what follows as a command on files the guard cannot name', () => {
-  for (const c of ['find ~ -name x -exec rm -rf {} +', 'find . -name x -execdir rm -rf {} +', 'find . -ok rm -rf {} ;', 'find . -exec git clean -fd {} \\;', 'find / -exec rm -r {} \\;']) stopped(c)
+  for (const c of ['find ~ -name x -exec rm -rf {} +', 'find ~ -name x -execdir rm -rf {} +', 'find / -ok rm -rf {} ;', 'find . -exec git clean -fd {} \\;', 'find / -exec rm -r {} \\;']) stopped(c)
   through('find . -name x -exec ls {} \\;')
   through('find . -name "*.tmp" -exec rm {} +')
 })

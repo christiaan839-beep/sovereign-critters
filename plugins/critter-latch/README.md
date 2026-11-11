@@ -11,7 +11,7 @@ An opt-in guard against deletes you cannot take back. Install it and it stops th
 latch: rm -r reaches outside the folder you opened (/work/app). Ask the person to run it themselves if they meant it.
 ```
 
-A recursive delete inside the folder (`rm -rf dist`) goes through. So do `git clean -n`, `git reset --soft` and `git checkout main`.
+A recursive delete inside the folder (`rm -rf dist`, `find . -name __pycache__ -exec rm -rf {} +`, `git ls-files | xargs rm -rf`) goes through. So do `git clean -n`, `git reset --soft` and `git checkout main`.
 
 ## How it reads
 
@@ -24,7 +24,8 @@ It is best effort and no substitute for a backup or for version control.
 - It reads how a command is spelled, not what a script does. `make clean`, `npm run reset`, `find -delete`, `rsync --delete`, a git alias and a program that deletes on its own are invisible to it.
 - It guards `rm` and four git commands. It does not guard `mv`, `dd`, `>` truncation, `git branch -D`, `git stash drop`, `git checkout-index`, `git read-tree --reset` or `git push --force` (that is [critter-ward](../critter-ward)).
 - It cannot read options built from a variable (`rm $FLAGS x`), a `case` inside `$( )`, or a `CDPATH` that changes where `cd` goes. A symlink inside the folder that points outside it is not followed.
-- It judges the folder the session was opened in. If it cannot tell which that is, a recursive delete waits.
+- `cd sub; make; cd ..; rm -rf build` is held: if the first `cd` had failed, the second would have left the folder. Write it with `&&`. An `eval` of anything but a well-known setup tool's output (`ssh-agent`, `direnv`, `pyenv`, `opam` and the like) is held, and an alias defined elsewhere is invisible.
+- It judges the folder the session was opened in (it asks the session for it, so a shell that has since moved is judged against where it began). If it cannot tell which that is, a recursive delete waits.
 - It fails closed for a line that names `rm`, `git` or `xargs` and that it cannot read; any other command goes on as if the mod were not there.
 - It never reads file contents, keeps nothing and sends nothing.
 
