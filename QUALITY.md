@@ -17,7 +17,7 @@ Eight gates. The lead mods (the first three) must meet all eight before release.
 | session-diary | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | build-bell | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | crab | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
-| stunt | met | met | met | open | met | open | stale | open | Not ready: 4 of 8 open |
+| stunt | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | everywhere | met | met | met | open | met | open | stale | open | Not ready: 4 of 8 open |
 | forge | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 
@@ -63,11 +63,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - the corner and the stage have not been seen in the real app
 - the cat overlapping Pip when a side panel opens was seen once and not reproduced
 
-### mods 0.5.5
+### mods 0.5.6
 
 | | |
 | --- | --- |
-| Tests passing | 59 |
+| Tests passing | 61 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -132,11 +132,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The others
 
-### session-diary 0.5.0
+### session-diary 0.5.1
 
 | | |
 | --- | --- |
-| Tests passing | 26 |
+| Tests passing | 29 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -166,11 +166,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - the 14-day week does not survive a restart (session-scoped state)
 - /diary clear does not clear the week
 
-### build-bell 0.5.0
+### build-bell 0.5.1
 
 | | |
 | --- | --- |
-| Tests passing | 19 |
+| Tests passing | 20 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | any surface that plays sound or shows toasts |
@@ -201,11 +201,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - its three settings cannot be set (no declared user configuration)
 - a long command rings twice
 
-### crab 0.2.4
+### crab 0.2.5
 
 | | |
 | --- | --- |
-| Tests passing | 23 |
+| Tests passing | 24 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -233,15 +233,15 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - never seen in the real app
 - /crab drop after a failed store read
 
-### stunt 0.1.4
+### stunt 0.1.5
 
 | | |
 | --- | --- |
-| Tests passing | 14 |
+| Tests passing | 15 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
-| Verdict | Not ready: 4 of 8 open |
+| Verdict | Not ready: 5 of 8 open |
 
 **Independent reviews**
 
