@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.4
+
+- Types: the plugin typechecks with no errors against Claude Code's own mod types (`tsconfig.json` now extends the ones Claude Code writes into `.claude-plugin/types`, leaving out the MCP list), and its tests follow the current test kit. No behaviour change.
+- Tests: the store's five-second guard is stubbed as a timer that never fires, as the engine's `clock.after` resolves only when the time is up.
+
 ## 0.6.3
 
 - Docs: the early-access note is corrected from Claude Code's own documentation: mods are on by default from 2.1.286 (not only where function hooks are enabled), an organization can keep installed mods from running, and `--safe-mode` starts without them. No behaviour change.

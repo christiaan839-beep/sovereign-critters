@@ -521,7 +521,7 @@ export const register: Register = on => {
     }
     if (sub === 'perf') return { text: perfLines(probe).join('\n') }
     if (sub === 'doctor') {
-      return { text: doctorLines({ detail: await read($, detail), feel: await read($, feel), sound: await read($, sound), voice: await read($, voice), talk: await read($, talk), hidden: (await read($, isHidden)) === true, cols: windowCols, sky: await read($, sky), tint: (await read($, tint)) ? TINTS[folderTint ?? 0]!.name : '', surface: surfaceOf(await Promise.resolve($.session.surfaces()).catch(() => []), e.surface), backdrop: backdropNote }).join('\n') }
+      return { text: doctorLines({ detail: await read($, detail), feel: await read($, feel), sound: await read($, sound), voice: await read($, voice), talk: await read($, talk), hidden: (await read($, isHidden)) === true, cols: windowCols, sky: await read($, sky), tint: (await read($, tint)) ? TINTS[folderTint ?? 0]!.name : '', surface: surfaceOf(await Promise.resolve($.session.surfaces()).catch(() => []), 'surface' in e && typeof e.surface === 'string' ? e.surface : undefined), backdrop: backdropNote }).join('\n') }
     }
     if (sub === 'sky') {
       const pick = SKY_CHOICES.find(x => x === arg)
@@ -745,7 +745,7 @@ export const register: Register = on => {
     )
   }).catch(($, e, next) => next(e))
 
-  on('ui.render', { component: 'CommandOutput', props: { command: 'critter' } } as never, async ($, e, next) => {
+  on('ui.render', { component: 'CommandOutput', props: { command: 'critter' } }, async ($, e, next) => {
     if ((await read($, isHidden)) || e.props.isErrored) return next(e)
     const s = await read($, scene)
     const { Box, Text, face, vector, svg } = kit($.ui.resolve(e), e.surface)

@@ -1,7 +1,8 @@
+import type { On } from 'claude-code'
 import { expect, test } from 'claude-code/testing'
 
 const git = (stdout: string) => ({ value: { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
-const wired = (on: Parameters<Parameters<typeof test>[1]>[1]) => {
+const wired = (on: On) => {
   on('tool.call', () => ({ result: 'ran' }))
   on('tool.check', () => ({ decision: 'allow' }))
   on('process.run', (_: unknown, e: { argv: readonly string[] }) => git(e.argv.includes('--show-current') ? 'feature/lens\n' : ''))

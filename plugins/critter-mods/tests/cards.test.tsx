@@ -65,7 +65,7 @@ test('an install path from the plugin manager is trusted only if it is this mark
   expect(safeInstallPath('/x/plugins/cache/sovereign-critters/critter-crab/0.2.0\n', 'critter-crab')).toBeUndefined()
   expect(safeInstallPath(undefined, 'critter-crab')).toBeUndefined()
   expect(safeInstallPath(42, 'critter-crab')).toBeUndefined()
-  const list = parseList(JSON.stringify([{ id: 'critter-crab@sovereign-critters', version: '0.2.0', enabled: true, installPath: ok }, { id: 'critter-measure@sovereign-critters', version: '1', enabled: true, installPath: '/etc/passwd' }]))
+  const list = parseList(JSON.stringify([{ id: 'critter-crab@sovereign-critters', version: '0.2.0', enabled: true, installPath: ok }, { id: 'critter-measure@sovereign-critters', version: '1', enabled: true, installPath: '/etc/passwd' }]))!
   expect(list[0]!.installPath).toBe(ok)
   expect(list[1]!.installPath).toBeUndefined()
 })

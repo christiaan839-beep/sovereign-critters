@@ -69,7 +69,7 @@ declare module 'claude-code' {
       /** Whether the cast chime and the purr play. Off until asked: sound in a shared mod is a choice. */
       sound: Shaped<boolean>
       /** How lively the pair are: calm (still, silent), warm (the usual) or playful. */
-      feel: Shaped<'calm' | 'warm' | 'playful'>
+      feel: Shaped<'calm' | 'warm' | 'playful' | 'still'>
       /** The cat's line about how full the context window is; empty while there is nothing to say. */
       usage: Shaped<string>
       /** Whether the big moments are spoken aloud: empty is off, `default` the system voice, anything else the name of an installed system voice. */

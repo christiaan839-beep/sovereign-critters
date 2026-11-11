@@ -71,21 +71,21 @@ test('/ledger answers, sets a limit, rejects a bad one, and says so once when pa
   on('command.register', () => ({ value: { command: 'ledger' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('turn.complete', () => ({ text: '' }))
-  on('ui.toast', (_, e) => { toasts.push(String((e as { text?: string }).text)); return { value: {} } })
+  on('ui.toast', (_, e) => { toasts.push(String((e as { text?: string }).text)); return { value: undefined } })
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   const done = (usage: ReturnType<typeof use>) =>
     $.turn.complete({ turnId: 't', answer: '', durationMs: 1, isAborted: false, reason: 'end_turn', usage } as never)
 
-  expect((await $.command.run({ command: 'ledger', args: '' })).text).toBe('Nothing counted yet. No limit set (/ledger limit 500k).')
-  expect((await $.command.run({ command: 'ledger', args: 'limit 1k' })).text).toBe('Limit set to 1k. I will say so once if you pass it.')
-  expect((await $.command.run({ command: 'ledger', args: 'limit nonsense' })).text).toBe('A limit looks like 500k, 1.5m or 250000. Say "limit off" to clear it.')
+  expect((await $.command.run({ command: 'ledger', args: '', origin: { kind: 'composer' } as const, presentation: { isFullscreen: false, columns: 80 } })).text).toBe('Nothing counted yet. No limit set (/ledger limit 500k).')
+  expect((await $.command.run({ command: 'ledger', args: 'limit 1k', origin: { kind: 'composer' } as const, presentation: { isFullscreen: false, columns: 80 } })).text).toBe('Limit set to 1k. I will say so once if you pass it.')
+  expect((await $.command.run({ command: 'ledger', args: 'limit nonsense', origin: { kind: 'composer' } as const, presentation: { isFullscreen: false, columns: 80 } })).text).toBe('A limit looks like 500k, 1.5m or 250000. Say "limit off" to clear it.')
   await done(use(600, 0))
   expect(toasts).toEqual([])
   await done(use(600, 0))
   expect(toasts).toEqual(['You passed the 1k you set: 1.2k used.'])
   await done(use(600, 0))
   expect(toasts.length).toBe(1)
-  expect((await $.command.run({ command: 'ledger', args: 'limit off' })).text).toBe('Limit cleared.')
+  expect((await $.command.run({ command: 'ledger', args: 'limit off', origin: { kind: 'composer' } as const, presentation: { isFullscreen: false, columns: 80 } })).text).toBe('Limit cleared.')
 })
 
 test('it never touches a tool call', async ($, on) => {

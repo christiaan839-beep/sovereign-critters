@@ -89,7 +89,9 @@ export const register: Register = on => {
     const base = await next(e)
     try {
       if (e.props.hasSurvey || !current) return base
-      const { Box, Text, Svg } = $.ui.resolve(e)
+      const els = $.ui.resolve(e)
+      const { Box, Text } = els
+      const Svg = 'Svg' in els ? els.Svg : undefined // the desktop draws pictures; the terminal's kit has no Svg
       const cols = Number(e.props.bodyColumns) || 80
       const { line, hint } = bandLines(current, labelFor(current.at, sessionAt), Math.max(8, cols - CRAB_W - 2))
       const vector = e.surface !== 'terminal' && Svg !== undefined

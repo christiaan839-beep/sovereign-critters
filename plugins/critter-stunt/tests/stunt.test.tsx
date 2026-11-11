@@ -198,7 +198,7 @@ test('the state keeps the last forty tool names and counts all of them', async (
     return { value: { isSet: true, version: v } }
   })
   on('tool.call', () => ({ result: 'ok' }))
-  for (let i = 0; i < 45; i++) await $.tool.call({ tool: i < 5 ? 'Read' : 'Bash' })
+  for (let i = 0; i < 45; i++) await $.tool.call(i < 5 ? { tool: 'Read', file_path: 'a.md' } : { tool: 'Bash', command: 'ls' })
   await new Promise(r => setTimeout(r, 50)) // the count is written behind the result
   expect(kept.get('critter-stunt.calls')?.value).toEqual(Array(40).fill('Bash'))
   expect(kept.get('critter-stunt.total')?.value).toBe(45)

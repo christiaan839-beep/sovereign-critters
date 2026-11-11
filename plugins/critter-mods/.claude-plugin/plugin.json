@@ -1,6 +1,6 @@
 {
   "name": "critter-mods",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "license": "Apache-2.0",
   "icon": "./.claude-plugin/icon.png",
   "description": "The control room for the sovereign-critters mods: /mods opens one pane that lists every mod, switches each on or off through the plugin manager, installs the missing ones, and opens each mod's own panes.",

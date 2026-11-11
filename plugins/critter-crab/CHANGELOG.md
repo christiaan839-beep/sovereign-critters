@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.2
+
+- Types: the plugin typechecks with no errors against Claude Code's own mod types (`tsconfig.json` now extends the ones Claude Code writes into `.claude-plugin/types`, leaving out the MCP list), and its tests follow the current test kit. No behaviour change.
+- Types: the band asks for `Svg` only where the surface's kit has one (the terminal's has none); it drew the same before. No behaviour change.
+
 ## 0.4.1
 
 - Docs: the early-access note is corrected from Claude Code's own documentation: mods are on by default from 2.1.286 (not only where function hooks are enabled), an organization can keep installed mods from running, and `--safe-mode` starts without them. No behaviour change.
