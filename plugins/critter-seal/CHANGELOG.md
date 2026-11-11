@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2
+
+- Docs: the README says that in auto mode a question from the guard may be answered without reaching you, and why it stays a question and not a refusal. No behaviour change.
+
 ## 0.1.1
 
 - The icon is the critter with a postmaster's cap and an envelope closed with wax, in place of the placeholder, and the README opens with a poster. No behaviour change.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- Docs: the README says that in auto mode a question from the guard may be answered without reaching you, and why it stays a question and not a refusal. No behaviour change.
+
 ## 0.3.0
 
 Round two of the independent review ran 641 lines against real git and a bare remote: 50 moved main past the guard. The ones the header promised to read are fixed, each with a test that failed first and that a sabotaged copy of the fix fails again.
