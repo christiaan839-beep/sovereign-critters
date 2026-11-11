@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.2
+
+- **Fixed:** a store that never answers can no longer hang `/diary clear` or stop the week recording; each store step gives up after five seconds.
+
 ## 0.5.1
 
 - **Fixed:** a slow or stuck store can no longer hold up a tool's result; the week is written behind it.

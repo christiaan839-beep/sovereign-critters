@@ -143,8 +143,12 @@ export const postcardOf = (list: readonly Entry[], md = false): string => {
 // queued one behind another because the store has no compare-and-set: two tools finishing together must both count.
 const DAYS = 'days'
 let queue: Promise<unknown> = Promise.resolve()
+/** A store step that gives up after five seconds, so one that never answers cannot stop the queue for good. */
+const STORE_GIVES_UP_MS = 5000
+const patient = <T,>($: any, step: Promise<T> | T): Promise<T> =>
+  Promise.race([Promise.resolve(step), new Promise<never>((_, no) => { $.clock.after(STORE_GIVES_UP_MS, () => no(new Error('the store did not answer'))) })])
 const bump = ($: any, f: (list: Day[]) => Day[]): void => {
-  queue = queue.then(async () => { await $.store.set(DAYS, f(cleanDays(await $.store.get(DAYS)))) }).catch(() => undefined)
+  queue = queue.then(async () => { await patient($, $.store.set(DAYS, f(cleanDays(await patient($, $.store.get(DAYS)))))) }).catch(() => undefined)
 }
 /** Resolves when every write to the week so far has settled. A tool never waits on it: a store that hangs must not hold up a result. */
 export const idle = (): Promise<unknown> => queue
@@ -209,13 +213,10 @@ export const register: Register = on => {
     const sub = e.args.trim()
     if (sub === 'clear') {
       await update($, entries, () => [] as Entry[])
-      try {
-        queue = queue.then(() => $.store.set(DAYS, []))
-        await queue
-      } catch {
-        queue = Promise.resolve()
-        return { text: 'This session is empty, but the week could not be cleared: the store would not take it.' }
-      }
+      let cleared = true
+      queue = queue.then(() => patient($, $.store.set(DAYS, []))).catch(() => { cleared = false })
+      await queue
+      if (!cleared) return { text: 'This session is empty, but the week could not be cleared: the store would not take it.' }
       return { text: 'The diary and the week are empty.' }
     }
     if (sub === 'week' || sub === 'week copy') {

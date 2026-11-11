@@ -1,4 +1,4 @@
-import { expect, test } from 'claude-code/testing'
+import { expect, mock, test } from 'claude-code/testing'
 
 import type { Entry } from '../types'
 import { postcardOf, barOf, addTool, addTurn, dayOf, lineOf, markdownOf, weekOf, cleanDays, idle } from '../hooks/register'
@@ -409,4 +409,25 @@ test('a clock that steps back cannot make a day vanish, and names are cleaned of
   expect(md).not.toContain('https://evil')
   expect(md).not.toMatch(/\u202E|\u2028/)
   expect(md).not.toMatch(/^# h/m)
+})
+
+
+test('a store that hangs cannot hang /diary clear or stop the week for good: each store step gives up after five seconds', async ($, on) => {
+  const clock = mock.clock(on, { now: AT })
+  stub(on)
+  let hang = true
+  const store2: Record<string, unknown> = {}
+  on('store.get', (_: unknown, e: { key: string }) => (hang ? (new Promise(() => undefined) as never) : ({ value: store2[e.key] })))
+  on('store.set', (_: unknown, e: { key: string; value: unknown }) => { store2[e.key] = e.value; return { value: undefined } })
+  on('command.register', () => ({ value: { command: 'diary' } }))
+  on('tool.call', () => ({ result: 'ok' }) as never)
+  await $.tool.call({ tool: 'Read' } as never) // its week write hangs on the first get
+  const cleared = sayDiary($, 'clear')
+  await clock.advance(6000)
+  await clock.advance(6000)
+  expect(await cleared).toMatch(/empty/)
+  hang = false
+  await $.tool.call({ tool: 'Read' } as never) // and the week records again
+  await idle()
+  expect((store2.days as { tools: number }[])[0]!.tools).toBeGreaterThan(0)
 })
