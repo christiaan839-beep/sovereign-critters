@@ -2328,3 +2328,33 @@ test('the sky uses a folder\'s colour only while the tint is on', () => {
   expect(tintFor(false, 3)).toBeUndefined()
   expect(tintFor(true, undefined)).toBeUndefined()
 })
+
+import { newProbe, noteBeat, perfLines } from '../hooks/scene'
+
+test('the clock keeps books: a hidden beat costs nothing, a stepped beat costs what it was told, and the words say so', () => {
+  expect(perfLines(newProbe())).toEqual(['No beat has run yet.'])
+  let p = newProbe()
+  p = noteBeat(p, 'hidden', 0, 0)
+  p = noteBeat(p, 'waited', 1, 2)
+  p = noteBeat(p, 'stepped', 3, 6)
+  p = noteBeat(p, 'stepped', 3, 4)
+  expect(p).toEqual({ beats: 4, hidden: 1, waited: 1, stepped: 2, calls: 7, ms: 12, worst: 6 })
+  const text = perfLines(p).join('\n')
+  expect(text).toMatch(/4 beats: 2 stepped the scene, 1 looked and waited, 1 did nothing/)
+  expect(text).toMatch(/7 in all, 2\.33 a beat that ran/) // 7 calls over the 3 beats that ran
+  expect(text).toMatch(/4\.00 ms a beat that ran, the slowest 6 ms/)
+})
+
+test('/critter perf answers before any beat has run, and /critter hide still hides with the beat reading a mirror', async ($, on) => {
+  stub(on)
+  on('ui.status', () => ({ value: undefined }))
+  on('ui.toast', () => ({ value: undefined }))
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('clock.every', () => ({ value: { cancel: () => undefined } }) as never)
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const run = async (args: string) => JSON.stringify(await $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never))
+  expect(await run('perf')).toMatch(/No beat has run yet/)
+  expect(await run('hide')).toMatch(/The pair are hidden/)
+  expect(await run('show')).toMatch(/The pair are back/)
+})

@@ -1055,6 +1055,35 @@ export const cadence = (s: Scene): 1 | 4 => {
   return working || moving ? 1 : 4
 }
 
+// ---- what a beat costs -------------------------------------------------------------
+/** The clock's own books: how many beats ran, how many did nothing, and what the rest cost the engine. */
+export type Probe = { beats: number; hidden: number; waited: number; stepped: number; calls: number; ms: number; worst: number }
+export const newProbe = (): Probe => ({ beats: 0, hidden: 0, waited: 0, stepped: 0, calls: 0, ms: 0, worst: 0 })
+
+/** One beat, entered in the books: `calls` engine calls and `ms` milliseconds; `stepped` says whether the scene moved. */
+export const noteBeat = (p: Probe, kind: 'hidden' | 'waited' | 'stepped', calls: number, ms: number): Probe => ({
+  ...p,
+  beats: p.beats + 1,
+  hidden: p.hidden + (kind === 'hidden' ? 1 : 0),
+  waited: p.waited + (kind === 'waited' ? 1 : 0),
+  stepped: p.stepped + (kind === 'stepped' ? 1 : 0),
+  calls: p.calls + calls,
+  ms: p.ms + ms,
+  worst: Math.max(p.worst, ms),
+})
+
+/** The books as words, for /critter perf. */
+export const perfLines = (p: Probe): string[] => {
+  if (!p.beats) return ['No beat has run yet.']
+  const live = p.beats - p.hidden
+  const per = (n: number, d: number) => (d ? (n / d).toFixed(2) : '0.00')
+  return [
+    `${p.beats} beats: ${p.stepped} stepped the scene, ${p.waited} looked and waited, ${p.hidden} did nothing (hidden).`,
+    `Engine calls: ${p.calls} in all, ${per(p.calls, live)} a beat that ran (a beat used to take 6 to 8 while anything moved).`,
+    `Time: ${per(p.ms, live)} ms a beat that ran, the slowest ${p.worst} ms (the clock beats every 250).`,
+  ]
+}
+
 // ---- a store that cannot be trusted, and the doctor who reads the rest ----
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 const whole = (v: unknown, lo: number, hi: number, fallback: number): number =>
