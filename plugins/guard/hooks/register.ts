@@ -350,7 +350,7 @@ export function unwrap(words: string[]) {
 // One git push: its words after `push`, git's own options before it, where it runs (a directory, or undefined
 // when the guard cannot tell which repository it is in), the variables the guard hands to the git it asks (those
 // of its VAR= words that locate the repository and its settings), and why the guard cannot read it at all.
-export type Push = { args: string[]; git: string[]; cwd?: string; env: Record<string, string>; unknown?: string; changes?: Changes }
+export type Push = { args: string[]; git: string[]; cwd?: string; env: Record<string, string>; unknown?: string; changes?: Changes; alias?: string }
 
 // Every git push in a command line, wherever it stands: after a cd, VAR= words or a wrapper, inside ( ), $( ) or
 // ` `, in a bash -c script or eval's words, or in a heredoc that a shell reads.
@@ -589,6 +589,7 @@ function git(words: string[], here: string | undefined, env: Record<string, stri
   const options = words.slice(1, k)
   const args = words.slice(k + 1)
   let unknown: string | undefined
+  let aliased: string | undefined // a subcommand git may know as an alias in a config file: judge() looks it up
   // An alias this very line made (git config alias.p "push -f"; git p): read as the command it stands for, so it is judged as one.
   const made = sub === 'push' ? undefined : changes.alias?.[sub.toLowerCase()]
   if (made !== undefined && !unread(made))
@@ -603,14 +604,15 @@ function git(words: string[], here: string | undefined, env: Record<string, stri
     else if (/^(send-pack|http-push)$/.test(sub) || (sub === 'subtree' && args.includes('push'))) unknown = `git ${sub} pushes in a way the guard does not read`
     else {
       note(sub, args, changes)
-      return []
+      if (QUIET.has(sub) || NOTED.has(sub)) return [] // a command git has itself: an alias cannot stand in for it
+      aliased = sub
     }
   } else if (xargs) unknown = 'xargs adds words to it'
   const loads = Object.keys(env).find(LOADS) ?? changes.loads
   if (loads) unknown ??= loading(loads)
   const located = here !== undefined && !options.some(unread) && !Object.entries(env).some(([key, value]) => LOCATES(key) && unread(value))
   const handed = Object.fromEntries(Object.entries(env).filter(([key, value]) => HANDED.test(key) && !unread(value)))
-  return [{ args, git: options, cwd: located ? here : undefined, env: handed, unknown, changes: seen(changes) }]
+  return [{ args, git: options, cwd: located ? here : undefined, env: handed, unknown, changes: seen(changes), alias: aliased }]
 }
 const loading = (name: string) => `it sets ${name}, which changes the program that runs or what it loads`
 
@@ -645,6 +647,8 @@ const QUIET = new Set(
     ...['whatchanged', 'worktree', 'write-tree'],
   ],
 )
+// git commands that note() reads one by one (and that no alias can shadow).
+const NOTED = new Set(['checkout', 'switch', 'rebase', 'branch', 'symbolic-ref', 'config', 'remote'])
 function note(sub: string, args: string[], changes: Changes) {
   const named = args.filter(a => !a.startsWith('-'))
   const head = (b: string) => changes.heads.push(unread(b) ? UNREAD : b)
@@ -755,8 +759,22 @@ function lands(name: string, { config, symrefs = {} }: Repo, current: string[]) 
 
 // Why a push may not go, or undefined when it may. `ask` asks git about the push's repository, and is called when
 // where the push goes depends on git's settings: it names no branch, or names one without saying where it goes.
-export async function judge(push: Push, ask: () => Promise<Repo>): Promise<string | undefined> {
+export async function judge(push: Push, ask: () => Promise<Repo>, depth = 0): Promise<string | undefined> {
   if (push.unknown) return `${push.unknown}, so the guard cannot tell where it goes`
+  if (push.alias !== undefined) {
+    // A git subcommand the guard does not know may be an alias in a config file: ask git, and judge what it stands for.
+    if (push.cwd === undefined) return `git ${push.alias} may be an alias, and the guard cannot locate the repository to look it up; cd there by a plain path`
+    if (depth >= 5) return `git aliases nest too deep (${push.alias}) for the guard to read ahead`
+    const value = values((await ask()).config, `alias.${push.alias.toLowerCase()}`).pop()
+    if (value === undefined) return undefined // not an alias: some other program git runs
+    const rest = push.args.map(quote).join(' ')
+    for (const p of pushes(value.startsWith('!') ? `${value.slice(1)} ${rest}` : `git ${value} ${rest}`)) {
+      if (p.git.length) return `the alias ${push.alias} runs git with options, which the guard does not read ahead`
+      const why = await judge(p, ask, depth + 1)
+      if (why) return why
+    }
+    return undefined
+  }
   if (push.args.some(unread)) return 'it holds an expansion ($, `, ~, a brace or a glob) the guard cannot read ahead; spell it out'
   const { options, refspecs, deletes } = parse(push.args)
   if (options.some(forces) || refspecs.some(r => r.startsWith('+'))) return FORCE
@@ -802,7 +820,7 @@ export async function judge(push: Push, ask: () => Promise<Repo>): Promise<strin
 }
 
 // The git settings that decide where a push goes.
-const SETTINGS = /^(push\.default|branch\..*\.merge|remote\..*\.(push|mirror))$/
+const SETTINGS = /^(push\.default|branch\..*\.merge|remote\..*\.(push|mirror)|alias\..+)$/
 // What `git config --list -z` prints, as `key value` lines of the settings above: each entry is the key, a newline
 // and the value, or the key alone for a boolean written with no value, which git reads as true.
 const settings = (listed: string) =>

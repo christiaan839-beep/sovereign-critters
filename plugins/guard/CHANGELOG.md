@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4
+
+- **Fixed: a git alias in a config file got past the guard.** With `alias.pf = push --force` in your git config, `git pf` was treated as an unknown command and ran. The guard now asks git for your aliases and judges `git pf` as the push it stands for (aliases of aliases and `!` shell aliases too; one that never ends is refused). A git command that is not an alias is still left alone.
+
 ## 0.1.3
 
 - The listing card now carries a homepage, a repository link and keywords, and a description short enough to read in full. No behaviour change.

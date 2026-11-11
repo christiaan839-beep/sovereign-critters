@@ -93,11 +93,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - the index cards have not been photographed in the real app
 - no independent code review yet
 
-### guard 0.1.3
+### guard 0.1.4
 
 | | |
 | --- | --- |
-| Tests passing | 67 |
+| Tests passing | 68 |
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell where a push goes, the push waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |

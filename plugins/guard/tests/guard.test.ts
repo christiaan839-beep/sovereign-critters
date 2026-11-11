@@ -418,6 +418,19 @@ forms('a remote mirror set false, or empty, is off', { '.': { branch: 'feature',
   ['git -C e push origin', 'ran'],
 ])
 forms('an upstream of the same name goes through', configured('feature', 'branch.feature.merge refs/heads/feature\n'), [['git push', 'ran']])
+const ALIASES = 'alias.pf push --force\nalias.pm push origin main\nalias.st status -s\nalias.sh !git push -f\nalias.pff pf\nalias.loop loop\n'
+forms('a git alias in a config file is judged as the command it stands for', configured('feature', ALIASES), [
+  ['git pf', /force push/],
+  ['git pf origin feature', /force push/],
+  ['git pm', /pull request/],
+  ['git sh', /force push/],
+  ['git pff', /force push/], // an alias of an alias
+  ['git loop', /too deep/], // an alias that names itself never ends
+  ['git st', 'ran'], // an alias for a command that pushes nothing
+  ['git flow init', 'ran'], // not an alias at all: some other program called by git
+  ['cd . && git pf', /force push/],
+])
+
 forms('a detached HEAD writes no branch', { '.': {} }, [['git push origin HEAD', 'ran']])
 
 // The forms below are the ones an independent check got past an earlier guard (each one confirmed against real
