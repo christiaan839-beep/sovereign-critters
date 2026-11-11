@@ -19,7 +19,8 @@ Kept so a long run survives a context summary. Newest state first. Update it in 
 ## Needs the founder
 
 - [x] Latch, seal and ward seen stopping a command in the desktop app, in an agent session (2026-11-11, recorded in `tools/quality-facts.json`). The sighting found latch 0.1.1 asking about `cd /outside && rm -rf dist` where it should refuse; fixed in 0.1.2 with a test that failed first.
-- [ ] `/clock` and `/ledger` are still unseen: only a person can type them. Type each in a session and record what it said.
+- [x] `/clock` and `/ledger` typed by the founder in the desktop app and answered as the READMEs say (2026-11-11, recorded). The `/clock` line went unnoticed when it appeared: look at where a command's answer shows in the desktop app, and whether one quiet line is enough.
+- [ ] The latch fix (0.1.2) has not been seen live: in a new session, `cd /tmp && rm -rf x` should be refused.
 - [ ] The release bar: the reviews and the docs audit went stale with these changes, and the cold install by someone else is still open for every mod.
 - [ ] Marketplace: the Claude Marketplace article lists partner agents bought with committed spend; it says nothing about free open-source mods. Ask how a free mod gets listed before planning for it.
 

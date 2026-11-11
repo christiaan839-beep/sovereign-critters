@@ -20,8 +20,8 @@ Eight gates. The lead mods (the first three) must meet all eight before release.
 | critter-stunt | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | critter-tally | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | critter-measure | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
-| critter-clock | met | met | met | open | open | open | open | open | Not ready: 5 of 8 open |
-| critter-ledger | met | met | met | open | open | open | open | open | Not ready: 5 of 8 open |
+| critter-clock | met | met | met | open | open | met | open | open | Not ready: 4 of 8 open |
+| critter-ledger | met | met | met | open | open | met | open | open | Not ready: 4 of 8 open |
 | critter-latch | met | met | met | met | stale | stale | open | open | Not ready: 4 of 8 open |
 | critter-seal | met | met | met | stale | stale | met | open | open | Not ready: 4 of 8 open |
 
@@ -345,7 +345,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | any surface that runs hooks (it draws nothing) |
-| Verdict | Not ready: 5 of 8 open |
+| Verdict | Not ready: 4 of 8 open |
 
 **Independent reviews**
 
@@ -357,7 +357,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 **Seen working in the real app**
 
-- not yet
+- 2026-11-11 (at 1dadf72), Claude desktop app (typed by the founder; the answer read from the session transcript): /clock answered "5m 41s here. Claude worked 2m 25s of it. The longest turn was 1m 18s."; the founder did not notice the line when it appeared.
 
 **Cold install by someone who is not the founder**
 
@@ -365,7 +365,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 **Known gaps**
 
-- never seen in the real app
+- the hourly toast has not been seen in the real app
 
 ### critter-ledger 0.1.1
 
@@ -375,7 +375,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | any surface that runs hooks (it draws nothing) |
-| Verdict | Not ready: 5 of 8 open |
+| Verdict | Not ready: 4 of 8 open |
 
 **Independent reviews**
 
@@ -387,7 +387,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 **Seen working in the real app**
 
-- not yet
+- 2026-11-11 (at 1dadf72), Claude desktop app (typed by the founder; the answer read from the session transcript): /ledger answered "2.4m used: 8k out, 163k in, 2.2m read from the cache. The biggest turn was 1.3m. No limit set (/ledger limit 500k).".
 
 **Cold install by someone who is not the founder**
 
@@ -396,6 +396,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 **Known gaps**
 
 - never seen in the real app; token counts come from the engine's per-turn usage, not checked against a bill
+- the toast for passing a limit has not been seen in the real app
 
 ### critter-latch 0.1.2
 
