@@ -50,6 +50,8 @@ const keepStore = (on: any) => {
   on('store.get', (_: unknown, e: { key: string }) => ({ value: store[e.key] }))
   on('store.set', (_: unknown, e: { key: string; value: unknown }) => { if (diskFull) throw new Error('disk full'); store[e.key] = e.value; return { value: undefined } })
 }
+// A write started behind a result lands a moment after it: wait for the writes to settle, then one more turn of the loop.
+const settle = async () => { await idle(); await new Promise(r => setTimeout(r, 5)) }
 const stored = () => JSON.stringify(kept.get('critter-diary.entries')?.value ?? '')
 
 test('every tool call is written down with its name and time, and never what it ran', async ($, on) => {
@@ -58,10 +60,15 @@ test('every tool call is written down with its name and time, and never what it 
   on('clock.now', () => ({ value: clock }))
   on('tool.call', () => { clock += 1500; return { result: 'ok' } as never })
   await $.tool.call({ tool: 'Bash', command: 'curl -H "Authorization: Bearer SECRET123" https://example.com' } as never)
+  await settle()
   expect(stored()).toContain('"tool":"Bash"')
+  await settle()
   expect(stored()).toContain('"ms":1500')
+  await settle()
   expect(stored()).toContain('"ok":true')
+  await settle()
   expect(stored()).not.toContain('SECRET123')
+  await settle()
   expect(stored()).not.toContain('curl')
 })
 
@@ -70,6 +77,7 @@ test('a refused call is written as failed', async ($, on) => {
   on('clock.now', () => ({ value: AT }))
   on('tool.call', () => ({ deny: 'no' }) as never)
   await $.tool.call({ tool: 'Bash', command: 'rm -rf /' } as never)
+  await settle()
   expect(stored()).toContain('"ok":false')
 })
 
@@ -80,6 +88,7 @@ test('the diary keeps the last 300 lines', async ($, on) => {
   on('tool.call', () => { clock += 10; return { result: 'ok' } as never })
   for (let i = 0; i < 305; i++) await $.tool.call({ tool: 'Read', command: String(i) } as never)
   expect((JSON.parse(stored()) as { value?: unknown[] } | unknown[])).toBeDefined()
+  await settle()
   const list = (kept.get('critter-diary.entries')?.value as { value: Entry[] }).value
   expect(list.length).toBe(300)
 })
@@ -113,6 +122,7 @@ test('the pane lists what happened and has its buttons, on every surface', async
   on('tool.call', () => { clock += 100; return { result: 'ok' } as never })
   await $.tool.call({ tool: 'Edit' } as never)
   for (const surface of ['terminal', 'desktop'] as const) {
+    await settle()
     const ui = await $.ui.mount({ plugin: 'critter-diary', component: 'Pane', requestId: 'critter-diary', surface, props: { bodyColumns: 60 } } as never)
     expect(await ui.find({ type: 'Text', text: /✓ Edit/ })).toBeDefined()
     expect(await ui.find({ key: 'copy' })).toBeDefined()
@@ -198,6 +208,7 @@ test('every call and turn lands in its day, and /diary week says them and copies
   await $.tool.call({ tool: 'Read' } as never)
   await $.tool.call({ tool: 'Bash' } as never)
   await $.turn.complete({ answer: 'done' } as never)
+  await settle()
   const said = async (args: string) => (await $.command.run({ command: 'diary', args, origin: { kind: 'composer' }, presentation: {} } as never)) as { text?: string }
   const week = (await said('week')).text ?? ''
   expect(week).toContain('3 tool calls, 1 failed, 1 turn')
@@ -299,6 +310,7 @@ test('/diary postcard says it, /diary postcard copy puts it on the clipboard, an
   expect(copied).toBe('') // saying it does not copy it
   expect((await said('postcard copy')).text).toMatch(/Copied the postcard/)
   expect(copied).toContain('# Session postcard')
+  await settle()
   const ui = await $.ui.mount({ plugin: 'critter-diary', component: 'Pane', requestId: 'critter-diary', surface: 'terminal', props: { bodyColumns: 60 } } as never)
   expect(await ui.find({ key: 'postcard' })).toBeDefined()
   await ui.unmount()
@@ -321,7 +333,7 @@ test('the week is kept in the store, so a new session reads the days an earlier 
   on('command.register', () => ({ value: { command: 'diary' } }))
   on('tool.call', () => ({ result: 'ok' }) as never)
   await $.tool.call({ tool: 'Read' } as never)
-  await idle()
+  await settle()
   expect((store.days as { day: string; tools: number }[])[0]).toMatchObject({ day: dayOf(AT), tools: 1 })
   expect(kept.get('critter-diary.days')).toBeUndefined() // not in the session's state
   kept.clear() // a restart: the session's state is gone, the store is not
@@ -334,7 +346,7 @@ test('/diary clear empties the session and the week', async ($, on) => {
   on('command.register', () => ({ value: { command: 'diary' } }))
   on('tool.call', () => ({ result: 'ok' }) as never)
   await $.tool.call({ tool: 'Read' } as never)
-  await idle()
+  await settle()
   expect(await sayDiary($, 'clear')).toMatch(/empty/)
   expect(store.days).toEqual([])
   expect(await sayDiary($, 'week')).toContain('Nothing yet.')
@@ -345,7 +357,7 @@ test('parallel tool calls all reach the week, and a store that will not write ne
   on('clock.now', () => ({ value: AT }))
   on('tool.call', () => ({ result: 'ok' }) as never)
   await Promise.all(Array.from({ length: 8 }, () => $.tool.call({ tool: 'Read' } as never)))
-  await idle()
+  await settle()
   expect((store.days as { tools: number }[])[0]!.tools).toBe(8)
   diskFull = true
   expect(await $.tool.call({ tool: 'Read' } as never)).toBeDefined()
@@ -398,7 +410,7 @@ test('/diary clear after a write that is still in flight leaves the week empty',
   on('tool.call', () => ({ result: 'ok' }) as never)
   await $.tool.call({ tool: 'Read' } as never) // not awaited to the store
   await sayDiary($, 'clear')
-  await idle()
+  await settle()
   expect(store.days).toEqual([])
 })
 
@@ -410,7 +422,7 @@ test('a clock that steps back cannot make a day vanish, and names are cleaned of
   on('turn.complete', () => ({ text: 'done' }))
   await $.tool.call({ tool: 'Read' } as never)
   await $.turn.complete({ answer: 'x' } as never)
-  await idle()
+  await settle()
   const d = (store.days as { ms: number }[])[0]!
   expect(d.ms).toBeGreaterThanOrEqual(0)
   const md = markdownOf([tool({ tool: 'https://evil.example/x a@b.com :tada: \u202Eabc\u2028# h' })])
@@ -436,6 +448,29 @@ test('a store that hangs cannot hang /diary clear or stop the week for good: eac
   expect(await cleared).toMatch(/empty/)
   hang = false
   await $.tool.call({ tool: 'Read' } as never) // and the week records again
-  await idle()
+  await settle()
   expect((store2.days as { tools: number }[])[0]!.tools).toBeGreaterThan(0)
+})
+
+test('a tool name is cut at 80 characters before it is kept', async ($, on) => {
+  stub(on)
+  on('clock.now', () => ({ value: AT }))
+  on('tool.call', () => ({ result: 'ok' }) as never)
+  await $.tool.call({ tool: 'mcp__' + 'x'.repeat(200) } as never)
+    await settle()
+  const list = (kept.get('critter-diary.entries')?.value as { value: Extract<Entry, { kind: 'tool' }>[] }).value
+  expect(list[0]!.tool).toHaveLength(80)
+})
+
+test('a state that never answers does not hold up a tool result', async ($, on) => {
+  on('clock.now', () => ({ value: AT }))
+  on('clock.after', () => ({ value: { cancel: () => undefined } }))
+  on('store.get', () => ({ value: undefined }))
+  on('store.set', () => ({ value: undefined }))
+  on('state.get', () => new Promise(() => undefined) as never)
+  on('tool.call', () => ({ result: 'ran' }) as never)
+  const soon = <T,>(p: Promise<T>) => Promise.race([p, new Promise<string>(r => setTimeout(() => r('held up'), 200))])
+  const ran = await soon($.tool.call({ tool: 'Read' } as never))
+  expect(ran).not.toBe('held up')
+  expect((ran as { result: string }).result).toBe('ran')
 })

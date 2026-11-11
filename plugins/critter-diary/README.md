@@ -1,4 +1,4 @@
-# session-diary
+# critter-diary
 
 ![critter-diary: What Claude did, in order](preview.png)
 

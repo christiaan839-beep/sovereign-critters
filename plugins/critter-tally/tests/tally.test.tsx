@@ -108,3 +108,19 @@ test('the summary names the three most called tools', () => {
   expect(summary({})).toBe('no tool calls yet')
   expect(summary({ Grep: 1, Read: 9, Edit: 3, Bash: 5 })).toBe('Read 9 · Bash 5 · Edit 3')
 })
+
+test('a state that never answers does not hold up a tool, and the tool still gets its result', async ($, on) => {
+  on('tool.call', () => ({ result: 'ran' }))
+  on('state.get', () => new Promise(() => undefined) as never)
+  const soon = <T,>(p: Promise<T>) => Promise.race([p, new Promise<string>(r => setTimeout(() => r('held up'), 200))])
+  const ran = await soon($.tool.call({ tool: 'Read', file_path: 'README.md' }))
+  expect(ran).not.toBe('held up')
+  expect((ran as { result: string }).result).toBe('ran')
+})
+
+test('a state that refuses a write does not stop the tool', async ($, on) => {
+  on('tool.call', () => ({ result: 'ran' }))
+  on('state.set', () => { throw new Error('read-only') })
+  const ran = await $.tool.call({ tool: 'Read', file_path: 'README.md' })
+  expect(ran.result).toBe('ran')
+})

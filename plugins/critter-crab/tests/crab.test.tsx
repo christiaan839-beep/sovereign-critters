@@ -334,3 +334,8 @@ test('while the store still will not read, /crab and /crab drop say so instead o
   expect(await run($, '')).toMatch(/Holding: ask Mira/)
   expect(redraws).toBeGreaterThan(before)
 })
+
+test('the folder key is the same one every release wrote, so a note held last week is found this week', () => {
+  expect(hashOf('/work/atlas')).toBe('124sq9f')
+  expect(hashOf('')).toBe('ztntfp')
+})

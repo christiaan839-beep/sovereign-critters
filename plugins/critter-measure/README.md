@@ -1,4 +1,4 @@
-# forge
+# critter-measure
 
 ![critter-measure: It counts what you can't see.](preview.png)
 
