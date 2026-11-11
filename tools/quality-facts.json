@@ -167,7 +167,7 @@
           "date": "2026-11-11",
           "what": "read in full",
           "found": "the same property-name bug in the day counts and the postcard; fixed with a test that failed first",
-          "at": "6eaa7af",
+          "at": "508d932",
           "kind": "code",
           "openHigh": 0
         }
@@ -212,7 +212,7 @@
           "date": "2026-11-11",
           "what": "read in full against the host's type declarations",
           "found": "its three settings were never declared in the manifest, so they could not be set; declared, with tests that failed first",
-          "at": "6eaa7af",
+          "at": "508d932",
           "kind": "code",
           "openHigh": 0
         }
@@ -250,7 +250,7 @@
           "date": "2026-11-11",
           "what": "read in full (a short review by the audit session)",
           "found": "no bug found",
-          "at": "6eaa7af",
+          "at": "508d932",
           "kind": "code",
           "openHigh": 0
         }
@@ -286,7 +286,7 @@
           "date": "2026-11-11",
           "what": "read in full (a short review by the audit session)",
           "found": "no bug found",
-          "at": "6eaa7af",
+          "at": "508d932",
           "kind": "code",
           "openHigh": 0
         }
@@ -322,7 +322,7 @@
           "date": "2026-11-11",
           "what": "read in full",
           "found": "a tool named like an object property corrupted the tally; fixed with a test that failed first",
-          "at": "6eaa7af",
+          "at": "508d932",
           "kind": "code",
           "openHigh": 0
         }
@@ -357,7 +357,7 @@
           "date": "2026-11-11",
           "what": "read in full (a short review by the audit session)",
           "found": "no bug found",
-          "at": "6eaa7af",
+          "at": "508d932",
           "kind": "code",
           "openHigh": 0
         }
