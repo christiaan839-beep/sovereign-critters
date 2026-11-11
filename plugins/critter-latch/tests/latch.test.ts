@@ -37,12 +37,12 @@ test('rm anywhere on a longer line is found', () => {
     expect(stop(c), c).toBeDefined()
 })
 
-test('a cd inside the folder moves where relative targets are judged, and a cd outside makes them unreadable', () => {
+test('a cd inside the folder moves where relative targets are judged, a cd outside is a clear stop, and a cd nobody can read makes them unreadable', () => {
   expect(stop('cd build && rm -rf cache')).toBeUndefined()
   expect(stop('cd build && rm -rf ..')).toMatch(/^rm -r would delete the folder|^rm -r reaches outside/)
   expect(stop('cd build && rm -rf ../../x')).toMatch(/reaches outside/)
-  expect(stop('cd .. && rm -rf x')).toMatch(/cd/)
-  expect(stop('cd /tmp && rm -rf x')).toMatch(/cd/)
+  expect(stop('cd .. && rm -rf x')).toMatch(/reaches outside/)
+  expect(stop('cd /tmp && rm -rf x')).toMatch(/reaches outside/)
   expect(stop('cd $D && rm -rf x')).toMatch(/cd/)
   expect(stop('cd .. && ls')).toBeUndefined()
 })
