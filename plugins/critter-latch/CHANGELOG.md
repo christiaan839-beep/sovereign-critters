@@ -5,3 +5,4 @@
 First release.
 
 - Stops a recursive rm outside the folder you opened, git reset --hard, git clean -f, and git checkout or restore over the whole tree.
+- Hardened after an independent review before release: a cd in a subshell or after `||`, pushd/popd, a leading redirect, find -exec, git clean -e, other spellings of the whole tree, line continuations, $'...' quoting, xargs long options and a command named by a variable no longer get past it; redirects and heredoc bodies no longer cause false stops.

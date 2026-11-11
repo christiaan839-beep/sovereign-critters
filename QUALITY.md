@@ -401,7 +401,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 | | |
 | --- | --- |
-| Tests passing | 16 |
+| Tests passing | 28 |
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
@@ -431,7 +431,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 | | |
 | --- | --- |
-| Tests passing | 15 |
+| Tests passing | 26 |
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |

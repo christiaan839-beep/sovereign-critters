@@ -3,24 +3,45 @@ import type { Register } from 'claude-code'
 // critter-latch stops a few deletes that cannot be taken back, before the Bash tool runs them: a recursive rm that reaches
 // outside the folder the session was opened in, git reset --hard, git clean -f, and git checkout/restore over the whole tree.
 //
-// It reads how a command is SPELLED. It cannot see what a script, a Makefile, `find -delete` or an alias will do, and it
+// It reads how a command is SPELLED. It cannot see what a script, a Makefile, an alias or `find -delete` will do, and it
 // does not read file contents. It is best effort and no substitute for a backup or for version control.
 // It looks only at the command line and the name of the folder; it keeps nothing and sends nothing.
 
 type Word = { text: string; unread: boolean }
-type Parsed = { segments: Word[][]; inner: string[] }
+type Segment = { words: Word[]; sep: string } // sep: the separator characters just before it (&&, ;, |, ( ...)
+type Parsed = { segments: Segment[]; inner: string[] }
 
 const SPLIT = new Set([';', '&', '|', '\n', '(', ')'])
+
+// A line without its line continuations, and without the bodies of its heredocs (text, not commands).
+export function prepare(line: string): string {
+  const lines = line.replace(/\\\r?\n/g, '').split('\n')
+  const out: string[] = []
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i]!
+    out.push(l)
+    const wants: { id: string; dash: boolean }[] = []
+    for (const m of l.matchAll(/(?<!<)<<(?!<)(-?)\s*(['"]?)([A-Za-z_]\w*)\2/g)) wants.push({ id: m[3]!, dash: m[1] === '-' })
+    for (const w of wants) {
+      while (i + 1 < lines.length) {
+        const body = lines[++i]!
+        if ((w.dash ? body.trim() : body) === w.id) break
+      }
+    }
+  }
+  return out.join('\n')
+}
 
 // Splits a line into commands and their words. A word is unread when it holds an expansion the shell will resolve
 // later ($VAR, `...`, $(...), {a,b}); the bodies of $(...) and `...` come back in `inner`, to be judged as lines themselves.
 export function parse(line: string): Parsed {
-  const segments: Word[][] = []
+  const segments: Segment[] = []
   const inner: string[] = []
   let words: Word[] = []
   let text = ''
   let unread = false
   let has = false
+  let seps = ''
   const endWord = () => {
     if (has) words.push({ text, unread })
     text = ''
@@ -29,16 +50,24 @@ export function parse(line: string): Parsed {
   }
   const endSegment = () => {
     endWord()
-    if (words.length) segments.push(words)
+    if (words.length) {
+      segments.push({ words, sep: seps })
+      seps = ''
+    }
     words = []
   }
-  // From the opener at i, the index just past its closer, with the body between them.
+  // From the opener at i, the index just past its closer, with the body between them. Quotes inside are skipped.
   const balanced = (i: number, open: string, close: string): [number, string] => {
     let depth = 0
+    let q = ''
     for (let j = i; j < line.length; j++) {
-      if (line[j] === '\\') j++
-      else if (line[j] === open) depth++
-      else if (line[j] === close && --depth === 0) return [j + 1, line.slice(i + 1, j)]
+      const ch = line[j]!
+      if (ch === '\\') j++
+      else if (q) {
+        if (ch === q) q = ''
+      } else if (ch === "'" || ch === '"') q = ch
+      else if (ch === open) depth++
+      else if (ch === close && --depth === 0) return [j + 1, line.slice(i + 1, j)]
     }
     return [line.length, line.slice(i + 1)]
   }
@@ -52,6 +81,13 @@ export function parse(line: string): Parsed {
     }
     if (c === '\\' && i + 1 < line.length) {
       text += line[++i]!
+      has = true
+      continue
+    }
+    if (c === '$' && line[i + 1] === "'" && quote === '') {
+      // $'...': escapes inside, and \' does not end it
+      i += 2
+      for (; i < line.length && line[i] !== "'"; i++) text += line[i] === '\\' ? (line[++i] ?? '') : line[i]!
       has = true
       continue
     }
@@ -91,6 +127,7 @@ export function parse(line: string): Parsed {
     }
     if (SPLIT.has(c)) {
       endSegment()
+      seps += c
       continue
     }
     if (c === ' ' || c === '\t') {
@@ -111,17 +148,30 @@ export function parse(line: string): Parsed {
 
 const base = (w: string) => w.slice(w.lastIndexOf('/') + 1)
 const isAssign = (w: string) => /^[A-Za-z_][A-Za-z0-9_]*=/.test(w)
-const SHELLS = new Set(['bash', 'sh', 'zsh', 'dash', 'ksh'])
+const SHELLS = new Set(['bash', 'sh', 'zsh', 'dash', 'ksh', 'fish', 'su'])
 const SUDO_VALUE = new Set(['-u', '-g', '-h', '-p', '-C', '-D', '-R', '-T', '-U'])
-const XARGS_VALUE = new Set(['-I', '-n', '-P', '-L', '-d', '-E', '-s', '-a', '-i', '-l'])
+const XARGS_VALUE = new Set(['-I', '-n', '-P', '-L', '-d', '-E', '-s', '-a', '-i', '-l', '-J', '-S'])
+const XARGS_LONG = new Set(['--max-args', '--max-procs', '--max-lines', '--max-chars', '--delimiter', '--arg-file', '--eof', '--process-slot-var'])
 
-// Where a command really starts: past assignments, sudo, env, command, time, nice and the like.
-// `fed` says the command's arguments also come from another command (xargs), which the guard cannot read.
+// A redirect among the words is no argument: `> /dev/null`, `2>&1`, `>>log`, `<file`, `&>out`.
+function noRedirects(words: Word[]): Word[] {
+  const out: Word[] = []
+  for (let i = 0; i < words.length; i++) {
+    const m = /^\d*(?:>>?\|?|<<?<?|&>>?|>&)(.*)$/.exec(words[i]!.text)
+    if (!m) out.push(words[i]!)
+    else if (m[1] === '') i++ // the operator stands alone: its target is the next word
+  }
+  return out
+}
+
+// Where a command really starts: past assignments, keywords, sudo, env, command, time, nice, busybox and the like.
+// `fed` says the command's arguments also come from another command (xargs, find -exec), which the guard cannot read.
 function unwrap(words: Word[]): { cmd: Word[]; fed: boolean } {
   let w = words
   let fed = false
   for (let guard = 0; guard < 12 && w.length; guard++) {
     const head = base(w[0]!.text)
+    if (w[0]!.unread) break
     if (isAssign(w[0]!.text) || /^(!|then|do|else|elif|if|while|until)$/.test(w[0]!.text)) w = w.slice(1)
     else if (head === 'sudo' || head === 'doas') {
       let k = 1
@@ -135,15 +185,22 @@ function unwrap(words: Word[]): { cmd: Word[]; fed: boolean } {
       let k = 1
       while (k < w.length && w[k]!.text.startsWith('-')) k += /^-[sk]$/.test(w[k]!.text) ? 2 : 1
       w = w.slice(k + 1)
-    } else if (/^(command|builtin|exec|nohup|time|nice|ionice|stdbuf|setsid|caffeinate)$/.test(head)) {
+    } else if (/^(command|builtin|exec|nohup|time|nice|ionice|stdbuf|setsid|caffeinate|busybox)$/.test(head)) {
       let k = 1
       while (k < w.length && w[k]!.text.startsWith('-')) k += /^-[nc]$/.test(w[k]!.text) && head !== 'time' ? 2 : 1
       w = w.slice(k)
     } else if (head === 'xargs') {
       let k = 1
-      while (k < w.length && w[k]!.text.startsWith('-')) k += XARGS_VALUE.has(w[k]!.text) ? 2 : 1
+      while (k < w.length && w[k]!.text.startsWith('-')) k += XARGS_VALUE.has(w[k]!.text) || XARGS_LONG.has(w[k]!.text) ? 2 : 1
       fed = true
       w = w.slice(k)
+    } else if (head === 'find') {
+      const i = w.findIndex(a => /^-(?:exec|execdir|ok|okdir)$/.test(a.text))
+      if (i < 0) break
+      const rest = w.slice(i + 1)
+      const end = rest.findIndex(a => a.text === ';' || a.text === '+')
+      fed = true
+      w = end < 0 ? rest : rest.slice(0, end)
     } else break
   }
   return { cmd: w, fed }
@@ -162,10 +219,15 @@ function normalize(path: string): string {
 }
 
 const inside = (root: string, p: string) => p.startsWith(root === '/' ? '/' : root + '/') && p !== root
+const within = (root: string, p: string) => p === root || inside(root, p)
 
 // ---- the rules --------------------------------------------------------------------------------------------------
 
-type Where = { root: string | undefined; home: string | undefined; dir: string | undefined; dirWhy?: string }
+// The folders a command may be running in: `dirs` for the chain it is in, `all` for any way the line could have gone.
+// undefined stands for a folder the guard cannot follow.
+type Where = { root: string | undefined; home: string | undefined; dirs: Set<string | undefined>; all: Set<string | undefined>; pending?: Set<string | undefined> }
+
+const spells = (arg: string, long: string, min = 3) => arg.startsWith('--') && arg.length >= min && long.startsWith(arg)
 
 function rm(args: Word[], where: Where, fed: boolean): string | undefined {
   let recursive = false
@@ -174,7 +236,7 @@ function rm(args: Word[], where: Where, fed: boolean): string | undefined {
   for (const a of args) {
     if (!ended && a.text === '--') ended = true
     else if (!ended && a.text.startsWith('--')) {
-      if (a.text === '--recursive') recursive = true
+      if (spells(a.text, '--recursive', 3)) recursive = true
       if (a.text === '--no-preserve-root') return 'rm --no-preserve-root removes the root of the disk'
     } else if (!ended && /^-[A-Za-z]+$/.test(a.text)) {
       if (/[rR]/.test(a.text)) recursive = true
@@ -190,90 +252,139 @@ function rm(args: Word[], where: Where, fed: boolean): string | undefined {
     if (path === '~' || path.startsWith('~/')) {
       if (!home) return 'rm -r has a target the guard cannot read (~ with no home folder known), so it waits'
       path = home + path.slice(1)
-    } else if (path.startsWith('~')) return 'rm -r has a target the guard cannot read (another user\'s home), so it waits'
-    if (!path.startsWith('/')) {
-      if (where.dir === undefined) return `rm -r has a target the guard cannot read: ${where.dirWhy ?? 'a cd earlier on the line moved it'}`
-      path = where.dir + '/' + path
+    } else if (path.startsWith('~')) return "rm -r has a target the guard cannot read (another user's home), so it waits"
+    for (const dir of path.startsWith('/') ? [root] : where.dirs) {
+      if (dir === undefined) return 'rm -r has a target the guard cannot read: a cd or popd earlier on the line moved it somewhere the guard cannot follow'
+      const full = path.startsWith('/') ? path : dir + '/' + path
+      const p = normalize(full)
+      const last = full.slice(full.lastIndexOf('/') + 1)
+      const parent = normalize(full.slice(0, full.lastIndexOf('/') + 1) || '/')
+      // `rm -rf *` empties the folder just as `rm -rf .` removes it.
+      if ((last === '*' || last === '.*') && (parent === root || root.startsWith(parent === '/' ? '/' : parent + '/'))) return `rm -r would delete the folder you opened (${root}) and everything in it`
+      if (p === root || root.startsWith(p === '/' ? '/' : p + '/')) return `rm -r would delete the folder you opened (${root}) or one above it`
+      if (!inside(root, p)) return `rm -r reaches outside the folder you opened (${root})`
     }
-    const p = normalize(path)
-    const last = path.slice(path.lastIndexOf('/') + 1)
-    // `rm -rf *` empties the folder just as `rm -rf .` removes it.
-    const parent = normalize(path.slice(0, path.lastIndexOf('/') + 1) || '/')
-    if ((last === '*' || last === '.*') && (parent === root || root.startsWith(parent === '/' ? '/' : parent + '/'))) return `rm -r would delete the folder you opened (${root}) and everything in it`
-    if (p === root || root.startsWith(p === '/' ? '/' : p + '/')) return `rm -r would delete the folder you opened (${root}) or one above it`
-    if (!inside(root, p)) return `rm -r reaches outside the folder you opened (${root})`
   }
   return undefined
 }
 
-const spells = (arg: string, long: string, min = 3) => arg.startsWith('--') && arg.length >= min && long.startsWith(arg)
-const WHOLE = new Set(['.', './', ':/', '*'])
+const GIT_VALUE = /^(-C|-c|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix|--config-env|--attr-source)$/
+
+// The single-letter flags of a git command, as git reads them: a bundle ends at `e`, which takes the rest as its value.
+function letters(flags: string[]): Set<string> {
+  const out = new Set<string>()
+  for (const a of flags) {
+    if (!/^-[A-Za-z]/.test(a)) continue
+    for (const ch of a.slice(1)) {
+      out.add(ch)
+      if (ch === 'e') break
+    }
+  }
+  return out
+}
+
+// A path that names the whole tree: ., ./, ./., .//, ./*, *, :/, :(top), $PWD.
+function wholeTree(p: string): boolean {
+  if (p === ':/') return true
+  let s = p.replace(/\/+/g, '/')
+  for (let n = 0; n < 8; n++) s = s.replace(/^\.\//, '').replace(/\/\.$/, '').replace(/\/$/, '')
+  return s === '.' || s === '' || s === '*' || s === ':/' || /^:\((?:top|glob|literal|icase)(?:,[a-z]+)*\)$/.test(s) || s === '$PWD' || s === '${PWD}'
+}
 
 function git(args: Word[]): string | undefined {
   let k = 0
+  let requireForce = true
   while (k < args.length && args[k]!.text.startsWith('-')) {
     const a = args[k]!.text
-    k += /^(-C|-c|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix|--config-env)$/.test(a) ? 2 : 1
+    if (a === '-c' && /^clean\.requireforce=(?:false|no|off|0)$/i.test(args[k + 1]?.text ?? '')) requireForce = false
+    k += GIT_VALUE.test(a) ? 2 : 1
   }
   const sub = args[k]?.text
   const rest = args.slice(k + 1).map(w => w.text)
   const flags = rest.filter(a => a.startsWith('-') && a !== '--')
-  const bundle = (ch: string) => flags.some(a => /^-[A-Za-z]+$/.test(a) && a.includes(ch))
+  const bundle = letters(flags)
   const afterDashes = rest.includes('--') ? rest.slice(rest.indexOf('--') + 1) : []
   const pathspecs = [...rest.filter(a => !a.startsWith('-')), ...afterDashes]
+  const patch = bundle.has('p') || flags.some(a => spells(a, '--patch', 3))
   if (sub === 'reset' && flags.some(a => spells(a, '--hard'))) return 'git reset --hard drops changes you have not committed'
   if (sub === 'clean') {
-    const force = bundle('f') || flags.some(a => spells(a, '--force', 3))
-    const dry = bundle('n') || flags.some(a => spells(a, '--dry-run', 3))
-    if (force && !dry) return 'git clean -f removes files git does not track, for good'
+    const force = bundle.has('f') || flags.some(a => spells(a, '--force', 3)) || !requireForce
+    const dry = bundle.has('n') || flags.some(a => spells(a, '--dry-run', 3))
+    const asks = bundle.has('i') || flags.some(a => spells(a, '--interactive', 3))
+    if (force && !dry && !asks) return 'git clean -f removes files git does not track, for good'
   }
-  if (sub === 'checkout') {
-    if (bundle('f') || flags.some(a => spells(a, '--force', 3)) || pathspecs.some(a => WHOLE.has(a))) return 'git checkout throws away every uncommitted change in the tree'
+  if (sub === 'checkout' && !patch) {
+    if (bundle.has('f') || flags.some(a => spells(a, '--force', 3)) || pathspecs.some(wholeTree)) return 'git checkout throws away every uncommitted change in the tree'
   }
-  if (sub === 'restore') {
-    const staged = flags.some(a => spells(a, '--staged', 3)) || bundle('S')
-    const worktree = flags.some(a => spells(a, '--worktree', 3)) || bundle('W')
-    if (pathspecs.some(a => WHOLE.has(a)) && (!staged || worktree)) return 'git restore throws away every uncommitted change in the tree'
+  if (sub === 'restore' && !patch) {
+    const staged = flags.some(a => spells(a, '--staged', 3)) || bundle.has('S')
+    const worktree = flags.some(a => spells(a, '--worktree', 3)) || bundle.has('W')
+    if (pathspecs.some(wholeTree) && (!staged || worktree)) return 'git restore throws away every uncommitted change in the tree'
   }
   return undefined
 }
 
+// cd and pushd: where the command after it may run. Only a command chained with && after it is sure the cd worked.
 function cd(args: Word[], where: Where): void {
   const target = args.find(a => !a.text.startsWith('-'))
-  if (!target || target.unread || target.text === '-' || target.text.startsWith('~') || where.dir === undefined || where.root === undefined) {
-    where.dir = undefined
-    where.dirWhy = 'a cd earlier on the line moved it somewhere the guard cannot follow'
-    return
+  const ok = new Set<string | undefined>()
+  for (const d of where.dirs) {
+    if (!target || target.unread || target.text === '-' || target.text.startsWith('~') || d === undefined || where.root === undefined) ok.add(undefined)
+    else {
+      const next = normalize(target.text.startsWith('/') ? target.text : d + '/' + target.text)
+      ok.add(within(where.root, next) ? next : undefined)
+    }
   }
-  const next = normalize(target.text.startsWith('/') ? target.text : where.dir + '/' + target.text)
-  if (next === where.root || inside(where.root, next)) where.dir = next
-  else {
-    where.dir = undefined
-    where.dirWhy = 'a cd earlier on the line moved it outside the folder'
-  }
+  for (const d of ok) where.all.add(d)
+  where.pending = ok
 }
+
+const SPAWNS_SCRIPT = /^(echo|printf)$/
 
 // Why this line should not run, or undefined. `root` is the folder the session was opened in.
 export function judge(line: string, root: string | undefined, home: string | undefined, depth = 0): string | undefined {
   if (depth > 4) return 'the line nests shells too deep for the guard to read, so it waits'
-  const { segments, inner } = parse(line)
-  const where: Where = { root, home, dir: root }
-  for (const words of segments) {
+  const { segments, inner } = parse(prepare(line))
+  const first = new Set<string | undefined>([root])
+  const where: Where = { root, home, dirs: new Set(first), all: new Set(first) }
+  let previous: { name: string; args: Word[] } | undefined
+  for (const { words: raw, sep } of segments) {
+    // A new chain (after ;, a newline, |, || or a bracket) may run in any folder the line could have reached.
+    if (sep === '&&' && where.pending) where.dirs = where.pending
+    else if (sep !== '&&') where.dirs = new Set(where.all)
+    where.pending = undefined
+    const herestring = raw.findIndex(w => w.text === '<<<')
+    const words = noRedirects(raw)
     const { cmd, fed } = unwrap(words)
     if (!cmd.length) continue
+    if (cmd[0]!.unread) {
+      // A command named by a variable: the guard cannot tell what runs, but options that delete give it away.
+      if (cmd.slice(1).some(a => /^-[A-Za-z]*[rR]/.test(a.text) || a.text === '--recursive' || a.text === '--hard')) return 'a command named by a variable is given options that delete, so it waits'
+      previous = undefined
+      continue
+    }
     const name = base(cmd[0]!.text)
     const args = cmd.slice(1)
     let why: string | undefined
     if (name === 'rm') why = rm(args, where, fed)
     else if (name === 'git') why = git(args)
     else if (name === 'cd' || name === 'pushd') cd(args, where)
-    else if (name === 'eval') why = judge(args.map(a => a.text).join(' '), root, home, depth + 1)
-    else if (SHELLS.has(name)) {
+    else if (name === 'popd') {
+      where.all.add(undefined)
+      where.pending = new Set([undefined])
+    } else if (name === 'eval') {
+      why = args.some(a => a.unread) ? 'eval is given something the guard cannot read, so it waits' : judge(args.map(a => a.text).join(' '), root, home, depth + 1)
+    } else if (SHELLS.has(name)) {
       const c = args.findIndex(a => /^-[A-Za-z]*c[A-Za-z]*$/.test(a.text))
       const script = c >= 0 ? args.slice(c + 1).find(a => !a.text.startsWith('-')) : undefined
-      if (script) why = script.unread ? 'a shell is given a script the guard cannot read, so it waits' : judge(script.text, root, home, depth + 1)
+      const stdin = herestring >= 0 ? raw[herestring + 1] : undefined
+      const piped = c < 0 && sep.endsWith('|') && !sep.endsWith('||') && previous && SPAWNS_SCRIPT.test(previous.name) ? previous.args.map(a => a.text).join(' ') : undefined
+      for (const s of [script, stdin, piped ? { text: piped, unread: previous!.args.some(a => a.unread) } : undefined]) {
+        if (s && !why) why = s.unread ? 'a shell is given a script the guard cannot read, so it waits' : judge(s.text, root, home, depth + 1)
+      }
     }
     if (why) return why
+    previous = { name, args }
   }
   for (const body of inner) {
     const why = judge(body, root, home, depth + 1)
@@ -297,7 +408,7 @@ export const register: Register = on => {
   })
     // Fails closed, but only for a line that mentions what it guards: any other command goes on as if the mod were not here.
     .catch(($, e, next) =>
-      !next.called && /\b(rm|git|xargs)\b/.test(String((e as { command?: unknown }).command ?? ''))
+      !next.called && /\b(rm|git|xargs|find)\b/.test(String((e as { command?: unknown }).command ?? ''))
         ? { deny: `latch: could not read this line, so it waits. ${ASK}` }
         : next(e),
     )

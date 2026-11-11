@@ -27,7 +27,8 @@ It matches shapes and forgets them. It never prints a secret (the message names 
 It is best effort and no substitute for keeping secrets out of reach.
 
 - It reads the command, not the traffic. A program that reads a secret and sends it on its own, a script, a package install script, and a browser are invisible to it.
-- It sees only the senders listed above. `python -c`, `node -e`, `openssl s_client`, `git push` to a remote and the like are not read.
-- A secret that is encoded, split, or held in a variable other than the names above gets past it.
+- It sees only the senders listed above, plus `socat`, `openssl s_client`, `/dev/tcp`, `dig` and `gh gist`. `python -c`, `node -e`, `perl`, `git push` to a remote and the like are not read.
+- It follows a secret through a variable or a copied file only within one command line. A secret that is encoded (`base64` in a separate step), split in pieces, or held in a variable other than the names above gets past it.
+- `curl -L` can be sent on to a host you did not list by a redirect. It reads the address on the line, a proxy, a `--connect-to` and a `Host:` header, not where the server sends you next.
 - A host it cannot read (`$URL`) is held back when a secret goes with it.
 - It fails closed for a line that names a sender and that it cannot read; any other command goes on as if the mod were not there.
