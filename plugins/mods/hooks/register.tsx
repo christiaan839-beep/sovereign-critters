@@ -63,25 +63,36 @@ const setMod = async ($: any, mod: Mod, want: 'on' | 'off'): Promise<string> => 
   if (!argv) return CANNOT
   try {
     const r = await $.process.run(argv, { timeoutMs: 30_000 })
-    if (r.exitCode !== 0) return `The plugin manager would not switch ${mod.id} ${want}: ${fit(String(r.stderr || r.stdout || 'no reason given').trim().split('\n')[0] ?? '', 90)}`
+    if (r.exitCode !== 0) {
+      await refresh($) // a switch that timed out may have happened all the same: the pane shows what is true
+      return `The plugin manager would not switch ${mod.id} ${want}: ${fit(String(r.stderr || r.stdout || 'no reason given').trim().split('\n')[0] ?? '', 90)}`
+    }
   } catch {
+    await refresh($)
     return CANNOT
   }
   await refresh($)
   return want === 'off' ? `${mod.id} is off. Restart Claude Code to apply.` : S.loaded.has(mod.id) ? `${mod.id} is on.` : `${mod.id} is on. Restart Claude Code to load it.`
 }
 
-const installMod = async ($: any, mod: Mod): Promise<string> => {
-  if (stateNow(mod).state !== 'missing') return `${mod.id} is already installed.`
+type Installing = { ok: boolean; text: string; why: string }
+const installOne = async ($: any, mod: Mod): Promise<Installing> => {
+  if (stateNow(mod).state !== 'missing') return { ok: false, text: `${mod.id} is already installed.`, why: 'already installed' }
   try {
     const r = await $.process.run(installArgv(mod), { timeoutMs: 120_000 })
-    if (r.exitCode !== 0) return `The plugin manager would not install ${mod.id}: ${fit(String(r.stderr || r.stdout || 'no reason given').trim().split('\n')[0] ?? '', 90)}`
+    if (r.exitCode !== 0) {
+      await refresh($)
+      const why = fit(String(r.stderr || r.stdout || 'no reason given').trim().split('\n')[0] ?? '', 90)
+      return { ok: false, text: `The plugin manager would not install ${mod.id}: ${why}`, why }
+    }
   } catch {
-    return CANNOT
+    await refresh($)
+    return { ok: false, text: CANNOT, why: 'the plugin manager could not be reached' }
   }
   await refresh($)
-  return `${mod.id} is installed. Restart Claude Code to load it.`
+  return { ok: true, text: `${mod.id} is installed. Restart Claude Code to load it.`, why: '' }
 }
+const installMod = async ($: any, mod: Mod): Promise<string> => (await installOne($, mod)).text
 
 /**
  * Open one of a mod's panes by its own slash command. A button press runs the command; a typed `/mods open` cannot (the engine
@@ -131,12 +142,16 @@ const say = (s: string) => {
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
-    try {
-      S.list = await readList($)
-      S.loaded = new Set((S.list ?? []).filter(x => x.enabled).map(x => x.id.split('@')[0]!))
-    } catch {
-      S.list = undefined
-    }
+    // The plugin manager can take seconds to answer: the session starts without waiting, and the list is filled in when it arrives.
+    // What this session loaded is what was on when it began, so only the first answer says it.
+    S.loaded = new Set()
+    const began: Promise<void> = Promise.resolve(readList($)).then(list => {
+      if (!list) return
+      S.list = S.list ?? list
+      S.loaded = new Set(list.filter(x => x.enabled).map(x => x.id.split('@')[0]!))
+      redraw($)
+    }).catch(() => undefined)
+    void began
     try {
       await $.command.register({ name: HUB, description: 'The control room: /mods opens one pane for every mod, with a switch for each. /mods list, on <mod>, off <mod>, install <mod|all>, open <mod> [label].' })
     } catch {
@@ -169,8 +184,15 @@ export const register: Register = on => {
         if (words[1]!.toLowerCase() === 'all') {
           const missing = MODS.filter(m => stateNow(m).state === 'missing')
           const done: string[] = []
-          for (const m of missing) if ((await installMod($, m)).endsWith('is installed. Restart Claude Code to load it.')) done.push(m.id)
-          return say(done.length ? `Installed ${done.length}: ${done.join(', ')}. Restart Claude Code to load them.` : missing.length ? CANNOT : 'Every mod is already installed.')
+          const failed: string[] = []
+          for (const m of missing) {
+            const r = await installOne($, m)
+            if (r.ok) done.push(m.id)
+            else failed.push(r.why.startsWith('the plugin manager could not') ? m.id : `${m.id} (${r.why})`)
+          }
+          if (!missing.length) return say('Every mod is already installed.')
+          const lost = failed.length ? `Could not install ${failed.length}: ${failed.join(', ')}.` : ''
+          return say(done.length ? `Installed ${done.length}: ${done.join(', ')}. ${lost} Restart Claude Code to load them.`.replace(/\. {2}/, '. ') : failed.length === missing.length && failed.every(f => !f.includes('(')) ? CANNOT : lost)
         }
         const mod = actionFor(words[1]!)
         return say(mod ? await installMod($, mod) : `No mod is called "${fit(words[1]!, 24)}". ${USAGE}`)

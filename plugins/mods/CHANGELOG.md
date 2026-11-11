@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.5
+
+- **Fixed:** after a switch that failed or timed out the pane reads the list again, so it shows what the plugin manager actually did instead of a stale state.
+- **Fixed:** `/mods install all` now names each mod that would not install and why, instead of reporting only the ones that worked.
+- **Fixed:** a new session no longer waits up to 20 seconds on the plugin manager before it starts; the list fills in when it arrives.
+
 ## 0.5.4
 
 - **Fixed: a plugin list that cannot be read no longer looks like "nothing installed".** If `claude plugin list --json` printed a warning before its JSON, or was cut off, the control room showed every mod as ON LEAVE and offered to install what was already there. It now says the plugin manager cannot be read.

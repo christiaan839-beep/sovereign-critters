@@ -493,3 +493,47 @@ test('review fixes: a changelog with Windows line endings still gives its bullet
   expect(svg).not.toMatch(/[\ud800-\udbff](?![\udc00-\udfff])/)
   expect([...wrap('x'.repeat(55) + '😀' + 'y'.repeat(10), 56)].join('')).not.toMatch(/[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/) // a break never lands inside an emoji
 })
+
+// ---- review fixes: the pane is re-read after a failed switch, install all names what failed, and starting a session never waits on the plugin manager ----
+test('after a switch that failed or timed out the list is read again, because the manager may have done it anyway', async ($, on) => {
+  let lists = 0
+  setup($, on, LIST, undefined, argv => {
+    if (argv.includes('list')) { lists += 1; return undefined }
+    if (argv.includes('disable')) return { value: { ...PROCESS_OK, exitCode: 1, stdout: '', stderr: 'timed out' } }
+    return undefined
+  })
+  await begin($)
+  await new Promise(r => setTimeout(r, 30)) // the list the session started with has arrived
+  const before = lists
+  expect(await run($, 'off crab')).toMatch(/would not switch crab off: timed out/)
+  expect(lists).toBe(before + 1) // read again after the failure
+})
+
+test('/mods install all names every mod that would not install, and why', async ($, on) => {
+  setup($, on, JSON.stringify([{ id: `crab@${MARKET}`, version: '0.2.0', enabled: true }]), undefined, argv => {
+    if (argv.includes('install') && argv.includes(`forge@${MARKET}`)) return { value: { ...PROCESS_OK, exitCode: 1, stdout: '', stderr: 'network down' } }
+    if (argv.includes('install') && argv.includes(`guard@${MARKET}`)) throw new Error('no such program')
+    return undefined
+  })
+  await begin($)
+  const text = await run($, 'install all')
+  expect(text).toMatch(/Installed 5: /)
+  expect(text).toMatch(/Could not install 2: guard, forge \(network down\)/)
+  expect(text).not.toMatch(/^Installed 7/)
+})
+
+test('starting a session does not wait on the plugin manager, and the list that arrives late is still used', async ($, on) => {
+  let release: () => void = () => undefined
+  const gate = new Promise<void>(r => { release = r })
+  let first = true
+  setup($, on, LIST, undefined, argv => {
+    if (argv.includes('list') && first) { first = false; return gate.then(() => ({ value: { ...PROCESS_OK, stdout: LIST } })) }
+    return undefined
+  })
+  const began = await Promise.race([begin($).then(() => 'began'), new Promise<string>(r => setTimeout(() => r('held up'), 300))])
+  expect(began).toBe('began')
+  release()
+  await new Promise(r => setTimeout(r, 50))
+  await run($, 'off crab')
+  expect(await run($, 'list')).toMatch(/○ crab +1\.0\.0 +off, restart to apply/) // crab was loaded when the session began
+})
