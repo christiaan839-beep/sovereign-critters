@@ -160,3 +160,15 @@ test('closing the pane in the middle of a blink leaves no follow-up flip behind'
   await clock.advance(12_000)
   expect(asked.blits).toHaveLength(1) // nothing painted into a pane that is gone, and the blink has stopped
 })
+
+test('a pane lookup that fails never raises out of the blink, and a closed pane does not arm a new follow-up', async ($, on) => {
+  const asked = engine(on, ['terminal'], true)
+  const clock = mock.clock(on)
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.command.run(STUNT)
+  asked.close()
+  await clock.advance(4000) // the first flip finds the pane gone and stops the blink
+  await clock.advance(160)
+  await clock.advance(12_000)
+  expect(asked.blits).toHaveLength(0)
+})

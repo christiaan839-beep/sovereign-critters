@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.5
+
+- **Fixed:** a pane lookup that fails can no longer raise out of the blink, and once the stand is gone nothing is armed again.
+
 ## 0.1.4
 
 - **Fixed:** closing the stand in the middle of a blink no longer leaves a flip waiting to paint into a pane that is gone; the blink stops with the pane.
