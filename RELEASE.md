@@ -15,7 +15,7 @@ Then start a new session. Look at:
 
 - The bar above the prompt on the desktop app: the critter and the cat clear of each other, the label row clear of the picture.
 - `/critter stage`, `/critter corner` and `/diary`.
-- The window backdrop (cream by day, dark with stars from 18:00 to 05:59 in Johannesburg). It has never been seen running.
+- The sky (cream by day, dark with stars from 18:00 to 05:59 in Johannesburg). The app version we tested has no window backdrop, so look for it in the band behind the pair; `/critter doctor` says where it is drawn.
 - `/critter sound on`, then a Skill and a pet. `build-bell` after a command of 20 seconds or more.
 - Resting: both asleep should steady the bar to one redraw a second.
 

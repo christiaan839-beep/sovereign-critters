@@ -30,7 +30,7 @@ Plugins load in a new session.
 | Every tool row | A small face by what the call did: working, done, failed. |
 | End of a turn | A line from the diary and a quip that depends on how long it took and whether anything failed. |
 | Footer, hint, greeting | The cat's mood among the modes, a hint that follows what is happening, a greeting that follows the hour in Johannesburg. |
-| Desktop backdrop | Cream by day, dark glass with a few stars by night (18:00 to 05:59, Africa/Johannesburg). |
+| The sky | Cream by day, dark with a few stars by night (18:00 to 05:59, Africa/Johannesburg), with ridges, sun or moon, cloud and rain that follow the weather. Drawn behind the whole chat where the app has a backdrop; where it has none (the desktop app version we tested), it is drawn behind the pair in the band. `/critter doctor` says which. |
 | The prompt box | Type `/critter` and the command turns clay, a word it knows turns teal, a stray one is underlined in gold, and a dim line after a finished word says what it does. The typeahead offers the words and the coats. |
 | The diary | `/critter diary` and the cat corner show it newest first, the time in teal, the latest line at full strength. |
 | The model | A `cat_diary` tool, so Claude can read what the cat wrote. |
@@ -64,7 +64,7 @@ It draws above other mods' rows in the same place and registers `/critter` and o
 - **Nothing moves** with `/critter feel still`: no walking, hopping, sparks, blinking or breathing, the thinking orb and the wizard hold one frame, and sound and speech are off. `/critter feel warm` brings them back.
 - **Colour never carries a meaning alone.** A tool row's face says what the call did in its eyes (`×` failed, `^` done, `-` resting, `▪` working); the band, the doctor and the diary say it in words; a word `/critter` does not know is underlined as well as gold.
 - Sound and speech are off until you ask, and silent in calm and still.
-- **Pending:** a high-contrast palette for the Day and Night backdrop and the characters. It is not guessed: it waits for screenshots of the real window at its current contrast.
+- **Pending:** a high-contrast mode for the sky and the characters. Since 0.26.3 every part of the sky has a contrast floor against its paper; a stronger mode is not guessed, it waits for screenshots of the real window.
 
 ## Check
 

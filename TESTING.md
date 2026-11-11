@@ -40,6 +40,6 @@ Ask Claude: *"Run `sleep 25` in Bash."* A bell and a toast when it ends. (build-
 ## Local, the desktop app, and the cloud
 
 - **Local terminal:** everything above. This is the surface it was built and tested on; the terminal run is the most verified.
-- **Claude desktop app (Code tab):** panes, the see-through stage, the sky behind the chat and the picture band are drawn there. None of the desktop drawing has been seen by us yet: only the founder's photos can confirm it.
+- **Claude desktop app (Code tab):** panes, the see-through stage, the sky behind the chat and the picture band are drawn there. The version of the app we tested has no window backdrop (`/critter doctor` says so), so the sky is drawn in the band behind the pair; the band, its buttons, the party faces and `/critter perf` were confirmed by the founder's photos on 2026-11-11. The stage, the corner and the sky in the band have not been seen yet.
 - **Cloud sessions (`claude --cloud`, claude.ai/code):** not tested, and could not be from here. The mods that only react to what Claude does (guard, build-bell's toast, forge, session-diary's counting) should load wherever plugins load. `/mods` needs the `claude` command on the machine, so in a session without it, it says so and `/mods list` is the only thing that cannot work. Panes only draw on surfaces that draw panes.
 - **VS Code panel and `claude -p`:** the mods' hooks run and nothing is drawn; commands answer in text.

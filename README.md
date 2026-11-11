@@ -15,7 +15,7 @@ Start a new session afterwards: plugins load at start-up.
 
 | Plugin | What it is |
 | --- | --- |
-| [`critter-buddy`](plugins/critter-buddy) | The wizard Pip, the tabby Biscuit, faces on every tool row, a prompt box that colours `/critter` as you type, a stage, a diary the model can read, and a Day and Night backdrop. |
+| [`critter-buddy`](plugins/critter-buddy) | The wizard Pip, the tabby Biscuit, faces on every tool row, a prompt box that colours `/critter` as you type, a stage, a diary the model can read, and a Day and Night sky. |
 | [`mods`](plugins/mods) | `/mods`: the control room. One pane on the right lists every mod, switches each on or off, installs the missing ones and opens each mod's own panes. |
 | [`build-bell`](plugins/build-bell) | A counter-bell strike and a toast when a long command or turn finishes, and a soft tick for a short turn. |
 | [`session-diary`](plugins/session-diary) | /diary: every tool call with its time, a line for each turn, and a copy-as-markdown button. Names and times only. |
