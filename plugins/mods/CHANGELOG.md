@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.5
+
+- **Changed:** the README opens on a preview poster instead of the icon. No behaviour change.
+
 ## 0.5.4
 
 - **Fixed: a plugin list that cannot be read no longer looks like "nothing installed".** If `claude plugin list --json` printed a warning before its JSON, or was cut off, the control room showed every mod as ON LEAVE and offered to install what was already there. It now says the plugin manager cannot be read.

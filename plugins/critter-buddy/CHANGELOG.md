@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.30.2
+
+- **Changed:** the icon shows the critter large instead of small in a sea of paper, and the listing has a preview poster. No behaviour change.
+
 ## 0.30.1
 
 - **Fixed: the sky now reaches the left edge of the band.** A photo of the desktop app showed a strip of pale colour on the left (about 5% of the width) and another under the picture. The picture is now drawn 8.5 px a column, measured from that photo, and the row under it takes the ground's colour.

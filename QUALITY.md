@@ -30,7 +30,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The lead mods
 
-### critter-buddy 0.30.1
+### critter-buddy 0.30.2
 
 | | |
 | --- | --- |
@@ -63,7 +63,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - the corner and the stage have not been seen in the real app
 - the cat overlapping Pip when a side panel opens was seen once and not reproduced
 
-### mods 0.5.4
+### mods 0.5.5
 
 | | |
 | --- | --- |
