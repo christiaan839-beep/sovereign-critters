@@ -708,10 +708,11 @@ export const register: Register = on => {
     const { Box, Text, face, vector, svg } = kit($.ui.resolve(e), e.surface)
     // the mail brought in by a background task or another session gets a happy face
     if (e.props.origin.kind === 'composer') return base
+    // The row spans the width and the bubble holds a floor, or a short message such as /mods is wrapped to the width the face leaves and splits mid-word.
     return (
-      <Box flexDirection="row" gap={1}>
+      <Box key="user-row" flexDirection="row" gap={1} width="100%" alignItems="flex-start">
         {face('ok')}
-        {base}
+        <Box key="user-bubble" flexShrink={1} minWidth={12}>{base}</Box>
       </Box>
     )
   }).catch(($, e, next) => next(e))

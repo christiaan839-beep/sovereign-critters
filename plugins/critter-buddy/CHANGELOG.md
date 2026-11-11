@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.29.2
+
+- **Fixed (needs a look in the app): a message that is not typed could show as a very narrow bubble.** Your screenshot had `/mods` split as "mo / ds". The row that puts the happy face beside such a message now spans the width, and the bubble beside the face holds a floor of 12 columns, so a short message is never split inside a word and a long one still wraps. The test pins that structure; whether it cures the wrap in the real window is for your next screenshot to say. What you type yourself is the engine's own row and is left alone.
+
 ## 0.29.1
 
 - **Fixed:** the critter no longer goes to "done", counts a turn or speaks when a subagent finishes: only the end of your own turn does.

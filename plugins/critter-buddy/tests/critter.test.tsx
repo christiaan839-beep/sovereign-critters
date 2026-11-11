@@ -2612,3 +2612,23 @@ test('the voice is gentle: no line the pair can say is cold, a guilt trip, or a 
   expect(said.filter(l => l).length).toBeGreaterThan(20)
   for (const line of said) expect(line, line).not.toMatch(cold)
 })
+
+test('a message that is not typed (mail from a task or another session) keeps its bubble readable beside its face: the row spans the width and the bubble holds a floor', async ($, on) => {
+  stub(on)
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  await $.command.run({ command: 'critter', args: 'party', origin: { kind: 'composer' }, presentation: {} } as never)
+  const mail = await $.ui.mount({ plugin: 'critter-buddy', component: 'UserMessage', requestId: 'r1', props: { origin: { kind: 'task' }, text: '/mods' }, surface: 'desktop' } as never)
+  const row = (await mail.find({ key: 'user-row' })) as { props?: Record<string, unknown> } | undefined
+  const bubble = (await mail.find({ key: 'user-bubble' })) as { props?: Record<string, unknown> } | undefined
+  expect(row?.props?.width).toBe('100%') // a row of a definite width: the bubble is not sized by the face beside it
+  expect(bubble?.props?.flexShrink).toBe(1) // a long message still wraps
+  expect(bubble?.props?.minWidth).toBe(12) // a short one, like /mods, is never split across lines
+  expect(await mail.find({ type: 'Svg' })).toBeDefined() // and the face is still there
+  await mail.unmount()
+  const typed = await $.ui.mount({ plugin: 'critter-buddy', component: 'UserMessage', requestId: 'r2', props: { origin: { kind: 'composer' }, text: 'hi' }, surface: 'desktop' } as never)
+  expect(await typed.find({ key: 'user-row' })).toBeUndefined() // what you type is the engine's own row, untouched
+  await typed.unmount()
+})
