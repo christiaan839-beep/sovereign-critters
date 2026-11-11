@@ -436,22 +436,48 @@
     },
     "critter-latch": {
       "surfaces": "any surface that runs hooks (it draws nothing)",
-      "reviews": [],
+      "reviews": [
+        {
+          "date": "2026-11-11",
+          "what": "independent adversarial review for ways past it and false stops (about 600 commands run through it)",
+          "found": "4 high bypasses (cd leaking out of a subshell, pushd/popd, a leading redirect, find -exec) and about 8 smaller, plus false stops on redirects and heredoc bodies; all fixed with a test that failed first",
+          "at": "6d0101c",
+          "kind": "security",
+          "openHigh": 0
+        }
+      ],
       "seen": [],
       "gaps": [
-        "never seen in the real app; an independent review for ways past it is still to do"
+        "the fixes after the review have not been reviewed again"
       ],
-      "failFirst": null,
+      "failFirst": {
+        "date": "2026-11-11",
+        "at": "cf375f3",
+        "what": "the review findings: each command that got past it has a test that failed on the first version, then passed"
+      },
       "coldInstall": []
     },
     "critter-seal": {
       "surfaces": "any surface that runs hooks (it draws nothing)",
-      "reviews": [],
+      "reviews": [
+        {
+          "date": "2026-11-11",
+          "what": "independent adversarial review for ways past it and false holds (about 330 commands run through it)",
+          "found": "high gaps (a sender after a bracket or keyword, a secret in a variable or a copied file, the environment dump, wrappers, globbed names, directories) and a proxy/connect-to blind spot, plus false holds on key options and download URLs; all fixed with a test that failed first",
+          "at": "6d0101c",
+          "kind": "security",
+          "openHigh": 0
+        }
+      ],
       "seen": [],
       "gaps": [
-        "never seen in the real app; an independent review for ways past it is still to do"
+        "the fixes after the review have not been reviewed again"
       ],
-      "failFirst": null,
+      "failFirst": {
+        "date": "2026-11-11",
+        "at": "cf375f3",
+        "what": "the review findings: each command that got past it has a test that failed on the first version, then passed"
+      },
       "coldInstall": []
     }
   },

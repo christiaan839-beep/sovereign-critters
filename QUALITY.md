@@ -22,8 +22,8 @@ Eight gates. The lead mods (the first three) must meet all eight before release.
 | critter-measure | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | critter-clock | met | met | met | open | open | open | open | open | Not ready: 5 of 8 open |
 | critter-ledger | met | met | met | open | open | open | open | open | Not ready: 5 of 8 open |
-| critter-latch | met | met | met | open | open | open | open | open | Not ready: 5 of 8 open |
-| critter-seal | met | met | met | open | open | open | open | open | Not ready: 5 of 8 open |
+| critter-latch | met | met | met | met | stale | open | open | open | Not ready: 4 of 8 open |
+| critter-seal | met | met | met | met | stale | open | open | open | Not ready: 4 of 8 open |
 
 met: done, and nothing has changed since. stale: done, but the plugin has changed since, so it needs another look. open: not done yet.
 
@@ -405,15 +405,15 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
-| Verdict | Not ready: 5 of 8 open |
+| Verdict | Not ready: 4 of 8 open |
 
 **Independent reviews**
 
-- none yet
+- 2026-11-11 (at 6d0101c): independent adversarial review for ways past it and false stops (about 600 commands run through it). Found: 4 high bypasses (cd leaking out of a subshell, pushd/popd, a leading redirect, find -exec) and about 8 smaller, plus false stops on redirects and heredoc bodies; all fixed with a test that failed first.
 
 **New tests watched failing first**
 
-- not recorded yet
+- 2026-11-11 (at cf375f3): the review findings: each command that got past it has a test that failed on the first version, then passed.
 
 **Seen working in the real app**
 
@@ -425,7 +425,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 **Known gaps**
 
-- never seen in the real app; an independent review for ways past it is still to do
+- the fixes after the review have not been reviewed again
 
 ### critter-seal 0.1.0
 
@@ -435,15 +435,15 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
-| Verdict | Not ready: 5 of 8 open |
+| Verdict | Not ready: 4 of 8 open |
 
 **Independent reviews**
 
-- none yet
+- 2026-11-11 (at 6d0101c): independent adversarial review for ways past it and false holds (about 330 commands run through it). Found: high gaps (a sender after a bracket or keyword, a secret in a variable or a copied file, the environment dump, wrappers, globbed names, directories) and a proxy/connect-to blind spot, plus false holds on key options and download URLs; all fixed with a test that failed first.
 
 **New tests watched failing first**
 
-- not recorded yet
+- 2026-11-11 (at cf375f3): the review findings: each command that got past it has a test that failed on the first version, then passed.
 
 **Seen working in the real app**
 
@@ -455,4 +455,4 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 **Known gaps**
 
-- never seen in the real app; an independent review for ways past it is still to do
+- the fixes after the review have not been reviewed again
