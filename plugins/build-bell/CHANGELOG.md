@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.5
+
+- **Fixed:** the bell no longer rings, and the turn clock no longer stops, when a subagent finishes: only the end of your own turn counts.
+
 ## 0.4.4
 
 - The listing card now carries a homepage, a repository link and keywords. No behaviour change.

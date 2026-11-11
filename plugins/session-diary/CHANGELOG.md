@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.5
+
+- **Fixed:** a subagent finishing is no longer counted as a turn in your day or your week.
+
 ## 0.4.4
 
 - The listing card now carries a homepage, a repository link and keywords. No behaviour change.

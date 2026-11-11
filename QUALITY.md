@@ -25,11 +25,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The lead mods
 
-### critter-buddy 0.29.0
+### critter-buddy 0.29.1
 
 | | |
 | --- | --- |
-| Tests passing | 168 |
+| Tests passing | 169 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -121,11 +121,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The others
 
-### session-diary 0.4.4
+### session-diary 0.4.5
 
 | | |
 | --- | --- |
-| Tests passing | 19 |
+| Tests passing | 20 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -152,11 +152,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - never seen in the real app
 - no independent code review yet
 
-### build-bell 0.4.4
+### build-bell 0.4.5
 
 | | |
 | --- | --- |
-| Tests passing | 13 |
+| Tests passing | 14 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | any surface that plays sound or shows toasts |

@@ -27,6 +27,7 @@ export const register: Register = (on, options) => {
     return next(e)
   }).catch(($, e, next) => next(e))
   on('turn.complete', async ($, e, next) => {
+    if (e.agentId) return next(e) // a subagent's answer is its own turn.complete: it is not the end of the person's turn
     try {
       const took = turnStart ? (await $.clock.now()) - turnStart : 0
       turnStart = 0

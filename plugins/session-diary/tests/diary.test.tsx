@@ -151,6 +151,22 @@ test('the week lists seven days oldest first, marks quiet ones, and names the bu
   expect(w).not.toContain('11-01')
 })
 
+test("a subagent's turn ending is not a turn of the person's day", async ($, on) => {
+  stub(on)
+  on('clock.now', () => ({ value: AT }))
+  on('command.register', () => ({ value: { command: 'diary' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('turn.complete', () => ({ text: 'done' }))
+  on('tool.call', () => ({ result: 'ok' }) as never)
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.tool.call({ tool: 'Read' } as never)
+  await $.turn.complete({ answer: 'sub', agentId: 'agent-1' } as never)
+  const said = async (args: string) => (await $.command.run({ command: 'diary', args, origin: { kind: 'composer' }, presentation: {} } as never)) as { text?: string }
+  expect((await said('week')).text ?? '').not.toMatch(/\b1 turn/)
+  await $.turn.complete({ answer: 'done' } as never)
+  expect((await said('week')).text ?? '').toMatch(/1 turn/)
+})
+
 // ---- the register: calls and turns reach the day counts, and /diary week says them and copies them ----
 test('every call and turn lands in its day, and /diary week says them and copies them as markdown', async ($, on) => {
   stub(on)

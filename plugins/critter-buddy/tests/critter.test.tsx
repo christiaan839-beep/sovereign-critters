@@ -129,6 +129,23 @@ test('a turn begins with the wizard on the bar, and the turn ends with the critt
   expect(look()).toBe('done')
 })
 
+test("a subagent's turn ending is not the person's turn ending: the critter stays at the wizard's work until the main loop is done", async ($, on) => {
+  stub(on)
+  on('prompt.submit', (_, e: { text: string; inputText: string }) => ({ text: e.text, inputText: e.inputText }) as never)
+  on('turn.complete', () => ({ text: 'done' }))
+  on('ui.status', () => ({ value: undefined }))
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const look = () => /"look":"(\w+)"/.exec(JSON.stringify(kept.get('critter-buddy.scene')))?.[1]
+  await $.prompt.submit({ text: 'hello', inputText: 'hello' } as never)
+  await $.turn.complete({ answer: 'sub', agentId: 'agent-1' } as never)
+  expect(look()).toBe('wizard') // a subagent finished; the turn goes on
+  await $.turn.complete({ answer: 'done' } as never)
+  expect(look()).toBe('done')
+})
+
 test('/critter stage opens a stage with the critter alone on it, on every surface', async ($, on) => {
   stub(on)
   const opened: string[] = []

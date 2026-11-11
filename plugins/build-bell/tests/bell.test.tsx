@@ -70,6 +70,25 @@ test('a long turn rings the bell when it ends', async ($, on) => {
   expect(bells).toEqual(['sounds/bell.wav'])
 })
 
+test("a subagent finishing does not ring the bell or end the turn's clock; the main loop's end does", async ($, on) => {
+  const toasts: string[] = []
+  const bells: string[] = []
+  let clock = 2_000_000
+  on('clock.now', () => ({ value: clock }))
+  on('prompt.submit', (_: unknown, e: { text: string; inputText: string }) => ({ text: e.text, inputText: e.inputText }) as never)
+  on('turn.complete', () => ({ text: 'done' }))
+  on('ui.toast', (_: unknown, e: { text: string }) => { toasts.push(e.text); return { value: undefined } })
+  on('audio.play', (_: unknown, e: { clip: { asset?: string } }) => { bells.push(e.clip.asset ?? ''); return { value: undefined } })
+  await $.prompt.submit({ text: 'go', inputText: 'go' } as never)
+  clock += 30_000
+  await $.turn.complete({ answer: 'sub', agentId: 'agent-1' } as never)
+  expect(toasts).toEqual([])
+  expect(bells).toEqual([])
+  clock += 60_000
+  await $.turn.complete({ answer: 'done' } as never)
+  expect(toasts).toEqual(['Claude finished after 1 min 30 s']) // timed from the person's prompt, not from the subagent
+})
+
 test('a turn under five seconds stays quiet', async ($, on) => {
   expect((await turn($, on, 1_000)).bells).toEqual([])
 })

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.29.1
+
+- **Fixed:** the critter no longer goes to "done", counts a turn or speaks when a subagent finishes: only the end of your own turn does.
+
 ## 0.29.0
 
 - **Changed: a warmer voice, the first minute first.** The pair are still themselves (Biscuit proud, Pip a little grand) but they are plainly on your side. The welcome now says "Good morning. Biscuit and Pip are above your prompt", "Biscuit has looked the place over and approves. Pip would like it known the idea was his", or, late, "All set. Biscuit is still deciding, but has stayed up for you". Coming back: "Biscuit missed you and will deny it" after days away, "Biscuit kept your seat warm" the same day. A failed command gets "Biscuit was not surprised, and is still on your side" or "Nothing was harmed. Mostly. Try again." The button when Biscuit sulks says "say sorry to Biscuit", and a sulk lifts with "Biscuit has forgiven you, and is not quite done being dramatic". The lines after a turn follow the same rules: say what happened, never at your expense, never a guilt trip.
