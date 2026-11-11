@@ -1,6 +1,6 @@
 # hot-reload-demo
 
-A teaching example for mod authors. It is **not** in the marketplace: it was the first version of `crab`, kept because it shows one thing well.
+A teaching example for mod authors. It is **not** in the marketplace: it was the first version of `critter-crab`, kept because it shows one thing well.
 
 A band above the prompt shows two values side by side: the time the module loaded (a variable in the module itself), and the number of prompts that entered this session (kept in `$.state`).
 

@@ -2,14 +2,14 @@
   "_about": "What only people can establish, each with the date and the commit it was about (`at`): reviews (kind code, security or docs, and openHigh, the count of open high findings), sightings in the real app, a cold install by someone who is not the founder, and new tests watched failing first. Tests, versions and validation are measured by tools/quality.py and never written here. A fact is fresh only while the plugin has not changed since `at`. Never raise a claim above its evidence.",
   "order": [
     "critter-buddy",
-    "mods",
-    "guard",
-    "session-diary",
-    "build-bell",
-    "crab",
-    "stunt",
-    "everywhere",
-    "forge"
+    "critter-mods",
+    "critter-ward",
+    "critter-diary",
+    "critter-bell",
+    "critter-crab",
+    "critter-stunt",
+    "critter-tally",
+    "critter-measure"
   ],
   "plugins": {
     "critter-buddy": {
@@ -59,7 +59,7 @@
       },
       "coldInstall": []
     },
-    "mods": {
+    "critter-mods": {
       "surfaces": "Claude desktop app, terminal",
       "reviews": [
         {
@@ -88,7 +88,7 @@
       "failFirst": null,
       "coldInstall": []
     },
-    "guard": {
+    "critter-ward": {
       "surfaces": "any surface that runs hooks (it draws nothing)",
       "reviews": [
         {
@@ -136,7 +136,7 @@
       },
       "coldInstall": []
     },
-    "session-diary": {
+    "critter-diary": {
       "surfaces": "Claude desktop app, terminal",
       "reviews": [
         {
@@ -173,7 +173,7 @@
       "failFirst": null,
       "coldInstall": []
     },
-    "build-bell": {
+    "critter-bell": {
       "surfaces": "any surface that plays sound or shows toasts",
       "reviews": [
         {
@@ -211,7 +211,7 @@
       "failFirst": null,
       "coldInstall": []
     },
-    "crab": {
+    "critter-crab": {
       "surfaces": "Claude desktop app, terminal",
       "reviews": [
         {
@@ -239,7 +239,7 @@
       "failFirst": null,
       "coldInstall": []
     },
-    "stunt": {
+    "critter-stunt": {
       "surfaces": "Claude desktop app, terminal",
       "reviews": [
         {
@@ -267,7 +267,7 @@
       "failFirst": null,
       "coldInstall": []
     },
-    "everywhere": {
+    "critter-tally": {
       "surfaces": "Claude desktop app, terminal",
       "reviews": [
         {
@@ -294,7 +294,7 @@
       "failFirst": null,
       "coldInstall": []
     },
-    "forge": {
+    "critter-measure": {
       "surfaces": "any surface (it is a tool the model calls)",
       "reviews": [
         {

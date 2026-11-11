@@ -4,5 +4,5 @@ useDefault = true
 
 [[allowlists]]
 description = "The fake token a session-diary test feeds the diary to prove it is never written down"
-paths = ['''plugins/session-diary/tests/diary\.test\.tsx''']
+paths = ['''plugins/critter-diary/tests/diary\.test\.tsx''']
 regexes = ['''SECRET123''']

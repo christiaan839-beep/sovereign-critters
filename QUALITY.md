@@ -12,14 +12,14 @@ Eight gates. The lead mods (the first three) must meet all eight before release.
 | Mod | Tests pass | Strict validation | Hooks fail open | New tests failed first | Independent code review | Seen in the desktop app | Docs audited | Cold install by someone else | Verdict |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | critter-buddy | met | met | met | stale | stale | stale | stale | open | Not ready: 5 of 8 open |
-| mods | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
-| guard | met | met | met | stale | stale | open | stale | open | Not ready: 5 of 8 open |
-| session-diary | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
-| build-bell | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
-| crab | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
-| stunt | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
-| everywhere | met | met | met | open | met | open | stale | open | Not ready: 4 of 8 open |
-| forge | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
+| critter-mods | met | met | met | open | met | open | met | open | Not ready: 3 of 8 open |
+| critter-ward | met | met | met | met | met | open | met | open | Not ready: 2 of 8 open |
+| critter-diary | met | met | met | open | met | open | met | open | Not ready: 3 of 8 open |
+| critter-bell | met | met | met | open | met | open | met | open | Not ready: 3 of 8 open |
+| critter-crab | met | met | met | open | met | open | met | open | Not ready: 3 of 8 open |
+| critter-stunt | met | met | met | open | met | open | met | open | Not ready: 3 of 8 open |
+| critter-tally | met | met | met | open | met | open | met | open | Not ready: 3 of 8 open |
+| critter-measure | met | met | met | open | met | open | met | open | Not ready: 3 of 8 open |
 
 met: done, and nothing has changed since. stale: done, but the plugin has changed since, so it needs another look. open: not done yet.
 
@@ -63,7 +63,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - the corner and the stage have not been seen in the real app
 - the cat overlapping Pip when a side panel opens was seen once and not reproduced
 
-### mods 0.5.7
+### critter-mods 0.6.0
 
 | | |
 | --- | --- |
@@ -71,7 +71,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
-| Verdict | Not ready: 5 of 8 open |
+| Verdict | Not ready: 3 of 8 open |
 
 **Independent reviews**
 
@@ -96,7 +96,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - a failed or timed-out switch leaves the pane stale
 - "install all" does not say which installs failed
 
-### guard 0.1.4
+### critter-ward 0.2.0
 
 | | |
 | --- | --- |
@@ -104,7 +104,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell where a push goes, the push waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
-| Verdict | Not ready: 5 of 8 open |
+| Verdict | Not ready: 2 of 8 open |
 
 **Independent reviews**
 
@@ -132,7 +132,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The others
 
-### session-diary 0.5.2
+### critter-diary 0.6.0
 
 | | |
 | --- | --- |
@@ -140,7 +140,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
-| Verdict | Not ready: 5 of 8 open |
+| Verdict | Not ready: 3 of 8 open |
 
 **Independent reviews**
 
@@ -166,7 +166,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - the 14-day week does not survive a restart (session-scoped state)
 - /diary clear does not clear the week
 
-### build-bell 0.5.1
+### critter-bell 0.6.0
 
 | | |
 | --- | --- |
@@ -174,7 +174,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | any surface that plays sound or shows toasts |
-| Verdict | Not ready: 5 of 8 open |
+| Verdict | Not ready: 3 of 8 open |
 
 **Independent reviews**
 
@@ -201,7 +201,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - its three settings cannot be set (no declared user configuration)
 - a long command rings twice
 
-### crab 0.2.6
+### critter-crab 0.3.0
 
 | | |
 | --- | --- |
@@ -209,7 +209,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
-| Verdict | Not ready: 5 of 8 open |
+| Verdict | Not ready: 3 of 8 open |
 
 **Independent reviews**
 
@@ -233,7 +233,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - never seen in the real app
 - /crab drop after a failed store read
 
-### stunt 0.1.5
+### critter-stunt 0.2.0
 
 | | |
 | --- | --- |
@@ -241,7 +241,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
-| Verdict | Not ready: 5 of 8 open |
+| Verdict | Not ready: 3 of 8 open |
 
 **Independent reviews**
 
@@ -265,7 +265,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - never seen in the real app
 - the follow-up timer outlives the pane for up to 160 ms
 
-### everywhere 0.1.2
+### critter-tally 0.2.0
 
 | | |
 | --- | --- |
@@ -273,7 +273,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
-| Verdict | Not ready: 4 of 8 open |
+| Verdict | Not ready: 3 of 8 open |
 
 **Independent reviews**
 
@@ -296,7 +296,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app
 
-### forge 0.1.3
+### critter-measure 0.2.0
 
 | | |
 | --- | --- |
@@ -304,7 +304,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | any surface (it is a tool the model calls) |
-| Verdict | Not ready: 5 of 8 open |
+| Verdict | Not ready: 3 of 8 open |
 
 **Independent reviews**
 

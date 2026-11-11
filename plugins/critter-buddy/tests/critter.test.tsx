@@ -1666,7 +1666,7 @@ test('the band has a mods button once there is room, and pressing it runs /mods;
   const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
   await ui.press({ key: 'mods' } as never)
   await ui.unmount()
-  expect(toasts.at(-1)).toMatch(/\/plugin install mods@sovereign-critters/)
+  expect(toasts.at(-1)).toMatch(/\/plugin install critter-mods@sovereign-critters/)
 })
 
 test('the status is one row, whatever the glass says: the mood goes first, then the usage is cut with an ellipsis', () => {

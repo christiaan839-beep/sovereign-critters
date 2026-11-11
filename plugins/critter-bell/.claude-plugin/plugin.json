@@ -1,0 +1,40 @@
+{
+  "name": "critter-bell",
+  "version": "0.6.0",
+  "description": "A counter-bell strike and a toast when a long command or a long turn finishes, so you can look away while a build, an install, a test run or Claude goes. It says how long it took and whether it failed. Quiet for anything short.",
+  "author": {
+    "name": "Sovereign Matrix"
+  },
+  "license": "Apache-2.0",
+  "icon": "./.claude-plugin/icon.png",
+  "homepage": "https://github.com/christiaan839-beep/sovereign-critters/tree/main/plugins/critter-bell",
+  "repository": "https://github.com/christiaan839-beep/sovereign-critters",
+  "keywords": [
+    "bell",
+    "long-running",
+    "build",
+    "toast",
+    "sound"
+  ],
+  "userConfig": {
+    "minSeconds": {
+      "type": "number",
+      "title": "Ring after (seconds)",
+      "description": "A command or a turn that runs this long rings and shows a toast. Shorter ones stay quiet.",
+      "default": 20,
+      "min": 1
+    },
+    "sound": {
+      "type": "boolean",
+      "title": "Sound",
+      "description": "Ring the bell. Off leaves the toast alone.",
+      "default": true
+    },
+    "shortTurns": {
+      "type": "boolean",
+      "title": "Tick after short turns",
+      "description": "A soft tick when a turn of 5 seconds or more ends without reaching the bell.",
+      "default": true
+    }
+  }
+}

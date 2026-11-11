@@ -16,7 +16,7 @@ person and a real window can confirm.
    - `/critter hide` then `/critter show`; `/critter corner`; `/critter stage`; `/mods`; `/diary`.
    - Ask Claude to read a few files: the band's pair works and typing stays smooth.
    - Ask for `sleep 25` in Bash: build-bell's toast and bell when it ends.
-   - Ask for `git push --force origin main` in a scratch repo: `guard` stops it before Bash runs.
+   - Ask for `git push --force origin main` in a scratch repo: `critter-ward` stops it before Bash runs.
 5. **Send a photo of the whole window, not a crop,** with its width, for anything that draws.
 
-A change that touches `guard` also needs a line that tries to get past it: it is the one plugin whose job is to say no.
+A change that touches `critter-ward` also needs a line that tries to get past it: it is the one plugin whose job is to say no.

@@ -131,7 +131,7 @@ const openMods = async ($: any) => {
     await $.command.run({ command: 'mods', args: '' })
   } catch {
     try {
-      $.ui.toast('The control room is its own plugin: /plugin install mods@sovereign-critters, then restart.', { timeoutMs: 6000 })
+      $.ui.toast('The control room is its own plugin: /plugin install critter-mods@sovereign-critters, then restart.', { timeoutMs: 6000 })
     } catch {
       // no toast, no harm
     }
