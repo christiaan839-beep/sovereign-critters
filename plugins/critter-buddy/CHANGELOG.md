@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.26.2
+
+- **`/critter doctor` names the right surface.** On the desktop app it used to say "Surface: terminal" (the command event carries no surface), and so told you only the desktop draws a backdrop. It now asks which surfaces are attached.
+
 ## 0.26.1
 
 - **`/critter doctor` says whether the sky is drawn.** On the desktop it adds a `Backdrop:` line: `drawn`, or `not drawn` with the reason the desktop gave. Until now a refusal was thrown away, so an empty window gave no clue why.

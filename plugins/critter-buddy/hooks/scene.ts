@@ -1084,6 +1084,10 @@ export const perfLines = (p: Probe): string[] => {
   ]
 }
 
+// ---- which surface this really is ----------------------------------------------
+/** The surface the doctor names: the desktop if the desktop is attached, else the first surface drawing, else what the event said. */
+export const surfaceOf = (attached: readonly string[], said?: string): string => (attached.includes('desktop') ? 'desktop' : attached[0] ?? said ?? 'terminal')
+
 // ---- what the host said about the backdrop ------------------------------------
 /** The host's answer to `$.ui.backdrop`, as one line for the doctor: drawn, or not drawn and the reason it gave. */
 export const backdropOutcome = (answer: unknown): { drawn: boolean; text: string } => {

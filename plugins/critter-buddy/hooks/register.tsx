@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { windowWidth, fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, wizardPoseFor, isQuiet, motionTick, welcomeLine, cleanMemory, cleanStreak, doctorLines, backdropOutcome, newProbe, noteBeat, perfLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import { windowWidth, fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, wizardPoseFor, isQuiet, motionTick, welcomeLine, cleanMemory, cleanStreak, doctorLines, backdropOutcome, surfaceOf, newProbe, noteBeat, perfLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
 import { TINTS, tintOf, tintFor, SKY_CHOICES, hourSast, dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, RIDGE_FAR, thinkingOf, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
 import type { Flight, SkyChoice, Streak } from './world'
 import type { SoundName, Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
@@ -525,7 +525,7 @@ export const register: Register = on => {
     }
     if (sub === 'perf') return { text: perfLines(probe).join('\n') }
     if (sub === 'doctor') {
-      return { text: doctorLines({ detail: await read($, detail), feel: await read($, feel), sound: await read($, sound), voice: await read($, voice), talk: await read($, talk), hidden: (await read($, isHidden)) === true, cols: windowCols, sky: await read($, sky), tint: (await read($, tint)) ? TINTS[folderTint ?? 0]!.name : '', surface: e.surface ?? 'terminal', backdrop: backdropNote }).join('\n') }
+      return { text: doctorLines({ detail: await read($, detail), feel: await read($, feel), sound: await read($, sound), voice: await read($, voice), talk: await read($, talk), hidden: (await read($, isHidden)) === true, cols: windowCols, sky: await read($, sky), tint: (await read($, tint)) ? TINTS[folderTint ?? 0]!.name : '', surface: surfaceOf(await Promise.resolve($.session.surfaces()).catch(() => []), e.surface), backdrop: backdropNote }).join('\n') }
     }
     if (sub === 'sky') {
       const pick = SKY_CHOICES.find(x => x === arg)

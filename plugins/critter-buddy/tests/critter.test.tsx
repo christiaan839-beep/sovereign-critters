@@ -2399,3 +2399,13 @@ test('/critter doctor reports what the host said about the backdrop on the deskt
   // the test engine answers $.ui.backdrop itself: whatever it says is now in the doctor's words, never silent
   expect(await doctor('desktop')).toMatch(/Backdrop: (drawn|not drawn \(.+\))\./)
 })
+
+import { surfaceOf } from '../hooks/scene'
+
+test('the doctor names the desktop when it is attached, even if the command event says nothing or terminal', () => {
+  expect(surfaceOf(['terminal', 'desktop'], 'terminal')).toBe('desktop')
+  expect(surfaceOf(['desktop'])).toBe('desktop')
+  expect(surfaceOf(['terminal'], undefined)).toBe('terminal')
+  expect(surfaceOf([], 'desktop')).toBe('desktop')
+  expect(surfaceOf([])).toBe('terminal')
+})
