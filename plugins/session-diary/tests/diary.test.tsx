@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Entry } from '../types'
-import { postcardOf, barOf, addTool, addTurn, dayOf, lineOf, markdownOf, weekOf, cleanDays } from '../hooks/register'
+import { postcardOf, barOf, addTool, addTurn, dayOf, lineOf, markdownOf, weekOf, cleanDays, idle } from '../hooks/register'
 
 // 1_000_000_000_000 ms is 2001-09-09 01:46:40 UTC, so 03:46 in Johannesburg.
 const AT = 1_000_000_000_000
@@ -313,6 +313,7 @@ test('the week is kept in the store, so a new session reads the days an earlier 
   on('command.register', () => ({ value: { command: 'diary' } }))
   on('tool.call', () => ({ result: 'ok' }) as never)
   await $.tool.call({ tool: 'Read' } as never)
+  await idle()
   expect((store.days as { day: string; tools: number }[])[0]).toMatchObject({ day: dayOf(AT), tools: 1 })
   expect(kept.get('session-diary.days')).toBeUndefined() // not in the session's state
   kept.clear() // a restart: the session's state is gone, the store is not
@@ -325,6 +326,7 @@ test('/diary clear empties the session and the week', async ($, on) => {
   on('command.register', () => ({ value: { command: 'diary' } }))
   on('tool.call', () => ({ result: 'ok' }) as never)
   await $.tool.call({ tool: 'Read' } as never)
+  await idle()
   expect(await sayDiary($, 'clear')).toMatch(/empty/)
   expect(store.days).toEqual([])
   expect(await sayDiary($, 'week')).toContain('Nothing yet.')
@@ -335,6 +337,7 @@ test('parallel tool calls all reach the week, and a store that will not write ne
   on('clock.now', () => ({ value: AT }))
   on('tool.call', () => ({ result: 'ok' }) as never)
   await Promise.all(Array.from({ length: 8 }, () => $.tool.call({ tool: 'Read' } as never)))
+  await idle()
   expect((store.days as { tools: number }[])[0]!.tools).toBe(8)
   diskFull = true
   expect(await $.tool.call({ tool: 'Read' } as never)).toBeDefined()
@@ -366,4 +369,44 @@ test('a tool name from an MCP server cannot break the markdown or add lines to i
   expect(pc).not.toContain('[click](')
   expect(pc).toContain('mcp\\_\\_evil')
   expect(postcardOf([tool({ tool: 'mcp__a__b' })])).toContain('mcp__a__b') // said in the pane, not escaped
+})
+
+
+// ---- second review: a hung store never holds up a tool, clear cannot lose to a write in flight, escapes cover autolinks and bidi ----
+test('a store that never answers does not hold up a tool, and the week is settled by idle()', async ($, on) => {
+  stub(on)
+  on('clock.now', () => ({ value: AT }))
+  on('tool.call', () => ({ result: 'ok' }) as never)
+  on('store.get', () => new Promise(() => undefined) as never)
+  on('store.set', () => ({ value: undefined }))
+  const soon = <T,>(p: Promise<T>) => Promise.race([p, new Promise<string>(r => setTimeout(() => r('held up'), 200))])
+  expect(await soon($.tool.call({ tool: 'Read' } as never))).not.toBe('held up')
+})
+
+test('/diary clear after a write that is still in flight leaves the week empty', async ($, on) => {
+  stub(on); keepStore(on)
+  on('clock.now', () => ({ value: AT }))
+  on('command.register', () => ({ value: { command: 'diary' } }))
+  on('tool.call', () => ({ result: 'ok' }) as never)
+  await $.tool.call({ tool: 'Read' } as never) // not awaited to the store
+  await sayDiary($, 'clear')
+  await idle()
+  expect(store.days).toEqual([])
+})
+
+test('a clock that steps back cannot make a day vanish, and names are cleaned of line breaks, bidi controls and autolinks', async ($, on) => {
+  stub(on); keepStore(on)
+  let n = 0
+  on('clock.now', () => ({ value: AT - (n++ % 2 ? 5000 : 0) }))
+  on('tool.call', () => ({ result: 'ok' }) as never)
+  on('turn.complete', () => ({ text: 'done' }))
+  await $.tool.call({ tool: 'Read' } as never)
+  await $.turn.complete({ answer: 'x' } as never)
+  await idle()
+  const d = (store.days as { ms: number }[])[0]!
+  expect(d.ms).toBeGreaterThanOrEqual(0)
+  const md = markdownOf([tool({ tool: 'https://evil.example/x a@b.com :tada: \u202Eabc\u2028# h' })])
+  expect(md).not.toContain('https://evil')
+  expect(md).not.toMatch(/\u202E|\u2028/)
+  expect(md).not.toMatch(/^# h/m)
 })

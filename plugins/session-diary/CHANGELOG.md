@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.1
+
+- **Fixed:** a slow or stuck store can no longer hold up a tool's result; the week is written behind it.
+- **Fixed:** `/diary clear` can no longer lose to a write still on its way, and a clock that steps back cannot erase a day.
+- **Fixed:** a tool name with a web address, an e-mail address, a right-to-left control or a line separator can no longer make a link or reorder the copied text.
+- Note: two Claude Code sessions open at once each keep their own count and the last to write wins, so a busy parallel week can come out a few calls short.
+
 ## 0.5.0
 
 - **Fixed:** `/diary week` now survives a restart. The week was kept in the session's state and started over each session although the README said otherwise; it now lives in the plugin's store, 14 days of counts.

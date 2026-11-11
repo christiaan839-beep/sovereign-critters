@@ -22,7 +22,7 @@ const span = (ms: number): string => {
   return `${Math.floor(total / 60)} min ${total % 60} s`
 }
 /** A name from outside (an MCP server picks its tools' names) said in markdown: no emphasis, link, heading or line of its own. */
-const mdName = (name: string): string => name.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/[\\`*_{}[\]()<>#+!|~&]/g, '\\$&')
+const mdName = (name: string): string => name.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]+/g, ' ').replace(/[\\`*_{}[\]()<>#+!|~&:.@$]/g, '\\$&')
 
 /** One line of the pane. Pure, so the pane, the markdown and the tests all say the same thing. */
 export const lineOf = (x: Entry, md = false): string =>
@@ -143,11 +143,11 @@ export const postcardOf = (list: readonly Entry[], md = false): string => {
 // queued one behind another because the store has no compare-and-set: two tools finishing together must both count.
 const DAYS = 'days'
 let queue: Promise<unknown> = Promise.resolve()
-const bump = ($: any, f: (list: Day[]) => Day[]): Promise<void> => {
-  const run = queue.then(async () => { await $.store.set(DAYS, f(cleanDays(await $.store.get(DAYS)))) })
-  queue = run.catch(() => undefined)
-  return run
+const bump = ($: any, f: (list: Day[]) => Day[]): void => {
+  queue = queue.then(async () => { await $.store.set(DAYS, f(cleanDays(await $.store.get(DAYS)))) }).catch(() => undefined)
 }
+/** Resolves when every write to the week so far has settled. A tool never waits on it: a store that hangs must not hold up a result. */
+export const idle = (): Promise<unknown> => queue
 const week = async ($: any): Promise<Day[]> => cleanDays(await Promise.resolve($.store.get(DAYS)).catch(() => undefined))
 
 export const register: Register = on => {
@@ -168,15 +168,13 @@ export const register: Register = on => {
     const ran = await next(e)
     try {
       const started = await begun
-      const ms = (await $.clock.now()) - started
+      const ms = Math.max(0, (await $.clock.now()) - started)
       const ok = ran.deny === undefined && ran.isError !== true
       tools += 1
       if (!ok) errors += 1
-      const name = String(e.tool).replace(/[\u0000-\u001f\u007f]+/g, ' ').slice(0, 80)
-      await Promise.allSettled([ // the session's lines and the week do not depend on each other; neither failing stops the other
-        update($, entries, (list: Entry[]): Entry[] => [...list, { kind: 'tool', at: started, tool: name, ms, ok } as Entry].slice(-KEEP)),
-        bump($, list => addTool(list, started, name, ok)),
-      ])
+      const name = String(e.tool).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]+/g, ' ').slice(0, 80)
+      bump($, list => addTool(list, started, name, ok)) // queued and left: the tool's result does not wait on the store
+      await update($, entries, (list: Entry[]): Entry[] => [...list, { kind: 'tool', at: started, tool: name, ms, ok } as Entry].slice(-KEEP))
     } catch {
       // a diary that cannot write never holds up the tool
     }
@@ -187,13 +185,11 @@ export const register: Register = on => {
     if (e.agentId) return next(e) // a subagent's answer is its own turn.complete: it is not the end of the person's turn
     try {
       const now = await $.clock.now()
-      const ms = turnStart ? now - turnStart : 0
+      const ms = turnStart ? Math.max(0, now - turnStart) : 0
       const [t, er] = [tools, errors]
       tools = 0; errors = 0; turnStart = 0
-      await Promise.allSettled([
-        update($, entries, (list: Entry[]): Entry[] => [...list, { kind: 'turn', at: now, tools: t, errors: er, ms } as Entry].slice(-KEEP)),
-        bump($, list => addTurn(list, now, ms)),
-      ])
+      bump($, list => addTurn(list, now, ms))
+      await update($, entries, (list: Entry[]): Entry[] => [...list, { kind: 'turn', at: now, tools: t, errors: er, ms } as Entry].slice(-KEEP))
     } catch {
       // see above
     }
@@ -213,7 +209,13 @@ export const register: Register = on => {
     const sub = e.args.trim()
     if (sub === 'clear') {
       await update($, entries, () => [] as Entry[])
-      try { await $.store.set(DAYS, []) } catch { return { text: 'This session is empty, but the week could not be cleared: the store would not take it.' } }
+      try {
+        queue = queue.then(() => $.store.set(DAYS, []))
+        await queue
+      } catch {
+        queue = Promise.resolve()
+        return { text: 'This session is empty, but the week could not be cleared: the store would not take it.' }
+      }
       return { text: 'The diary and the week are empty.' }
     }
     if (sub === 'week' || sub === 'week copy') {
