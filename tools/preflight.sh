@@ -72,6 +72,16 @@ else
   note 'skip  gitleaks (not installed, or not a git checkout)'
 fi
 
+# 5b. types, when TypeScript is installed (the repo itself takes no dependency; each plugin has its own tsconfig.json)
+if command -v tsc >/dev/null 2>&1; then
+  for d in plugins/*/; do
+    [ -f "$d/tsconfig.json" ] || continue
+    if tsc -p "$d" --noEmit >"$TMP/tsc" 2>&1; then ok "${d%/} typecheck"; else bad "${d%/} typecheck"; sed 's/^/      /' "$TMP/tsc" | head -10; fi
+  done
+else
+  note 'skip  typecheck (tsc not installed: npm i -g typescript to turn it on)'
+fi
+
 # 6. every plugin card has what a directory listing shows: a short description, a homepage, a repository, keywords
 listing=$(python3 - <<'PY'
 import glob, json
