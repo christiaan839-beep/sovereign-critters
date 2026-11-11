@@ -444,6 +444,14 @@
           "at": "6d0101c",
           "kind": "security",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "second independent adversarial review, on the code that fixed the first",
+          "found": "12 smaller bypasses on the first fixes and one common false stop; all fixed with a test that failed first",
+          "at": "cf375f3",
+          "kind": "security",
+          "openHigh": 0
         }
       ],
       "seen": [],
@@ -465,6 +473,14 @@
           "what": "independent adversarial review for ways past it and false holds (about 330 commands run through it)",
           "found": "high gaps (a sender after a bracket or keyword, a secret in a variable or a copied file, the environment dump, wrappers, globbed names, directories) and a proxy/connect-to blind spot, plus false holds on key options and download URLs; all fixed with a test that failed first",
           "at": "6d0101c",
+          "kind": "security",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "second independent adversarial review, on the code that fixed the first",
+          "found": "8 high gaps on the first fixes plus medium ones; all fixed with a test that failed first",
+          "at": "cf375f3",
           "kind": "security",
           "openHigh": 0
         }
