@@ -1,6 +1,6 @@
 {
   "name": "critter-bell",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "A counter-bell strike and a toast when a long command or a long turn finishes, so you can look away while a build, an install, a test run or Claude goes. It says how long it took and whether it failed. Quiet for anything short.",
   "author": {
     "name": "Sovereign Matrix"
