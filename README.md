@@ -31,7 +31,7 @@ The critter and the cat are our own drawing. Nothing here copies Anthropic's art
 
 - A decorative mod never blocks a tool: every hook catches its own errors.
 - Everything the characters say is a pure function of the session, never of chance, so a replay is identical and a test can pin it.
-- No network, no telemetry, nothing read outside the session. State stays in the plugin's own store.
+- No network, no telemetry, nothing read outside the session. State stays in the plugin's own store. The one thing that spends anything is opt-in: `/critter talk on` asks the model for one short line after a turn and sends only numbers (the seconds the turn took, whether it failed). It is off until you turn it on.
 - Apache-2.0.
 
 ## Develop
