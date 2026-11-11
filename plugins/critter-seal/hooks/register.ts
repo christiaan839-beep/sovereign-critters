@@ -10,24 +10,26 @@ import type { Register } from 'claude-code'
 
 // ---- what sends, and what is secret ----------------------------------------------------------------------------------
 
-const SENDERS = new Set(['curl', 'wget', 'http', 'https', 'xh', 'nc', 'ncat', 'netcat', 'scp', 'sftp', 'rsync', 'ssh', 'ftp', 'telnet', 'socat', 'aria2c', 'dig', 'nslookup', 'host', 'drill'])
+const SENDERS = new Set(['curl', 'wget', 'http', 'https', 'xh', 'nc', 'ncat', 'netcat', 'scp', 'sftp', 'rsync', 'ssh', 'ftp', 'telnet', 'socat', 'aria2c', 'dig', 'nslookup', 'host', 'drill', 'mail', 'mailx', 'sendmail', 'lftp', 'rclone', 'gsutil'])
 const SHELLS = new Set(['bash', 'sh', 'zsh', 'dash', 'ksh'])
 const KEYWORDS = new Set(['then', 'do', 'else', 'elif', 'if', 'while', 'until', '!', '{', '}', 'time'])
 const FILE_WORDS = new Set(['pem', 'key', 'env', 'json', 'txt', 'md', 'tgz', 'gz', 'zip', 'sh', 'js', 'ts', 'py', 'log', 'conf', 'cfg', 'yml', 'yaml', 'p12', 'pfx', 'pub', 'crt', 'cer', 'csv', 'xml', 'html', 'toml', 'lock', 'bak', 'rc'])
 const NAMES = ['.env', '.envrc', 'id_rsa', 'id_ed25519', 'id_ecdsa', 'id_dsa', '.npmrc', '.netrc', '.pypirc', '.git-credentials', 'credentials', 'credentials.json', 'secrets.yml', 'secrets.json', 'server.pem', 'server.key', 'private.key']
+const SENT = '\u0001' // marks a heredoc body that was put back on its command's line
 
 const SECRET_FILE = new RegExp(
   '(?:(?<![\\w.-])|(?<=\\s-[A-Za-z]))(' +
     [
       '\\.env(?:rc|(?:\\.(?!example\\b|sample\\b|template\\b|dist\\b)[\\w-]+)+)?',
-      'id_(?:rsa|dsa|ecdsa|ed25519)(?:_[\\w-]*)?(?:\\.(?!pub\\b)[\\w-]+)*',
+      '[\\w-]+\\.env|[\\w-]+\\.tfvars',
+      'id_(?:rsa|dsa|ecdsa|ed25519)(?:[_-][\\w-]*)?(?:\\.(?!pub\\b)[\\w-]+)*',
       '[\\w.-]+\\.(?:pem|key|p12|pfx|keystore)',
-      '\\.npmrc|\\.netrc|\\.pypirc|\\.git-credentials',
+      '\\.npmrc|\\.netrc|\\.pypirc|\\.pgpass|\\.vault-token|\\.git-credentials',
       '\\.aws\\/\\S+|\\.kube\\/config|\\.docker\\/config\\.json|gh\\/hosts\\.yml',
       '\\.ssh\\/(?!known_hosts\\b|config\\b|authorized_keys\\b)[\\w.*-]+(?<!\\.pub)',
       'application_default_credentials\\.json|service[-_]?account[\\w.-]*\\.json',
       'credentials(?:\\.json)?|secrets?\\.(?:ya?ml|json|toml)',
-      '\\/proc\\/(?:self|\\d+)\\/environ',
+      '\\/proc\\/(?:self|\\d+|\\$\\$)\\/environ',
       '\\.(?:ssh|aws|gnupg|kube)(?=\\/?(?:\\s|$|[\'"|;&)>*]))',
     ].join('|') +
     ')(?![\\w.-])',
@@ -51,22 +53,29 @@ const secretName = (raw: string) => {
   const segs = name.split('_')
   if (NOT_SECRET_ENDS.has(segs[segs.length - 1]!)) return false
   // a secret word as a whole segment, or at the end of the name (PGPASSWORD, MYSECRET), but not inside another word (TOKENIZER)
-  return segs.some(s => /^(?:PAT|PASS|PWD|APIKEY|PRIVATE)$/.test(s)) || /(?:TOKEN|SECRET|SECRETS|PASSWORD|PASSWD|CREDENTIALS?)(?:_|$)/.test(name) || name.endsWith('_KEY') || name.startsWith('KEY_')
+  return (
+    segs.some(s => /^(?:PAT|PASS|PWD|APIKEY|PRIVATE|AUTH|BEARER|COOKIE|JWT|AUTHORIZATION|SESSION|PASSPHRASE)$/.test(s)) ||
+    /(?:TOKEN|SECRET|SECRETS|PASSWORD|PASSWD|PASSPHRASE|CREDENTIALS?)(?:_|$)/.test(name) ||
+    name.endsWith('_KEY') ||
+    name.startsWith('KEY_')
+  )
 }
 
 // Option values that only USE a secret (an identity, a certificate, an output file) or exclude one are not a send of it. Which
-// options those are depends on the program: rsync's --include sends, ssh's -o can carry SendEnv, curl's -i is something else.
+// options those are depends on the program, and the scrub applies to that program's own words only: rsync's --include sends,
+// ssh's -o can carry SendEnv, curl's -i is something else, and `cat -E` is not curl's -E.
 const USES: Record<string, string[]> = {
   curl: ['-E', '--cert', '--key', '--cacert', '--capath', '-o', '--output'],
   wget: ['--certificate', '--private-key', '--ca-certificate', '-O', '--output-document', '-o'],
   ssh: ['-i', '--identity'], scp: ['-i'], sftp: ['-i'],
-  rsync: ['--exclude', '--exclude-from'],
+  rsync: ['--exclude', '--exclude-from', '--filter', '-e', '--rsh'],
+  openssl: ['-cert', '-key', '-CAfile', '-CApath'],
 }
-const scrubOf = (senders: ReadonlySet<string>) => {
-  const opts = [...new Set([...senders].flatMap(s => USES[s] ?? []))]
-  if (!opts.length) return undefined
-  const alt = opts.map(o => o.replace(/[-]/g, '\\-')).join('|')
-  return new RegExp(`(?:^|\\s)(?:${alt})(?:=|\\s+)(?:"[^"]*"|'[^']*'|\\S+)`, 'g')
+function scrubOf(sender: string): RegExp | undefined {
+  const opts = USES[sender]
+  if (!opts) return undefined
+  const alt = opts.map(o => (/^-[A-Za-z]$/.test(o) ? `-[A-Za-z]*${o[1]}` : o.replace(/-/g, '\\-'))).join('|')
+  return new RegExp(`(?:^|\\s)(?:${alt})(?:=|\\s+)(?:"[^"]*"|'[^']*'|\\S+)|IdentityFile[= ]\\S+`, 'g')
 }
 // A URL named in the command: its path is not a file of yours, but a key in it still is a key, and a substitution in it runs.
 const URL_PATH = /\b([a-z][a-z0-9+.-]*:\/\/[^/\s'"?#]*)([^\s'"]*)/gi
@@ -79,12 +88,15 @@ const decode = (t: string) => {
   }
 }
 
-// What kind of secret a stretch of command line holds, named without the value. `senders` are the programs that send it.
+// What kind of secret a stretch of command line holds, named without the value.
 export function secretIn(text: string, senders: ReadonlySet<string> = new Set()): string | undefined {
   const keyed = decode(text)
   for (const [re, kind] of KEYS) if (re.test(keyed)) return kind
-  const scrub = scrubOf(senders)
-  let files = scrub ? text.replace(scrub, ' ') : text
+  let files = text
+  for (const s of senders) {
+    const scrub = scrubOf(s)
+    if (scrub) files = files.replace(scrub, ' ')
+  }
   files = files.replace(URL_PATH, (all, head: string, rest: string) => (/\$\(|`/.test(rest) ? all : head))
   files = files.replace(/\$(?:''|"")/g, '').replace(/['"]/g, '')
   const file = SECRET_FILE.exec(files)
@@ -141,7 +153,7 @@ export function hostsOf(words: readonly string[]): string[] {
   const out: string[] = []
   for (const raw of words) {
     const w = raw.trim()
-    if (!w || w.startsWith('-') || w.startsWith('@') || w.startsWith('.') || /^[\w.-]+=/.test(w)) continue
+    if (!w || w.startsWith(SENT) || w.startsWith('-') || w.startsWith('@') || w.startsWith('.') || /^[\w.-]+=/.test(w)) continue
     let rest = w
     const scheme = /^[a-z][a-z0-9+.-]*:\/\//i.exec(w)
     if (scheme) rest = w.slice(scheme[0].length)
@@ -161,16 +173,19 @@ export function hostsOf(words: readonly string[]): string[] {
   return out
 }
 
+// Hosts named inside a value that is itself a command or an address: a proxy, a connect-to, an ssh option.
+const pieces = (v: string) => [...hostsOf([v]), ...hostsOf(v.split(/[\s:=,]+/))]
+
 // Options that send the traffic somewhere other than the address on the line.
 const REDIRECTS = /^(?:-x|--proxy|--socks[45](?:[ah]|-hostname)?|--preproxy|--connect-to|--resolve|-J|--proxy-header|--url)$/
 function redirectHosts(words: readonly string[]): string[] {
   const out: string[] = []
-  const pieces = (v: string) => [...hostsOf([v]), ...hostsOf(v.split(/[\s:=,]+/))]
   words.forEach((w, i) => {
     const eq = /^(--[a-z0-9-]+)=(.*)$/.exec(w)
     if (eq && REDIRECTS.test(eq[1]!)) out.push(...pieces(eq[2]!))
     else if (REDIRECTS.test(w) && words[i + 1]) out.push(...pieces(words[i + 1]!))
     else if (/^-x.+/.test(w)) out.push(...pieces(w.slice(2)))
+    else if (/^-o(?:Proxy|HostName)/i.test(w)) out.push(...pieces(w.slice(2)))
     else if ((w === '-o' || w === '-O') && /^(?:Proxy|HostName)/i.test(words[i + 1] ?? '')) out.push(...pieces(words[i + 1]!))
     const host = /^host:\s*(\S+)/i.exec(w)
     if (host) out.push(...hostsOf([host[1]!]))
@@ -182,26 +197,88 @@ function redirectHosts(words: readonly string[]): string[] {
 
 // ---- reading the line ------------------------------------------------------------------------------------------------
 
+// Quoted spans are read whole, nested ones too: '...', $'...' (with its escapes), `...` and "..." with $( ) and backticks inside.
+// span returns the index just past the span that starts at i, or i itself when none starts there.
+function skipParen(t: string, i: number): number {
+  let depth = 0
+  for (let j = i; j < t.length; j++) {
+    const c = t[j]!
+    if (c === '\\') j++
+    else if (c === "'" || c === '"' || c === '`' || (c === '$' && t[j + 1] === "'")) j = span(t, j) - 1
+    else if (c === '(') depth++
+    else if (c === ')' && --depth === 0) return j + 1
+  }
+  return t.length
+}
+function span(t: string, i: number): number {
+  const c = t[i]
+  if (c === "'") {
+    const e = t.indexOf("'", i + 1)
+    return e < 0 ? t.length : e + 1
+  }
+  if (c === '$' && t[i + 1] === "'") {
+    for (let j = i + 2; j < t.length; j++) {
+      if (t[j] === '\\') j++
+      else if (t[j] === "'") return j + 1
+    }
+    return t.length
+  }
+  if (c === '`') {
+    for (let j = i + 1; j < t.length; j++) {
+      if (t[j] === '\\') j++
+      else if (t[j] === '`') return j + 1
+    }
+    return t.length
+  }
+  if (c === '"') {
+    for (let j = i + 1; j < t.length; j++) {
+      const d = t[j]!
+      if (d === '\\') j++
+      else if (d === '"') return j + 1
+      else if (d === '$' && t[j + 1] === '(') j = skipParen(t, j + 1) - 1
+      else if (d === '`') j = span(t, j) - 1
+    }
+    return t.length
+  }
+  return i
+}
+const quoteStart = (t: string, i: number) => t[i] === "'" || t[i] === '"' || t[i] === '`' || (t[i] === '$' && t[i + 1] === "'")
+
+// What the shell makes of the inside of $'...'.
+function ansiC(inner: string): string {
+  return inner.replace(/\\(x[0-9a-fA-F]{1,2}|u[0-9a-fA-F]{1,4}|[0-7]{1,3}|.)/gs, (_, e: string) => {
+    if (e[0] === 'x' && e.length > 1) return String.fromCharCode(parseInt(e.slice(1), 16))
+    if (e[0] === 'u' && e.length > 1) return String.fromCharCode(parseInt(e.slice(1), 16))
+    if (/^[0-7]+$/.test(e)) return String.fromCharCode(parseInt(e, 8))
+    return ({ n: '\n', t: '\t', r: '\r', e: '\u001b', a: '\u0007', b: '\b', f: '\f', v: '\v' } as Record<string, string>)[e] ?? e
+  })
+}
+
 // Splits at the characters in `at`, outside quotes, outside ( ) and { } groups and outside $( ) and backticks (unless
 // `flat`, which looks inside the groups too). An & next to a > or < belongs to a redirect (2>&1, &>file, >&2).
 function split(text: string, at: string, flat = false): string[] {
   const parts: string[] = []
   let cur = ''
-  let quote = ''
   let depth = 0
   for (let i = 0; i < text.length; i++) {
     const c = text[i]!
-    if (c === '\\' && quote !== "'") {
+    if (c === '\\') {
       cur += c + (text[++i] ?? '')
       continue
     }
-    if (quote) {
-      if (c === quote) quote = ''
-      cur += c
+    if (quoteStart(text, i)) {
+      const e = span(text, i)
+      cur += text.slice(i, e)
+      i = e - 1
       continue
     }
-    if (c === "'" || c === '"' || c === '`') quote = c
-    else if (c === '(') depth++
+    if (c === '$' && text[i + 1] === '(') {
+      const e = skipParen(text, i + 1)
+      cur += text.slice(i, e)
+      i = e - 1
+      continue
+    }
+    if (c === '(') depth++
     else if (c === ')' && depth) depth--
     else if (c === '{' && (i === 0 || /[\s;|&)]/.test(text[i - 1]!)) && /\s/.test(text[i + 1] ?? '')) depth++
     else if (c === '}' && depth && (i === 0 || /[\s;]/.test(text[i - 1]!)) && (i + 1 === text.length || /[\s;|&)]/.test(text[i + 1]!))) depth--
@@ -241,105 +318,133 @@ function compounds(parts: string[]): string[] {
 // The bodies of ( ), $( ), >( ), <( ) and backticks in a text, nested ones too, each as its own text.
 function bodies(text: string): string[] {
   const out: string[] = []
-  const stack: number[] = []
-  let quote = ''
+  let dq = false
   for (let i = 0; i < text.length; i++) {
     const c = text[i]!
     if (c === '\\') i++
-    else if (quote === "'") quote = c === "'" ? '' : quote
     else if (c === '`') {
-      const end = text.indexOf('`', i + 1)
-      if (end > i) {
-        out.push(text.slice(i + 1, end), ...bodies(text.slice(i + 1, end)))
-        i = end
-      }
-    } else if (c === "'") quote = "'"
-    else if (c === '(') stack.push(i + 1)
-    else if (c === ')' && stack.length) out.push(text.slice(stack.pop()!, i))
+      const e = span(text, i)
+      const body = text.slice(i + 1, Math.max(i + 1, e - 1))
+      out.push(body, ...bodies(body))
+      i = e - 1
+    } else if (c === '"') dq = !dq
+    else if (c === "'" && !dq) i = span(text, i) - 1
+    else if (c === '$' && text[i + 1] === "'" && !dq) i = span(text, i) - 1
+    else if (c === '(') {
+      const e = skipParen(text, i)
+      const body = text.slice(i + 1, Math.max(i + 1, e - 1))
+      out.push(body, ...bodies(body))
+      i = e - 1
+    }
   }
   return out
 }
 
-// The heredoc operators on a line that the shell would really read: not inside a quote, not in a comment, not <<<.
-function markers(l: string): { id: string; dash: boolean }[] {
-  const out: { id: string; dash: boolean }[] = []
-  let quote = ''
+// The heredoc operators on a line that the shell would really read: not inside a quote, not in a comment, not <<<, not an
+// arithmetic shift. `end` is where the delimiter word ends.
+function markers(l: string): { id: string; dash: boolean; end: number }[] {
+  const out: { id: string; dash: boolean; end: number }[] = []
   for (let i = 0; i < l.length; i++) {
     const c = l[i]!
     if (c === '\\') i++
-    else if (quote) {
-      if (c === quote) quote = ''
-    } else if (c === "'" || c === '"') quote = c
+    else if (quoteStart(l, i)) i = span(l, i) - 1
     else if (c === '#' && (i === 0 || /\s/.test(l[i - 1]!))) break
     else if (c === '<' && l[i + 1] === '<' && l[i + 2] !== '<' && l[i - 1] !== '<') {
+      const before = l.slice(0, i)
+      if ((before.match(/\(\(/g) ?? []).length > (before.match(/\)\)/g) ?? []).length) continue // $((1<<n))
       const m = /^(-?)\s*(['"]?)([A-Za-z_]\w*)\2/.exec(l.slice(i + 2))
-      if (m) out.push({ id: m[3]!, dash: m[1] === '-' })
+      if (m) out.push({ id: m[3]!, dash: m[1] === '-', end: i + 2 + m[0].length })
       i += 1
     }
   }
   return out
 }
 
-// A heredoc body is part of the command that reads it: it comes back on that command's line, as one quoted word.
+// A heredoc body is part of the command that opened it: it comes back right after that command's delimiter, as one quoted word.
 function inline(line: string): string {
   const lines = line.replace(/\\\r?\n/g, '').split('\n')
   const out: string[] = []
   for (let i = 0; i < lines.length; i++) {
     let l = lines[i]!
-    for (const w of markers(l)) {
+    const ms = markers(l)
+    const found: { end: number; body: string }[] = []
+    for (const w of ms) {
       const body: string[] = []
       while (i + 1 < lines.length) {
         const b = lines[++i]!
         if ((w.dash ? b.trim() : b) === w.id) break
         body.push(b)
       }
-      l += " '" + body.join(' ').replace(/'/g, "'\\''") + "'"
+      found.push({ end: w.end, body: body.join(' ') })
     }
+    for (const f of found.reverse()) l = l.slice(0, f.end) + " '" + SENT + f.body.replace(/'/g, "'\\''") + "'" + l.slice(f.end)
     out.push(l)
   }
   return out.join('\n')
 }
 
-// Comments (a # at the start of a word, outside quotes) and empty quotes and backslashes taken out.
+// Comments (a # at the start of a word, outside quotes) taken out, and $'...' spelled out as the plain word it stands for.
 function tidy(t: string): string {
   let out = ''
-  let quote = ''
   for (let i = 0; i < t.length; i++) {
     const c = t[i]!
-    if (c === '\\' && quote !== "'") {
+    if (c === '\\') {
       out += c + (t[++i] ?? '')
-      continue
-    }
-    if (quote) {
-      if (c === quote) quote = ''
-    } else if (c === "'" || c === '"') quote = c
-    else if (c === '#' && (i === 0 || /\s/.test(t[i - 1]!))) {
+    } else if (c === '$' && t[i + 1] === "'") {
+      const e = span(t, i)
+      out += "'" + ansiC(t.slice(i + 2, Math.max(i + 2, e - 1))).replace(/'/g, "'\\''") + "'"
+      i = e - 1
+    } else if (quoteStart(t, i)) {
+      const e = span(t, i)
+      out += t.slice(i, e)
+      i = e - 1
+    } else if (c === '#' && (i === 0 || /\s/.test(t[i - 1]!))) {
       while (i < t.length && t[i] !== '\n') i++
       i--
-      continue
-    }
-    out += c
+    } else out += c
   }
-  out = out.replace(/\$(?:''|"")/g, '')
+  return out
+}
+
+// Empty quotes and backslashes taken out of one command.
+function plain(t: string): string {
+  let out = t
   for (let n = 0; n < 5 && /""|''/.test(out); n++) out = out.replace(/""|''/g, '')
   return out.replace(/\\([^\n])/g, '$1')
+}
+
+const unquote = (s: string): string => {
+  if (s[0] === "'") return s.slice(1, s.endsWith("'") && s.length > 1 ? -1 : undefined)
+  if (s[0] === '"') return s.slice(1, s.endsWith('"') && s.length > 1 ? -1 : undefined).replace(/\\(["\\$`])/g, '$1')
+  return s
 }
 
 function words(part: string): string[] {
   const out: string[] = []
   let cur = ''
-  let quote = ''
-  for (const c of part) {
-    if (quote) {
-      if (c === quote) quote = ''
-      else cur += c
-    } else if (c === '"' || c === "'") quote = c
-    else if (/\s/.test(c)) {
-      if (cur) out.push(cur)
+  let has = false
+  for (let i = 0; i < part.length; i++) {
+    const c = part[i]!
+    if (quoteStart(part, i)) {
+      const e = span(part, i)
+      cur += unquote(part.slice(i, e))
+      has = true
+      i = e - 1
+    } else if (c === '$' && part[i + 1] === '(') {
+      const e = skipParen(part, i + 1)
+      cur += part.slice(i, e)
+      has = true
+      i = e - 1
+    } else if (/\s/.test(c)) {
+      if (has) out.push(cur)
       cur = ''
-    } else if (c !== '(' && c !== ')') cur += c
+      has = false
+    } else if (c !== '(' && c !== ')') {
+      cur += c
+      has = true
+    }
   }
-  if (cur) out.push(cur)
+  if (has) out.push(cur)
   return out
 }
 
@@ -367,8 +472,10 @@ const POSITIONAL: Record<string, number> = { timeout: 1, flock: 1 }
 type Command = { name: string; args: string[]; assigns: string[]; scripts: string[]; dumps: boolean }
 
 // Where a command really starts: past assignments, keywords and wrappers (sudo, env, timeout, xargs, find -exec ...).
-// Scripts it is handed (eval, bash -c, env -S) come back to be read as lines themselves.
+// Scripts it is handed (eval, bash -c, env -S, trap, a shell's stdin) come back to be read as lines themselves.
 function command(ws0: string[]): Command {
+  const here = ws0.indexOf('<<<')
+  const stdin = here >= 0 ? ws0[here + 1] : undefined
   let w = noRedirects(ws0)
   const assigns: string[] = []
   const scripts: string[] = []
@@ -392,6 +499,7 @@ function command(ws0: string[]): Command {
           scripts.push(w[k + 1] ?? '')
           return { name: 'env', args: [], assigns, scripts, dumps: false }
         }
+        if (head === 'env' && isAssign(a)) assigns.push(a)
         if (a.startsWith('-') || isAssign(a)) k += takes.test(a) ? 2 : 1
         else break
       }
@@ -410,40 +518,55 @@ function command(ws0: string[]): Command {
     const c = args.findIndex(a => /^-[A-Za-z]*c[A-Za-z]*$/.test(a))
     const script = c >= 0 ? args.slice(c + 1).find(a => !a.startsWith('-')) : undefined
     if (script) scripts.push(script)
+    else {
+      // a shell with no -c reads its script from stdin: a heredoc put back on its line, or a here-string
+      for (const a of args) if (a.startsWith(SENT)) scripts.push(a.slice(1))
+      if (stdin) scripts.push(stdin.startsWith(SENT) ? stdin.slice(1) : stdin)
+    }
   }
+  if (name === 'trap') scripts.push(args.find(a => !a.startsWith('-')) ?? '')
   const dumps = name === 'printenv' || (name === 'set' && !args.length) || (name === 'export' && !args.length) || (/^(?:export|declare|typeset)$/.test(name) && args.some(a => /^-[a-z]*[px][a-z]*$/.test(a)) && !args.some(a => a.includes('=')))
   return { name, args, assigns, scripts, dumps }
 }
 
 const shown = (host: string) => (/[a-z0-9]{16,}/.test(host) ? 'a host with a long token in its name' : host)
 const SAY = (what: string, to: string) => `this sends ${what} to ${to}`
+const norm = (p: string) => p.replace(/^(?:\.\/)+/, '')
 
 export function judge(line: string, list: readonly string[], depth = 0): string | undefined {
   if (depth > 4) return 'the line nests shells too deep for the guard to read'
   const vars = new Set<string>()
   const files = new Set<string>()
+  const proxies: string[] = [] // hosts a proxy variable set earlier on the line sends traffic to
   let loaded = false // a secret file was sourced or exported earlier on the line, so any variable may hold a secret
   const tainted = (text: string): string | undefined => {
     for (const v of vars) if (new RegExp('\\$\\{?' + v + '(?![A-Za-z0-9_])').test(text)) return `the variable $${v}`
-    const tokens = new Set(text.split(/[\s"'=@;|&()<>:]+/))
+    const tokens = new Set(text.split(/[\s"'=@;|&()<>:]+/).map(norm))
     for (const f of files) if (tokens.has(f)) return `a copy of a secret (${f})`
     return undefined
   }
 
-  for (const raw of compounds(split(inline(line).replace(/\|&/g, '|'), ';&\n'))) {
-    const text = tidy(raw)
+  const whole = tidy(inline(line)).replace(/\|&/g, '|').replace(/\|\|/g, ';')
+  for (const raw of compounds(split(whole, ';&\n'))) {
+    const text = plain(raw)
     // Every command in the chunk: its pipe parts, what sits in ( ) and backticks, and what a wrapper hands to a shell.
     const queue: string[] = []
     for (const p of split(text, '|', true)) queue.push(...split(p, ';&\n', true))
     queue.push(...bodies(text).flatMap(b => split(b, ';&\n|', true)))
     let hosts: string[] = []
     const senders = new Set<string>()
+    const senderParts: { part: string; name: string }[] = []
     let opaque = false
     let dumps = false
     let gist = false
+    let netrc = false
     let lastEcho: string | undefined
     for (let n = 0; n < queue.length && n < 200; n++) {
-      const ws = words(queue[n]!.replace(/^\s*(?:function\s+)?[\w-]+\s*\(\)\s*\{?\s*/, '')) // a function header is no command
+      const part = queue[n]!
+        .replace(/^\s*(?:function\s+)?[\w-]+\s*\(\)\s*\{?\s*/, '') // a function header is no command
+        .replace(/^\s*case\s+.+?\s+in\s+/, '')
+        .replace(/^\s*\(?[^\s()=;]*\)\s+/, '') // a case pattern is no command
+      const ws = words(part)
       if (!ws.length) continue
       const c = command(ws)
       for (const s of c.scripts) queue.push(...split(s, ';&\n|', true), ...bodies(s))
@@ -451,15 +574,24 @@ export function judge(line: string, list: readonly string[], depth = 0): string 
       if (!c.name) continue
       const all = [...c.args, ...c.assigns]
       if (SHELLS.has(c.name) && !c.scripts.length && lastEcho) queue.push(...split(lastEcho, ';&\n|', true))
-      lastEcho = /^(?:echo|printf)$/.test(c.name) ? (c.name === 'printf' && c.args[0]?.includes('%') ? c.args.slice(1) : c.args).join(' ') : undefined
-      if (/^[$`]/.test(c.name) || /\$/.test(c.name)) {
+      const heredoc = c.args.find(a => a.startsWith(SENT))
+      lastEcho = /^(?:echo|printf)$/.test(c.name) ? (c.name === 'printf' && c.args[0]?.includes('%') ? c.args.slice(1) : c.args).join(' ') : c.name === 'cat' && heredoc ? heredoc.slice(1) : undefined
+      if (/\$/.test(c.name)) {
         opaque = true
         hosts.push(...hostsOf(c.args))
-      } else if (SENDERS.has(c.name) || (c.name === 'openssl' && c.args.includes('s_client'))) {
+      } else if (SENDERS.has(c.name) || (c.name === 'openssl' && c.args.includes('s_client')) || (c.name === 'aws' && /^s3/.test(c.args[0] ?? ''))) {
         senders.add(c.name)
+        senderParts.push({ part, name: c.name })
         hosts.push(...hostsOf(c.args), ...redirectHosts(all), ...c.args.flatMap(a => (/^[A-Za-z]+:[^:\s]+:\d+$/.test(a) ? hostsOf([a.split(':')[1]!]) : [])))
         const o = c.args.findIndex(a => a === '-connect')
         if (o >= 0) hosts.push(...hostsOf([c.args[o + 1] ?? '']))
+        if (c.name === 'rsync') {
+          const e = c.args.findIndex(a => a === '-e' || a === '--rsh')
+          const value = e >= 0 ? c.args[e + 1] : c.args.find(a => a.startsWith('--rsh='))?.slice(6)
+          if (value) hosts.push(...redirectHosts(words(value)), ...hostsOf(words(value)))
+        }
+        if (c.name === 'curl' && c.args.some(a => /^(?:--netrc(?:-optional)?|-[A-Za-z]*n)$/.test(a))) netrc = true
+        hosts.push(...proxies)
       } else if (c.name === 'gh' && c.args[0] === 'gist') gist = true
     }
     for (const m of text.matchAll(/\/dev\/(?:tcp|udp)\/([^/\s]+)/g)) {
@@ -467,7 +599,13 @@ export function judge(line: string, list: readonly string[], depth = 0): string 
       hosts.push(...hostsOf([m[1]!]))
     }
     const sender = senders.size > 0
-    let what = (dumps ? 'the environment' : undefined) ?? secretIn(text, senders) ?? tainted(text)
+    // Each sender's own options that only use a secret are taken out of that sender's words, and nobody else's.
+    let scrubbed = text
+    for (const { part, name } of senderParts) {
+      const s = scrubOf(name)
+      if (s) scrubbed = scrubbed.replace(part, part.replace(s, ' '))
+    }
+    let what = (dumps ? 'the environment' : undefined) ?? secretIn(scrubbed) ?? tainted(text) ?? (netrc ? 'the credentials in .netrc' : undefined)
     if (!what && loaded && /\$\{?[A-Za-z_]/.test(text)) what = 'variables loaded from a secret file'
     if (what && (sender || opaque || gist)) {
       if (gist) return SAY(what, 'a GitHub gist')
@@ -480,22 +618,23 @@ export function judge(line: string, list: readonly string[], depth = 0): string 
         if (bad) return `${SAY(what, shown(bad))}, which is not on your list`
       }
     }
-    // What this chunk leaves behind for a later one: a variable that holds a secret, a file that has a copy of one.
+    // What this chunk leaves behind for a later one: a variable that holds a secret, a file that has a copy of one, a proxy.
     const secretish = (v: string) => secretIn(v) || tainted(v) || /\$\(\s*(?:env|printenv|set)\b/.test(v)
     for (const m of raw.matchAll(/(?:^|[\s;])(?:export\s+|declare\s+(?:-\w+\s+)?|local\s+)?([A-Za-z_]\w*)=/g)) {
       if (secretish(raw.slice(m.index! + m[0].length))) vars.add(m[1]!)
     }
-    const read = /(?:^|[\s;|&(])read\s+(?:-\w+\s+)*([A-Za-z_]\w*)/.exec(raw)
-    if (read && secretIn(raw)) vars.add(read[1]!)
-    if ((/(?:^|[\s;|&(])(?:source|\.)\s+\S/.test(raw) || /\bexport\s+\$\(/.test(raw)) && secretIn(raw)) loaded = true
+    for (const m of raw.matchAll(/(?:^|[\s;])(?:export\s+)?((?:[A-Za-z]+_)?proxy)=("[^"]*"|'[^']*'|\S+)/gi)) if (!sender) proxies.push(...pieces(m[2]!.replace(/^["']|["']$/g, '')))
+    const read = /(?:^|[\s;|&(])(?:read|mapfile|readarray)\s+((?:-\w+\s+)*)((?:[A-Za-z_]\w*\s*)+)/.exec(raw)
+    if (read && secretIn(raw)) for (const v of read[2]!.trim().split(/\s+/)) vars.add(v)
+    if ((/(?:^|[\s;|&(])(?:source|\.)\s+\S/.test(raw) || /\bexport\s+\$\(/.test(raw) || /\beval\b/.test(raw)) && secretIn(raw)) loaded = true
     if (what || dumps) {
       for (const m of raw.matchAll(/(?:>>?|\btee\s+(?:-a\s+)?)\s*("[^"]+"|'[^']+'|[^\s;|&<>()]+)/g)) {
-        const f = m[1]!.replace(/^["']|["']$/g, '')
+        const f = norm(m[1]!.replace(/^["']|["']$/g, ''))
         if (!f.startsWith('/dev/') && !f.startsWith('&')) files.add(f)
       }
       const cp = /\b(?:cp|mv)\s+(?:-\S+\s+)*(?:\S+\s+)+?("[^"]+"|'[^']+'|[^\s;|&<>()]+)\s*(?:$|[;&|])/.exec(raw)
-      if (cp) files.add(cp[1]!.replace(/^["']|["']$/g, ''))
-      if (/\b(?:tar|zip|7z|gzip|bzip2|xz)\b/.test(raw)) for (const w of raw.split(/\s+/)) if (/\.(?:tgz|tar|zip|gz|7z|bz2|xz)$/.test(w)) files.add(w)
+      if (cp) files.add(norm(cp[1]!.replace(/^["']|["']$/g, '')))
+      if (/\b(?:tar|zip|7z|gzip|bzip2|xz)\b/.test(raw)) for (const w of raw.split(/\s+/)) if (/\.(?:tgz|tar|zip|gz|7z|bz2|xz)$/.test(w)) files.add(norm(w))
     }
   }
   return undefined
@@ -503,7 +642,8 @@ export function judge(line: string, list: readonly string[], depth = 0): string 
 
 // A page fetch that carries a key in its address.
 export function judgeUrl(url: string, list: readonly string[]): string | undefined {
-  const u = url.trim()
+  let u = url.trim().replace(/\\/g, '/')
+  if (/^[a-z][a-z0-9+.-]*:(?!\/)/i.test(u)) u = u.replace(/^([a-z][a-z0-9+.-]*:)/i, '$1//')
   const what = KEYS.map(([re, kind]) => (re.test(decode(u)) ? kind : undefined)).find(Boolean)
   if (!what) return undefined
   const bad = hostsOf([u]).find(h => !trusted(h, list))
@@ -526,7 +666,7 @@ export const register: Register = (on, options) => {
   })
     // Fails closed, but only for a line that names something that sends: any other command goes on as if the mod were not here.
     .catch(($, e, next) =>
-      !next.called && /\b(curl|wget|nc|ncat|netcat|scp|sftp|rsync|ssh|ftp|telnet|socat|openssl|http|https|xh|dig)\b/.test(String((e as { command?: unknown }).command ?? ''))
+      !next.called && /\b(curl|wget|nc|ncat|netcat|scp|sftp|rsync|ssh|ftp|telnet|socat|openssl|http|https|xh|dig|mail|lftp|rclone|aws|gsutil)\b/.test(String((e as { command?: unknown }).command ?? ''))
         ? { deny: `seal: could not read this line, so it waits. ${TAIL}` }
         : next(e),
     )
