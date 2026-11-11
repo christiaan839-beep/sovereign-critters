@@ -1,4 +1,4 @@
-# guard
+# critter-ward
 
 ![critter-ward: Stops the push before it happens.](preview.png)
 

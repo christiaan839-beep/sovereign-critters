@@ -9,7 +9,11 @@
     "critter-crab",
     "critter-stunt",
     "critter-tally",
-    "critter-measure"
+    "critter-measure",
+    "critter-clock",
+    "critter-ledger",
+    "critter-latch",
+    "critter-seal"
   ],
   "plugins": {
     "critter-buddy": {
@@ -408,6 +412,88 @@
         "never called by the model in the real app"
       ],
       "failFirst": null,
+      "coldInstall": []
+    },
+    "critter-clock": {
+      "surfaces": "any surface that runs hooks (it draws nothing)",
+      "reviews": [],
+      "seen": [],
+      "gaps": [
+        "never seen in the real app"
+      ],
+      "failFirst": null,
+      "coldInstall": []
+    },
+    "critter-ledger": {
+      "surfaces": "any surface that runs hooks (it draws nothing)",
+      "reviews": [],
+      "seen": [],
+      "gaps": [
+        "never seen in the real app; token counts come from the engine's per-turn usage, not checked against a bill"
+      ],
+      "failFirst": null,
+      "coldInstall": []
+    },
+    "critter-latch": {
+      "surfaces": "any surface that runs hooks (it draws nothing)",
+      "reviews": [
+        {
+          "date": "2026-11-11",
+          "what": "independent adversarial review for ways past it and false stops (about 600 commands run through it)",
+          "found": "4 high bypasses (cd leaking out of a subshell, pushd/popd, a leading redirect, find -exec) and about 8 smaller, plus false stops on redirects and heredoc bodies; all fixed with a test that failed first",
+          "at": "6d0101c",
+          "kind": "security",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "second independent adversarial review, on the code that fixed the first",
+          "found": "12 smaller bypasses on the first fixes and one common false stop; all fixed with a test that failed first",
+          "at": "cf375f3",
+          "kind": "security",
+          "openHigh": 0
+        }
+      ],
+      "seen": [],
+      "gaps": [
+        "the fixes after the review have not been reviewed again"
+      ],
+      "failFirst": {
+        "date": "2026-11-11",
+        "at": "cf375f3",
+        "what": "the review findings: each command that got past it has a test that failed on the first version, then passed"
+      },
+      "coldInstall": []
+    },
+    "critter-seal": {
+      "surfaces": "any surface that runs hooks (it draws nothing)",
+      "reviews": [
+        {
+          "date": "2026-11-11",
+          "what": "independent adversarial review for ways past it and false holds (about 330 commands run through it)",
+          "found": "high gaps (a sender after a bracket or keyword, a secret in a variable or a copied file, the environment dump, wrappers, globbed names, directories) and a proxy/connect-to blind spot, plus false holds on key options and download URLs; all fixed with a test that failed first",
+          "at": "6d0101c",
+          "kind": "security",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "second independent adversarial review, on the code that fixed the first",
+          "found": "8 high gaps on the first fixes plus medium ones; all fixed with a test that failed first",
+          "at": "cf375f3",
+          "kind": "security",
+          "openHigh": 0
+        }
+      ],
+      "seen": [],
+      "gaps": [
+        "the fixes after the review have not been reviewed again"
+      ],
+      "failFirst": {
+        "date": "2026-11-11",
+        "at": "cf375f3",
+        "what": "the review findings: each command that got past it has a test that failed on the first version, then passed"
+      },
       "coldInstall": []
     }
   },

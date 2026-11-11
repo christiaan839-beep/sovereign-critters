@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.3
+
+- The README's title now carries the new name (`critter-ward`); it still said `guard`.
+- **Fixed: a repeated branch flag hid the last one.** `git switch -cf -c main && git push origin HEAD` made main the branch checked out, but the guard read the first `-c`. Git keeps the last of a repeated option and so does the guard now. Found by running about 1,600 generated forms of the create and move flags through real git and the guard; the rows that matter are now tests.
+
+## 0.2.2
+
+- **Fixed: `git branch -mf main && git push origin HEAD` still got past the guard.** The move and copy flags were read as taking a value, so in a bundle like `-mf`, `-Mf`, `-cf` or `-Cf` the `f` was taken for the branch name and `main` was missed. They are now read as the flags they are, with the names after them (`-fm`, `-m -f`, `--move --force`, `--mo` too). Found by an independent review; the test failed first.
+
 ## 0.2.1
 
 - **Fixed: a push to main got past the guard when the branch name was stuck to the flag.** `git checkout -Bmain origin/x && git push origin HEAD`, `git switch -Cmain && git push`, `git checkout -bmain`, `--orphan=main`, `--create=main`, `--force-create=main` (and shortened or bundled forms like `-fbmain`) made main the branch checked out without the guard noticing. It now reads the name wherever git does. A branch move or copy with an attached name (`git branch -Mmain`, which git itself rejects) is read the same way. Found by an independent review; each case has a test that failed first.

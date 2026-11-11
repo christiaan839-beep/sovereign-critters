@@ -24,6 +24,7 @@ install by someone who is not the founder. The lead mods must meet all eight bef
 """
 import json, os, re, subprocess, sys
 
+CLOSED = {'critter-ward', 'critter-latch', 'critter-seal'}  # protectors: they fail closed on purpose, for the one thing each promises
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 
 
@@ -109,7 +110,7 @@ def gates(name, measured, facts, since=commits_since):
     g = {
         'tests': 'met' if m['passing'] > 0 else 'open',
         'valid': 'met' if m['validated'] else 'open',
-        'failopen': 'met' if (name == 'critter-ward' or measured['_hooks_fail_open']) else 'open',
+        'failopen': 'met' if (name in CLOSED or measured['_hooks_fail_open']) else 'open',
         'failfirst': fresh(ff, name, since, CODE),
         'review': fresh(code, name, since, CODE),
         'seen': fresh(desk, name, since, CODE),
@@ -161,8 +162,8 @@ def render(measured, since=commits_since):
         lines += [f'### {name} {m["version"]}', '']
         lines += ['| | |', '| --- | --- |']
         lines += [f'| Tests passing | {m["passing"]} |', f'| Strict validation | {"passes" if m["validated"] else "FAILS"} |']
-        if name == 'critter-ward':
-            lines += ['| Tool-path hooks | fails closed on purpose: when it cannot tell where a push goes, the push waits |']
+        if name in CLOSED:
+            lines += ['| Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |']
         else:
             lines += [f'| Tool-path hooks fail open | {"yes, checked by preflight" if measured["_hooks_fail_open"] else "NO: see tools/check-hooks.py"} |']
         lines += [f'| Surfaces | {f["surfaces"]} |', f'| Verdict | {verdict(name, G[name])} |', '']

@@ -1,0 +1,35 @@
+# critter-seal
+
+An opt-in guard that keeps secrets on your machine. It holds back a command that sends a secret to a host you have not listed.
+
+```
+seal: this sends .env to paste.example, which is not on your list. Add it under "Hosts you trust" in this mod's settings, or ask the person to run it themselves.
+```
+
+## What it looks for
+
+A **sender** (`curl`, `wget`, `http`, `nc`, `scp`, `sftp`, `rsync`, `ssh`, `ftp`) in the same pipeline as a **secret**:
+
+- a secret file: `.env` (not `.env.example`), a private key, `*.pem`, `*.key`, `.npmrc`, `.netrc`, `.aws/credentials`, `.git-credentials` and the like;
+- a key-shaped value: an AWS access key, a GitHub token, an API key, a Slack or npm token, a private key block;
+- a secret variable: `$GITHUB_TOKEN`, `${API_KEY}`, `$NPM_PASSWORD`.
+
+It also holds back a `WebFetch` whose address carries a key-shaped value.
+
+The same send to a host on your list goes through. The list is **Hosts you trust** in the mod's settings (a host and its subdomains; the default is GitHub, npm, PyPI, localhost). A lookalike (`github.com.evil.example`, `evilgithub.com`, or a trusted name placed before an at sign in the address) is not trusted.
+
+## What it never does
+
+It matches shapes and forgets them. It never prints a secret (the message names the file or the kind, and the host), never stores one and never sends one anywhere. It reads no file contents.
+
+## Limits
+
+It is best effort and no substitute for keeping secrets out of reach.
+
+- It reads the command, not the traffic. A program that reads a secret and sends it on its own, a script, a package install script, and a browser are invisible to it.
+- It sees only the senders listed above, plus `socat`, `openssl s_client`, `/dev/tcp`, `dig` and `gh gist`. `python -c`, `node -e`, `perl`, `git push` to a remote and the like are not read.
+- It follows a secret through a variable or a copied file only within one command line. A secret that is encoded (`base64` in a separate step), split in pieces, or held in a variable other than the names above gets past it.
+- `curl -L` can be sent on to a host you did not list by a redirect. It reads the address on the line, a proxy, a `--connect-to` and a `Host:` header, not where the server sends you next.
+- It can hold back a download it should not: a command that fetches a remote secret file to your machine (`scp host.example:/app/.env .`) looks like a send. It keeps a file open by `exec 3<>/dev/tcp/...` and writes to it later only if both are on one line piece. It does not read the text of a remote command (`ssh host 'cat .env'` is held).
+- A host it cannot read (`$URL`) when a secret goes with it is put to you as a question instead of refused; a host it read and found unlisted is refused. Hosts in the settings may be written as `github.com`, `*.github.com` or `https://github.com`.
+- It fails closed for a line that names a sender and that it cannot read; any other command goes on as if the mod were not there.

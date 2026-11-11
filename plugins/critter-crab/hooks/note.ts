@@ -15,6 +15,20 @@ export const hashOf = (s: string): string => {
 }
 
 /** One clean line: colour codes and control characters gone, runs of space folded, cut at `cap` characters (never mid-character). */
+// Whether a note looks like a key or a token: a note is kept as plain text and drawn above the prompt, so the crab will not carry one.
+const SECRETS = [
+  /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/,
+  /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{30,}|\bgithub_pat_[A-Za-z0-9_]{30,}/,
+  /\bglpat-[A-Za-z0-9_-]{20,}/,
+  /\bsk-(?=[A-Za-z0-9_-]*[A-Za-z0-9]{20})[A-Za-z0-9_-]{20,}/,
+  /\bxox[abprs]-[A-Za-z0-9-]{10,}/,
+  /\bnpm_[A-Za-z0-9]{36}\b/,
+  /\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/,
+  /-----BEGIN [A-Z ]*PRIVATE KEY(?: BLOCK)?-----/,
+  /\b(?:password|passwd|secret|token|api[_-]?key)\s*[:=]\s*\S{8,}/i,
+]
+export const looksSecret = (text: string): boolean => SECRETS.some(re => re.test(text))
+
 export const cleanNote = (raw: unknown, cap = MAX_NOTE): string => {
   if (typeof raw !== 'string') return ''
   const flat = raw

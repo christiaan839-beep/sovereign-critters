@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2
+
+- **The crab will not carry a key.** `/crab hold` refuses a note that looks like an access key, a token, a private key block or a `password: …` line, says so without repeating it, and stores nothing. A note is kept as plain text and drawn above the prompt.
+
 ## 0.3.1
 
 - Docs: the rename note below no longer says the diary's week was lost with the crab.

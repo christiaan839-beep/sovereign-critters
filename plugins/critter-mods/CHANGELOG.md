@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.0
+
+- **Four more mods in the control room:** critter-clock, critter-ledger, critter-latch and critter-seal now have cards, switches and install buttons (12 mods in all). `/mods open clock` and `/mods open ledger` run their commands; latch and seal have nothing to open, they work quietly.
+
 ## 0.6.1
 
 - **Fixed: five cards showed the generic steps.** After the rename, the start-up steps for critter-ward, critter-stunt, critter-crab, critter-measure and critter-tally were still filed under the old names, so those cards said "Type / in the chat box" instead of their own lines (the crab card never mentioned `/crab hold`). Each card now shows its own steps, and a test fails if a mod has none.

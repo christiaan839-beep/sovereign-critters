@@ -28,6 +28,10 @@ In the desktop app you can do the same from the interface: click **+** next to t
 | [`critter-crab`](plugins/critter-crab) | `/crab hold <text>`: a small crab carries one note for this folder and has it for you when you come back. |
 | [`critter-ward`](plugins/critter-ward) | Stops a git push that forces or writes main or master, before Bash runs it. Best effort. |
 | [`critter-tally`](plugins/critter-tally) | /everywhere: a pane of your three most-used tools, drawn by each app its own way. |
+| [`critter-clock`](plugins/critter-clock) | `/clock`: how long the session has run and how much of it Claude spent working. Times only. |
+| [`critter-ledger`](plugins/critter-ledger) | `/ledger`: tokens used this session, with a limit of your own. Silent until you ask. |
+| [`critter-latch`](plugins/critter-latch) | Opt-in. Stops a recursive delete outside your folder, `git reset --hard`, `git clean -f` and checkout over the whole tree. Best effort. |
+| [`critter-seal`](plugins/critter-seal) | Opt-in. Holds back a command that sends a secret file or key to a host you have not listed. Best effort. |
 
 The critter and the cat are our own drawing. Nothing here copies Anthropic's art. Not affiliated with Anthropic.
 

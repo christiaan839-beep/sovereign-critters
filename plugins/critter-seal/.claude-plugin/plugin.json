@@ -1,0 +1,27 @@
+{
+  "name": "critter-seal",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "icon": "./.claude-plugin/icon.png",
+  "description": "Opt-in guard that holds back a command sending a secret file or a key-shaped value to a host you have not listed. It matches shapes and never prints, stores or sends a secret. Best effort: it reads the command, not the traffic.",
+  "author": {
+    "name": "Sovereign Matrix"
+  },
+  "homepage": "https://github.com/christiaan839-beep/sovereign-critters/tree/main/plugins/critter-seal",
+  "repository": "https://github.com/christiaan839-beep/sovereign-critters",
+  "keywords": [
+    "security",
+    "secrets",
+    "exfiltration",
+    "guard",
+    "opt-in"
+  ],
+  "userConfig": {
+    "trustedHosts": {
+      "type": "string",
+      "title": "Hosts you trust",
+      "description": "Comma-separated hosts a command may send secrets to, with their subdomains. Anything else is held back.",
+      "default": "github.com, npmjs.org, pypi.org, pythonhosted.org, localhost, 127.0.0.1"
+    }
+  }
+}

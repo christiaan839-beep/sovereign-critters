@@ -20,6 +20,10 @@ Eight gates. The lead mods (the first three) must meet all eight before release.
 | critter-stunt | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | critter-tally | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | critter-measure | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
+| critter-clock | met | met | met | open | open | open | open | open | Not ready: 5 of 8 open |
+| critter-ledger | met | met | met | open | open | open | open | open | Not ready: 5 of 8 open |
+| critter-latch | met | met | met | stale | stale | open | open | open | Not ready: 5 of 8 open |
+| critter-seal | met | met | met | stale | stale | open | open | open | Not ready: 5 of 8 open |
 
 met: done, and nothing has changed since. stale: done, but the plugin has changed since, so it needs another look. open: not done yet.
 
@@ -35,7 +39,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 | | |
 | --- | --- |
-| Tests passing | 176 |
+| Tests passing | 180 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -65,11 +69,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - the corner and the stage have not been seen in the real app
 - the cat overlapping Pip when a side panel opens was seen once and not reproduced
 
-### critter-mods 0.6.0
+### critter-mods 0.7.0
 
 | | |
 | --- | --- |
-| Tests passing | 63 |
+| Tests passing | 64 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -97,13 +101,13 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the index cards have not been photographed in the real app
 
-### critter-ward 0.2.0
+### critter-ward 0.2.3
 
 | | |
 | --- | --- |
-| Tests passing | 68 |
+| Tests passing | 71 |
 | Strict validation | passes |
-| Tool-path hooks | fails closed on purpose: when it cannot tell where a push goes, the push waits |
+| Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
 | Verdict | Not ready: 5 of 8 open |
 
@@ -133,11 +137,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The others
 
-### critter-diary 0.6.0
+### critter-diary 0.6.1
 
 | | |
 | --- | --- |
-| Tests passing | 31 |
+| Tests passing | 33 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -169,7 +173,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - /diary clear does not clear the week
 - never seen in the real app
 
-### critter-bell 0.6.0
+### critter-bell 0.6.1
 
 | | |
 | --- | --- |
@@ -203,11 +207,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never heard or seen in the real app
 
-### critter-crab 0.3.0
+### critter-crab 0.3.2
 
 | | |
 | --- | --- |
-| Tests passing | 24 |
+| Tests passing | 27 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -236,11 +240,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app
 
-### critter-stunt 0.2.0
+### critter-stunt 0.2.1
 
 | | |
 | --- | --- |
-| Tests passing | 15 |
+| Tests passing | 18 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -269,11 +273,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app
 
-### critter-tally 0.2.0
+### critter-tally 0.2.1
 
 | | |
 | --- | --- |
-| Tests passing | 9 |
+| Tests passing | 11 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -301,7 +305,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app
 
-### critter-measure 0.2.0
+### critter-measure 0.2.1
 
 | | |
 | --- | --- |
@@ -332,3 +336,125 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 **Known gaps**
 
 - never called by the model in the real app
+
+### critter-clock 0.1.0
+
+| | |
+| --- | --- |
+| Tests passing | 9 |
+| Strict validation | passes |
+| Tool-path hooks fail open | yes, checked by preflight |
+| Surfaces | any surface that runs hooks (it draws nothing) |
+| Verdict | Not ready: 5 of 8 open |
+
+**Independent reviews**
+
+- none yet
+
+**New tests watched failing first**
+
+- not recorded yet
+
+**Seen working in the real app**
+
+- not yet
+
+**Cold install by someone who is not the founder**
+
+- not yet
+
+**Known gaps**
+
+- never seen in the real app
+
+### critter-ledger 0.1.0
+
+| | |
+| --- | --- |
+| Tests passing | 9 |
+| Strict validation | passes |
+| Tool-path hooks fail open | yes, checked by preflight |
+| Surfaces | any surface that runs hooks (it draws nothing) |
+| Verdict | Not ready: 5 of 8 open |
+
+**Independent reviews**
+
+- none yet
+
+**New tests watched failing first**
+
+- not recorded yet
+
+**Seen working in the real app**
+
+- not yet
+
+**Cold install by someone who is not the founder**
+
+- not yet
+
+**Known gaps**
+
+- never seen in the real app; token counts come from the engine's per-turn usage, not checked against a bill
+
+### critter-latch 0.1.0
+
+| | |
+| --- | --- |
+| Tests passing | 62 |
+| Strict validation | passes |
+| Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
+| Surfaces | any surface that runs hooks (it draws nothing) |
+| Verdict | Not ready: 5 of 8 open |
+
+**Independent reviews**
+
+- 2026-11-11 (at 6d0101c): independent adversarial review for ways past it and false stops (about 600 commands run through it). Found: 4 high bypasses (cd leaking out of a subshell, pushd/popd, a leading redirect, find -exec) and about 8 smaller, plus false stops on redirects and heredoc bodies; all fixed with a test that failed first.
+- 2026-11-11 (at cf375f3): second independent adversarial review, on the code that fixed the first. Found: 12 smaller bypasses on the first fixes and one common false stop; all fixed with a test that failed first.
+
+**New tests watched failing first**
+
+- 2026-11-11 (at cf375f3): the review findings: each command that got past it has a test that failed on the first version, then passed.
+
+**Seen working in the real app**
+
+- not yet
+
+**Cold install by someone who is not the founder**
+
+- not yet
+
+**Known gaps**
+
+- the fixes after the review have not been reviewed again
+
+### critter-seal 0.1.0
+
+| | |
+| --- | --- |
+| Tests passing | 59 |
+| Strict validation | passes |
+| Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
+| Surfaces | any surface that runs hooks (it draws nothing) |
+| Verdict | Not ready: 5 of 8 open |
+
+**Independent reviews**
+
+- 2026-11-11 (at 6d0101c): independent adversarial review for ways past it and false holds (about 330 commands run through it). Found: high gaps (a sender after a bracket or keyword, a secret in a variable or a copied file, the environment dump, wrappers, globbed names, directories) and a proxy/connect-to blind spot, plus false holds on key options and download URLs; all fixed with a test that failed first.
+- 2026-11-11 (at cf375f3): second independent adversarial review, on the code that fixed the first. Found: 8 high gaps on the first fixes plus medium ones; all fixed with a test that failed first.
+
+**New tests watched failing first**
+
+- 2026-11-11 (at cf375f3): the review findings: each command that got past it has a test that failed on the first version, then passed.
+
+**Seen working in the real app**
+
+- not yet
+
+**Cold install by someone who is not the founder**
+
+- not yet
+
+**Known gaps**
+
+- the fixes after the review have not been reviewed again
