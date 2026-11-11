@@ -767,44 +767,44 @@ export const TURN_FAST = ['quick one: {cat} barely had time to stretch', 'that w
 export const TURN_MID = ['{pip} approves, warmly', '{pip} nodded, and meant it', 'a clean cast, says {pip}, proudly']
 export const TURN_LONG = ['a long one. {pip} kept you company, then dozed', 'that took a while. {pip} stayed up as long as he could', 'a long stretch: {cat} napped, and {pip} watched over you']
 export const TURN_ROUGH = ['bumpy one. {cat} saw it first and stayed with you', 'a rough patch. {pip} is calm about it, and so are you', 'that one fought back. {cat} stayed close']
-const MORNING = [
+export const MORNING = [
   'good morning. {pip} is up first',
   'morning. {cat} has not decided yet',
   'morning. the kettle is {pip}\'s department',
   'morning. {cat} warmed the chair for you',
   'early morning. {pip} approves of the quiet',
 ]
-const DAY = [
+export const DAY = [
   '{pip} is at the orb',
   'daylight. {cat} took the warm spot',
   'afternoon. {pip} is pretending not to nap',
   '{cat} has found the one patch of sun',
   'midday. {pip} checked the orb twice',
 ]
-const EVENING = [
+export const EVENING = [
   'evening. {pip} lit the lamp',
   '{cat} is awake now, as promised',
   'evening. {pip} is counting what got done',
   'evening. {cat} woke up for the second shift',
   'evening. the lamp is lit and nobody is rushing',
 ]
-const NIGHT = [
+export const NIGHT = [
   'night shift. antennae out',
   'the glass is dark. {pip} keeps the orb lit',
   'night. {cat} watches the cursor so you can blink',
-  'late. the glass is quiet and {pip} is not',
-  'night. {cat} is counting your keystrokes, kindly',
+  'late. the glass is quiet and {pip} is humming',
+  'night. {cat} is keeping your seat warm',
 ]
 
 // The weekday only colours a daylight greeting; the night keeps its own lines. 0 is Sunday.
-const WEEKDAY: readonly (readonly string[])[] = [
-  ['sunday. {pip} keeps the orb low', 'sunday. {cat} is not working, you are', 'sunday. {pip} put the list face down', 'sunday. {cat} allows one email, no more', 'sunday. the slow light suits {cat}'],
-  ['monday. {cat} has not agreed to it yet', 'monday. {pip} brought a list', 'monday. {cat} is easing in, loudly', 'monday. {pip} polished the orb for the occasion', 'monday. the week starts when {cat} says'],
+export const WEEKDAY: readonly (readonly string[])[] = [
+  ['sunday. {pip} keeps the orb low', 'sunday. {cat} kept the warm end of the sofa for you', 'sunday. {pip} put the list face down', 'sunday. {cat} says one email is plenty, and so is resting', 'sunday. the slow light suits {cat}'],
+  ['monday. {cat} is easing in, and so can you', 'monday. {pip} brought a list', 'monday. {cat} is easing in, loudly', 'monday. {pip} polished the orb for the occasion', 'monday. the week starts when {cat} says'],
   ['tuesday. {cat} is settled in', 'tuesday. {pip} polished the orb', 'tuesday. the quiet day, says {pip}', 'tuesday. {cat} found a rhythm and sat on it', 'tuesday. {pip} has the good pen out'],
   ['wednesday. the middle, says {pip}', 'wednesday. {cat} checked the clock twice', 'wednesday. half done, {pip} insists', 'wednesday. {cat} is pacing the hump', 'wednesday. {pip} measured the week and it holds'],
   ['thursday. {pip} can smell friday', 'thursday. {cat} is pacing themself', 'thursday. nearly, says {pip}', 'thursday. {cat} is pretending it is friday', 'thursday. {pip} sorted what can wait'],
   ['friday. {pip} suspects the weekend', 'friday. {cat} has one eye on the door', 'friday. {pip} is wrapping things up neatly', 'friday. {cat} will believe it at five', 'friday. one good push, says {pip}'],
-  ['saturday. {cat} is not working, you are', 'saturday. {pip} lit the orb anyway', 'saturday. {cat} took the sofa and kept the peace', 'saturday. {pip} says the braai can wait an hour', 'saturday. a gentle one, says {pip}'],
+  ['saturday. {cat} kept your spot on the sofa', 'saturday. {pip} lit the orb anyway', 'saturday. {cat} took the sofa and kept the peace', 'saturday. {pip} says the braai can wait an hour', 'saturday. a gentle one, says {pip}'],
 ]
 /** The weekday in Africa/Johannesburg (UTC+2, no daylight saving), 0 for Sunday, from epoch milliseconds. */
 export const weekdayOf = (ms: number): number => (((Math.floor((ms + 7_200_000) / 86_400_000) + 4) % 7) + 7) % 7
@@ -838,12 +838,12 @@ export const riskLine = (tool: string, input: unknown): string => {
   const i = (input ?? {}) as { command?: unknown; file_path?: unknown }
   if (tool === 'Bash' && typeof i.command === 'string') {
     const c = i.command
-    if (/\b(curl|wget)\b[^|;&]*\|\s*(sudo\s+)?(ba|z|da)?sh\b/.test(c)) return '{cat} does not pipe strangers into a shell'
+    if (/\b(curl|wget)\b[^|;&]*\|\s*(sudo\s+)?(ba|z|da)?sh\b/.test(c)) return '{cat} would like a look at what that script does first'
     if (/\bgit\s+push\b[^;&|]*(--force(?!-with-lease)\b|\s-f\b)/.test(c)) return '{cat} says force is a strong word for a shared branch'
-    if (/\bgit\s+(reset\s+--hard|clean\s+-[a-z]*f|checkout\s+--\s+\.)/.test(c)) return 'that one has no undo. {cat} checked'
+    if (/\bgit\s+(reset\s+--hard|clean\s+-[a-z]*f|checkout\s+--\s+\.)/.test(c)) return '{cat} checked, and that one cannot be taken back. just so you know'
     if (/\brm\b[^;&|]*\s(-[a-zA-Z]*[rRf][a-zA-Z]*|--recursive|--force)(\s|$)/.test(c)) return '{cat} would read the path twice'
     if (/(^|[;&|]\s*)sudo\b/.test(c)) return '{cat} notes this one holds the keys to everything'
-    if (/--no-verify\b/.test(c)) return '{pip} points out the hook was there for a reason'
+    if (/--no-verify\b/.test(c)) return '{pip} wonders gently what the hook was catching'
     if (/\bdrop\s+(table|database)\b/i.test(c)) return '{cat} hopes there is a backup'
     if (/\bchmod\s+(-R\s+)?777\b/.test(c)) return '777 is everyone. {cat} noticed'
     return ''

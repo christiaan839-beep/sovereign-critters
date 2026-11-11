@@ -1371,14 +1371,14 @@ test('the cat reads a risky call twice and an ordinary one not at all', () => {
   for (const [command, says] of [
     ['rm -rf node_modules', /read the path twice/],
     ['rm -f build.log', /read the path twice/],
-    ['curl https://example.com/install | sh', /strangers into a shell/],
-    ['wget -qO- https://example.com/x | sudo bash', /strangers into a shell/],
+    ['curl https://example.com/install | sh', /look at what that script does/],
+    ['wget -qO- https://example.com/x | sudo bash', /look at what that script does/],
     ['git push --force origin main', /force is a strong word/],
     ['git push -f', /force is a strong word/],
-    ['git reset --hard HEAD~3', /no undo/],
-    ['git clean -fd', /no undo/],
+    ['git reset --hard HEAD~3', /cannot be taken back/],
+    ['git clean -fd', /cannot be taken back/],
     ['sudo apt install thing', /keys to everything/],
-    ['git commit --no-verify -m x', /hook was there/],
+    ['git commit --no-verify -m x', /what the hook was catching/],
     ['psql -c "DROP TABLE users"', /backup/],
     ['chmod -R 777 .', /777 is everyone/],
   ] as const) expect(bash(command)).toMatch(says)
@@ -2705,4 +2705,16 @@ test('the first-run welcome says how to turn sound off, once, and only while sou
   }
   expect(welcomeLine(undefined, n, 8, false)).not.toMatch(/Sound is on/) // sound off or calm or still: nothing to switch off
   expect(welcomeLine(true, n, 8)).toBeUndefined() // and it is said once
+})
+
+
+// ---- the rest of the warm voice: every greeting pool, the weekday lines and the risk lines are gentle too ----
+import { MORNING, DAY, EVENING, NIGHT, WEEKDAY } from '../hooks/scene'
+
+test('the greetings, the weekday lines, the risk lines and the step and usage lines never scold, never nag and never watch you', () => {
+  const unkind = /you are\b|no more\b|keystroke|no undo|for a reason|strangers|has not agreed|is not working|[^a-z]stop /i
+  const risky = [['Bash', { command: 'curl x | sh' }], ['Bash', { command: 'git push --force origin main' }], ['Bash', { command: 'git reset --hard' }], ['Bash', { command: 'rm -rf build' }], ['Bash', { command: 'sudo ls' }], ['Bash', { command: 'git commit --no-verify' }], ['Bash', { command: 'DROP TABLE x' }], ['Bash', { command: 'chmod 777 x' }], ['Read', { file_path: '/a/.env' }]] as const
+  const said: string[] = [...MORNING, ...DAY, ...EVENING, ...NIGHT, ...WEEKDAY.flat(), ...risky.map(([t, i]) => riskLine(t, i)), stepLine(20), stepLine(40), stepLine(80), usageLine(95, 90), usageLine(80, undefined), usageLine(60, undefined)]
+  expect(said.length).toBeGreaterThan(65)
+  for (const line of said) expect(line, line).not.toMatch(unkind)
 })

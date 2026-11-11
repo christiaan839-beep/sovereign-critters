@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.30.2
+
+- **Gentler voice, all the way down:** the greetings, the weekday lines and the warnings no longer scold, nag or watch you (for example "is not working, you are", "counting your keystrokes", "no undo"). A test now checks every line the pair can say.
+
 ## 0.30.1
 
 - **Fixed: the sky now reaches the left edge of the band.** A photo of the desktop app showed a strip of pale colour on the left (about 5% of the width) and another under the picture. The picture is now drawn 8.5 px a column, measured from that photo, and the row under it takes the ground's colour.
