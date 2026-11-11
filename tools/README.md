@@ -1,6 +1,6 @@
 # tools
 
-`preflight.sh` is the one to run before every commit: `bash tools/preflight.sh` validates and tests the root and all eight plugins, checks every sound, and scans the files for home paths, model ids, secret-shaped strings, emails and merge markers. It exits non-zero on any real failure. (The root's `claude plugin test` exits 1 with "no hooks module"; that one reason is expected and passes.)
+`preflight.sh` is the one to run before every commit: `bash tools/preflight.sh` validates and tests the root and all nine plugins, checks every sound, and scans the files for home paths, model ids, secret-shaped strings, emails and merge markers. It exits non-zero on any real failure. (The root's `claude plugin test` exits 1 with "no hooks module"; that one reason is expected and passes.)
 
 `review.sh` and `media.sh` run outside the Claude sandbox (headless Chrome needs a socket directory).
 

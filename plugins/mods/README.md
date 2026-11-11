@@ -10,7 +10,7 @@ The control room for the sovereign-critters mods. Type `/mods` and one pane open
 
 ## What the pane does
 
-Each mod is an index card: its name, its version, a plain line on what it is, how to use it in a few steps, and what is new (the newest entry of the mod's own changelog). On the desktop the card is a picture with a stamp: **ON DUTY**, **ASLEEP** or **NOT HERE**, each with its own mark, never colour alone; in a terminal it is a bordered box with the same words. The header has **refresh** and **close**.
+Each mod is an index card: its name, its version, a plain line on what it is, how to use it in a few steps, and what is new (the newest entry of the mod's own changelog). On the desktop the card is a picture with a stamp: **ON DUTY**, **AWAKE**, **NAPPING** or **ON LEAVE**, each with its own mark, never colour alone; in a terminal it is a bordered box with the same words. The header has **refresh** and **close**.
 
 - **Lists every mod** with its version and a symbol and word for its state: `●` on, `○` off, `–` not installed. Never colour alone.
 - **Stamps each card with its state, in a word and a mark:** ON DUTY (a check), AWAKE (an eye), NAPPING (ZZ), ON LEAVE (dots). critter-buddy leads; the rest follow by state, each alphabetical. Nothing counts your use: the plugin manager gives no such signal, so ON DUTY is critter-buddy when it is on and every other mod that is on is AWAKE.
@@ -38,7 +38,7 @@ When critter-buddy is on, the pane also holds its dials: feel (calm, warm, playf
 
 ## What it never does
 
-- It makes no network request and sends no telemetry. The only thing it starts is the `claude plugin` command on your own machine, and only with a fixed command line built from its list of eight mods: nothing you type is ever passed to a command line, and a name that is not on the list is refused.
+- It makes no network request of its own and sends no telemetry. It reads the first 4,000 characters of each installed mod's own `CHANGELOG.md` for its cards. The only thing it starts is the `claude plugin` command on your own machine (`list`, `enable`, `disable`, and `install --scope user`, which downloads a mod through that command), and only with a fixed command line built from its list of eight mods: nothing you type is ever passed to a command line, and a name that is not on the list is refused.
 - It cannot switch itself off (use `claude plugin disable mods` for that).
 - It keeps nothing of its own: the plugin manager is the truth, and it is asked each time.
 - Where there is no plugin manager (a cloud or chat session without the CLI), it says so and draws nothing that could do nothing.

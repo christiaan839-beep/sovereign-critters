@@ -30,12 +30,12 @@ Plugins load in a new session.
 | Every tool row | A small face by what the call did: working, done, failed. |
 | End of a turn | A line from the diary and a quip that depends on how long it took and whether anything failed. |
 | Footer, hint, greeting | The cat's mood among the modes, a hint that follows what is happening, a greeting that follows the hour in Johannesburg. |
-| The sky | Cream by day, dark with a few stars by night (18:00 to 05:59, Africa/Johannesburg), with ridges, sun or moon, cloud and rain that follow the weather. Drawn behind the whole chat where the app has a backdrop; where it has none (the desktop app version we tested), it is drawn behind the pair in the band. `/critter doctor` says which. |
+| The sky | Cream by day, dark with a few stars by night (four phases by the hour, Africa/Johannesburg: night 19:00 to 04:59, dawn to 06:59, day to 16:59, dusk to 18:59), with ridges, sun or moon, cloud and rain that follow the weather. Drawn behind the whole chat where the app has a backdrop; where it has none (the desktop app version we tested), it is drawn behind the pair in the band. `/critter doctor` says which. |
 | The prompt box | Type `/critter` and the command turns clay, a word it knows turns teal, a stray one is underlined in gold, and a dim line after a finished word says what it does. The typeahead offers the words and the coats. |
 | The diary | `/critter diary` and the cat corner show it newest first, the time in teal, the latest line at full strength. |
 | The model | A `cat_diary` tool, so Claude can read what the cat wrote. |
 
-The cat keeps its trust in you across sessions in `$.store`; it falls by 8 for each day you are away.
+The cat keeps its trust in you across sessions in `$.store`; it falls by 8 for each day you are away, never below 40, and a night's sleep forgives a sulk carried over.
 
 ## Commands
 
@@ -52,10 +52,13 @@ The cat keeps its trust in you across sessions in `$.store`; it falls by 8 for e
 | `/critter name cat <name>`, `name pip <name>` | What the cat (Biscuit) and the wizard critter (Pip) are called; every line says it. |
 | `/critter wizard auto`, `gold`, `bolt` | The wizard by the hour, the gold star always, or the violet bolt always. |
 | `/critter feel calm`, `warm`, `playful`, `still` | How lively they are. Calm: quiet, with no hops, sparks or sound; they still breathe, walk and sleep. Warm: the usual (default). Playful: more hops and sparks. Still: nothing moves at all and there is no sound. |
-| `/critter doctor` | What is on and why, in plain words, and the switch that changes each thing. |
+| `/critter doctor` | What is on and why, in plain words, and the switch that changes each thing, including whether the sky is drawn and how wide the stage and corner will open. |
+| `/critter perf` | The clock's own books: beats run, engine calls and milliseconds per beat. |
+| `/critter sky auto`, `dawn`, `day`, `dusk`, `night` | The sky follows the hour, or holds one phase. |
+| `/critter tint on`, `off` | Each folder leans its own quiet colour in the sky (one of six, from a hash of the folder's path). |
 | `/critter sound on`, `off` | A cast chime for a Skill and a purr for a pet. Off until you ask. |
 | `/critter voice on`, `off`, `<name>` | The cat says the big moments aloud (a prop earned, the glass nearly full) in the system voice, or in an installed voice you name. Off until you ask; calm stays silent. |
-| `/critter hide`, `show` | Explicit; bare `/critter hide` toggles. |
+| `/critter hide`, `show` | `hide` always hides and `show` always shows; bare `/critter` toggles. |
 
 It draws above other mods' rows in the same place and registers `/critter` and one agent, `biscuit-looks`: a second look at a change that can read and search but never edit, five lines at most.
 

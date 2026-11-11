@@ -15,7 +15,7 @@ Then start a new session. Look at:
 
 - The bar above the prompt on the desktop app: the critter and the cat clear of each other, the label row clear of the picture.
 - `/critter stage`, `/critter corner` and `/diary`.
-- The sky (cream by day, dark with stars from 18:00 to 05:59 in Johannesburg). The app version we tested has no window backdrop, so look for it in the band behind the pair; `/critter doctor` says where it is drawn.
+- The sky (four phases by the hour in Johannesburg: night 19:00 to 04:59 with stars, dawn to 06:59, day to 16:59, dusk to 18:59). The app version we tested has no window backdrop, so look for it in the band behind the pair; `/critter doctor` says where it is drawn.
 - `/critter sound on`, then a Skill and a pet. `build-bell` after a command of 20 seconds or more.
 - Resting: both asleep should steady the bar to one redraw a second.
 
@@ -66,8 +66,8 @@ Two outside testers follow this on a machine that has never seen the mods. It ne
 
 **A good first minute looks like this:**
 
-- Under the version banner, a dim greeting line from the cat ("critter-buddy: ..."), and under it, once only: `critter-buddy: Biscuit and Pip are here. /critter for the controls`. It does not come back in a second session.
-- Above the prompt, a small orange cat and a wizard critter, drawn in pixels. On the desktop app a status line and five buttons sit under them. In a terminal shorter than about 50 rows the buttons may be hidden behind a "more" line: that is known, not your fault.
+- Under the version banner, a dim greeting line from the cat ("critter-buddy: ..."), and under it, once only, a welcome whose wording follows the hour (before noon: `critter-buddy: Biscuit and Pip are here. /critter for the controls`). It does not come back in a second session.
+- Above the prompt, a small orange cat and a wizard critter, drawn in pixels. On the desktop app a status line and up to six buttons (five in a narrow window) sit under them. In a terminal shorter than about 50 rows the buttons may be hidden behind a "more" line: that is known, not your fault.
 - `/critter doctor` answers in a few plain lines, beginning `critter-buddy: Reach: party. Feel: warm. Surface: terminal, 130 columns.` (your own surface and width), then what is off and the command that turns it on: sound, the voice, the spoken line after a turn. It must not say "narrow" at 110 columns or more.
 - `/critter pet` makes the cat answer in a line. `/critter hide` and `/critter show` make the pair go and come back.
 - Nothing makes a sound until you type `/critter sound on`.

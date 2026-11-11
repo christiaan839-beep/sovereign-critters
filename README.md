@@ -21,7 +21,7 @@ Start a new session afterwards: plugins load at start-up.
 | [`session-diary`](plugins/session-diary) | /diary: every tool call with its time, a line for each turn, and a copy-as-markdown button. Names and times only. |
 | [`forge`](plugins/forge) | A tool that counts text exactly: characters, words, lines and UTF-8 bytes. |
 | [`stunt`](plugins/stunt) | /stunt: the critter painted in a pane, with a card for each of the last 40 tool calls. |
-| [`crab`](plugins/crab) | A band that shows what a reload keeps and what it does not. |
+| [`crab`](plugins/crab) | `/crab hold <text>`: a small crab carries one note for this folder and has it for you when you come back. |
 | [`guard`](plugins/guard) | Stops a git push that forces or writes main or master, before Bash runs it. Best effort. |
 | [`everywhere`](plugins/everywhere) | /everywhere: a pane of your three most-used tools, drawn by each app its own way. |
 
@@ -29,9 +29,9 @@ The critter and the cat are our own drawing. Nothing here copies Anthropic's art
 
 ## Principles
 
-- A decorative mod never blocks a tool: every hook catches its own errors.
+- A decorative mod never blocks a tool: every hook on the tool path catches its own errors, and `tools/preflight.sh` checks it. The one exception is `guard`, which fails closed on purpose: when it cannot tell where a push goes, the push waits.
 - Everything the characters say is a pure function of the session, never of chance, so a replay is identical and a test can pin it.
-- No network, no telemetry, nothing read outside the session. State stays in the plugin's own store. The one thing that spends anything is opt-in: `/critter talk on` asks the model for one short line after a turn and sends only numbers (the seconds the turn took, whether it failed). It is off until you turn it on.
+- No network, no telemetry, nothing read outside the session. State stays in the plugin's own store. The one thing that spends anything is opt-in: `/critter talk on` asks the model for one short line after a turn and sends only numbers (the seconds the turn took, how many tools it used, how many errors and commits there were). It is off until you turn it on.
 - Apache-2.0.
 
 ## Develop
