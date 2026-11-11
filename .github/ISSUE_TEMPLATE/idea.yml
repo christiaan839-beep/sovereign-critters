@@ -1,0 +1,15 @@
+name: An idea for a mod or a change
+description: Something you would like a mod to do. Open this before a large pull request.
+labels: [idea]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like, and what problem does it solve?
+    validations:
+      required: true
+  - type: textarea
+    id: rules
+    attributes:
+      label: Does it fit the principles in the README?
+      description: A decorative mod never blocks a tool, says things that are a pure function of the session, and makes no network request.

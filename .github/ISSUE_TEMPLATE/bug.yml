@@ -1,0 +1,40 @@
+name: Something looks or works wrong
+description: A mod drew something wrong, did nothing, or got in the way.
+labels: [bug]
+body:
+  - type: dropdown
+    id: plugin
+    attributes:
+      label: Which plugin?
+      options: [critter-buddy, mods, session-diary, build-bell, guard, crab, stunt, everywhere, forge, not sure]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Plugin version
+      description: Shown by `/mods`, or in the plugin's `.claude-plugin/plugin.json`.
+      placeholder: "0.28.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where did you see it?
+      description: The desktop app (Code tab) is the main surface. Cloud and the VS Code panel run the hooks but draw nothing.
+      options: [Claude desktop app (Code tab), Terminal, VS Code panel, Cloud session, claude -p]
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `/critter doctor`
+      description: Paste it as it is. It says the surface, the window width, and whether the sky is drawn.
+      render: text
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+      description: For anything visual, attach a photo or screenshot of the whole window, not a crop, and say how wide the window is.
+    validations:
+      required: true
