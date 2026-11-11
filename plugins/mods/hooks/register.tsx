@@ -1,7 +1,7 @@
 import type { Register } from 'claude-code'
 
-import { cardSvg } from './card-svg'
-import { DEFAULT_STEPS, DIALS, HUB, MODS, STEPS, SYMBOL, actionFor, cellsOf, fit, installArgv, listLine, parseList, parseTopEntry, restartNeeded, stateOf, statusWord, titleOf, toggleArgv, wrap } from './catalog'
+import { cardSvg, dividerSvg } from './card-svg'
+import { DEFAULT_STEPS, DIALS, HUB, MODS, STEPS, SYMBOL, actionFor, cellsOf, fit, installArgv, listLine, parseList, parseTopEntry, restartNeeded, stateOf, statusWord, titleOf, toggleArgv, wrap , STAMP_WORD, orderMods, tierOf} from './catalog'
 import type { Installed, Mod, Notes } from './catalog'
 
 const PANE = 'mods'
@@ -204,6 +204,14 @@ export const register: Register = on => {
       redraw($)
     }
     const vector = e.surface !== 'terminal' && Svg !== undefined
+    // The lead mod first, then the four states in order, each with a ruled divider and its mods alphabetical.
+    const states: Record<string, State> = Object.fromEntries(MODS.map(m => [m.id, stateNow(m).state]))
+    const { hero, groups } = orderMods(states)
+    type Item = { kind: 'mod'; m: Mod; tier: Tier } | { kind: 'divider'; tier: Tier; count: number }
+    const items: Item[] = [
+      { kind: 'mod', m: hero, tier: tierOf(hero, states[hero.id] ?? 'missing') },
+      ...groups.flatMap((g): Item[] => [{ kind: 'divider', tier: g.tier, count: g.mods.length }, ...g.mods.map((m): Item => ({ kind: 'mod', m, tier: g.tier }))]),
+    ]
     return (
       <Box flexDirection="column">
         <Box key="head" flexDirection="row" justifyContent="space-between">
@@ -215,7 +223,12 @@ export const register: Register = on => {
         </Box>
         {S.list ? null : <Text color="#d4a548">{fit(CANNOT, cols)}</Text>}
         <Box key="gap-head"><Text> </Text></Box>
-        {MODS.map(m => {
+        {items.map(it => {
+          if (it.kind === 'divider') {
+            if (vector) { const d = dividerSvg(it.tier, it.count); return <Svg key={`tier-${it.tier}`} source={d.source} width={d.width} height={d.height} alt={d.alt} /> }
+            return <Text key={`tier-${it.tier}`} dimColor>{`── ${STAMP_WORD[it.tier]} · ${it.count} ──`}</Text>
+          }
+          const m = it.m
           const s = stateNow(m)
           const need = S.list ? restartNeeded(s.state, S.loaded.has(m.id)) : false
           const toggle = s.state === 'missing' ? 'install' : s.state === 'on' ? '━● on' : '●━ off'
@@ -230,7 +243,7 @@ export const register: Register = on => {
           )
           if (vector) {
             // the card is one picture; the buttons that act on it sit directly beneath
-            const c = cardSvg({ id: m.id, title: titleOf(m.id), version: s.version, state: s.state, line: m.line, steps, notes, restart: need })
+            const c = cardSvg({ id: m.id, title: titleOf(m.id), version: s.version, line: m.line, steps, notes, restart: need, tier: it.tier })
             return (
               <Box key={`mod-${m.id}`} flexDirection="column">
                 <Svg source={c.source} width={c.width} height={c.height} alt={c.alt} />
@@ -240,7 +253,7 @@ export const register: Register = on => {
             )
           }
           const inner = Math.max(12, cols - 4) // the card's border and padding take four cells
-          const stamp = s.state === 'on' ? 'ON DUTY' : s.state === 'off' ? 'ASLEEP' : 'NOT HERE'
+          const stamp = STAMP_WORD[it.tier]
           const title = fit(`${titleOf(m.id)} ${s.version ? `v${s.version}` : ''}`.trim(), Math.max(8, inner - 12))
           return (
             <Box key={`mod-${m.id}`} flexDirection="column" borderStyle="round" borderColor={s.state === 'on' ? '#d97757' : '#5d5a55'} paddingX={1}>

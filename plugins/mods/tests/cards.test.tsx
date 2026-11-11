@@ -1,11 +1,11 @@
 import { expect, test } from 'claude-code/testing'
 
-import { DEFAULT_STEPS, MODS, STEPS, parseList, parseTopEntry, safeInstallPath, titleOf, wrap } from '../hooks/catalog'
-import { CARD_W, SHOWN_W, cardSvg } from '../hooks/card-svg'
+import { DEFAULT_STEPS, MODS, STAMP_WORD, STEPS, TIERS, orderMods, parseList, parseTopEntry, safeInstallPath, tierOf, titleOf, wrap } from '../hooks/catalog'
+import { CARD_W, SHOWN_W, cardSvg, dividerSvg } from '../hooks/card-svg'
 import type { CardArgs } from '../hooks/card-svg'
 
 const base = (over: Partial<CardArgs> = {}): CardArgs => ({
-  id: 'critter-buddy', title: 'Critter Buddy', version: '0.22.1', state: 'on', line: 'A wizard and a cat live above your prompt and react to what Claude does.',
+  id: 'critter-buddy', title: 'Critter Buddy', version: '0.22.1', tier: 'duty', line: 'A wizard and a cat live above your prompt and react to what Claude does.',
   steps: ['Switch it on here, then start a new session.', 'Type /critter to see what it does.'], notes: { heading: '0.23.0', bullets: ['The sky warms while Claude is thinking.'] }, restart: false, ...over,
 })
 
@@ -91,25 +91,27 @@ test('a card is one SVG, 600 wide, shown at 640, in cream paper and ink, with no
   for (const m of c.source.matchAll(/url\(#([^)]*)\)/g)) expect(m[1]).toMatch(/^mods-critter-buddy-/)
 })
 
-test('the stamp reads differently when the mod is on, asleep and not installed, and each also has its own mark, so colour is never the only difference', () => {
-  const on = cardSvg(base({ state: 'on' })).source
-  const off = cardSvg(base({ state: 'off' })).source
-  const miss = cardSvg(base({ state: 'missing', version: '' })).source
-  expect(on).toContain('ON DUTY')
-  expect(on).not.toContain('ASLEEP')
-  expect(off).toContain('ASLEEP')
-  expect(off).not.toContain('ON DUTY')
-  expect(miss).toContain('NOT HERE')
-  expect(on).toContain('#d97757') // the clay stamp
-  expect(off).not.toContain('#d97757') // asleep is not stamped in clay
-  expect(on).toContain('data-mark="check"') // a tick for on
-  expect(off).toContain('data-mark="dash"') // a dash for asleep
-  expect(miss).toContain('data-mark="dots"') // dots for not here
-  expect(miss).toContain('stroke-dasharray') // a dashed outline for a card that is not here
-  expect(new Set([on, off, miss]).size).toBe(3)
-  // the card of a mod that is on is the livelier paper
-  expect(on).toContain('fill="#f7f5ef"')
-  expect(off).toContain('fill="#ece8de"')
+test('the stamp reads differently in all four states, and each has its own mark and border, so colour is never the only difference', () => {
+  const duty = cardSvg(base({ tier: 'duty' })).source
+  const awake = cardSvg(base({ tier: 'awake' })).source
+  const nap = cardSvg(base({ tier: 'napping' })).source
+  const leave = cardSvg(base({ tier: 'leave', version: '' })).source
+  expect(duty).toContain('ON DUTY')
+  expect(awake).toContain('>AWAKE<')
+  expect(nap).toContain('NAPPING')
+  expect(leave).toContain('ON LEAVE')
+  for (const [s, others] of [[duty, ['AWAKE', 'NAPPING', 'ON LEAVE']], [awake, ['ON DUTY', 'NAPPING', 'ON LEAVE']], [nap, ['ON DUTY', '>AWAKE<', 'ON LEAVE']], [leave, ['ON DUTY', '>AWAKE<', 'NAPPING']]] as const) for (const o of others) expect(s).not.toContain(o)
+  expect(duty).toContain('data-mark="check"') // a tick: on duty
+  expect(awake).toContain('data-mark="eye"') // an open eye: awake
+  expect(nap).toContain('data-mark="zz"') // two z: napping
+  expect(leave).toContain('data-mark="dots"') // three dots: away
+  expect(duty).toContain('#d97757') // only the stamp of a mod on duty is in clay
+  for (const s of [awake, nap, leave]) expect(s).not.toContain('#d97757')
+  expect(leave).toContain('stroke-dasharray') // a dashed outline for a mod that is away
+  expect(nap).toContain('fill="#ece8de"') // a napping card is on the dimmer paper
+  expect(duty).toContain('fill="#f7f5ef"')
+  expect(awake).toContain('fill="#f7f5ef"')
+  expect(new Set([duty, awake, nap, leave]).size).toBe(4)
 })
 
 test('the text on a card is the name, the version, the plain line, the steps and the newest release notes, and nothing is lost to the width', () => {
@@ -157,21 +159,91 @@ test('fake shadows are stacked translucent shapes, not a filter', () => {
 
 test('the alt text says the mod, its state and its line, in words', () => {
   expect(cardSvg(base()).alt).toBe('Critter Buddy, on duty. A wizard and a cat live above your prompt and react to what Claude does.')
-  expect(cardSvg(base({ state: 'off' })).alt).toMatch(/^Critter Buddy, asleep\./)
-  expect(cardSvg(base({ state: 'missing' })).alt).toMatch(/^Critter Buddy, not installed\./)
+  expect(cardSvg(base({ tier: 'awake' })).alt).toMatch(/^Critter Buddy, awake\./)
+  expect(cardSvg(base({ tier: 'napping' })).alt).toMatch(/^Critter Buddy, napping\./)
+  expect(cardSvg(base({ tier: 'leave' })).alt).toMatch(/^Critter Buddy, on leave\./)
 })
 
 test('the restart note is bold and at full strength on a card that is otherwise faded', () => {
-  const s = cardSvg(base({ state: 'off', restart: true })).source
+  const s = cardSvg(base({ tier: 'napping', restart: true })).source
   expect(s).toMatch(/font-weight="bold" fill="#d97757" fill-opacity="1" xml:space="preserve">RESTART TO APPLY/)
 })
 
 test('the stamp of a card that is not here has a dashed border, the shadow is three layers, and a changelog bullet of 111 characters is cut where 110 is not', () => {
-  expect(cardSvg(base({ state: 'missing', version: '' })).source).toContain('stroke-width="3" stroke-dasharray="5 4"')
-  expect(cardSvg(base({ state: 'on' })).source).not.toContain('stroke-width="3" stroke-dasharray="5 4"')
+  expect(cardSvg(base({ tier: 'leave', version: '' })).source).toContain('stroke-width="3" stroke-dasharray="5 4"')
+  expect(cardSvg(base({ tier: 'duty' })).source).not.toContain('stroke-width="3" stroke-dasharray="5 4"')
   expect((cardSvg(base()).source.match(/fill="#141413" fill-opacity="0\.0[579]"/g) ?? []).length).toBe(3)
   const cut = parseTopEntry('## 1\n- ' + 'y'.repeat(111))!.bullets[0]!
   expect(cut).toBe('y'.repeat(109) + '…')
   expect([...cut].length).toBe(110)
   expect(safeInstallPath('/a/../plugins/cache/sovereign-critters/crab/1.0.0', 'crab')).toBeUndefined() // a way up in the front of the path
+})
+
+// ---- the four states, the order and the dividers -------------------------------
+
+const critter = MODS.find(m => m.id === 'critter-buddy')!
+const crab = MODS.find(m => m.id === 'crab')!
+
+test('four states, four words: on duty, awake, napping, on leave', () => {
+  expect(TIERS).toEqual(['duty', 'awake', 'napping', 'leave'])
+  expect(STAMP_WORD).toEqual({ duty: 'ON DUTY', awake: 'AWAKE', napping: 'NAPPING', leave: 'ON LEAVE' })
+})
+
+test('without a use signal the lead mod that is on is on duty and every other that is on is awake; a mod that is off naps and one that is not installed is on leave', () => {
+  expect(tierOf(critter, 'on')).toBe('duty')
+  expect(tierOf(crab, 'on')).toBe('awake')
+  expect(tierOf(crab, 'off')).toBe('napping')
+  expect(tierOf(critter, 'off')).toBe('napping')
+  expect(tierOf(crab, 'missing')).toBe('leave')
+  expect(tierOf(critter, 'missing')).toBe('leave')
+})
+
+test('a use signal, if the plugin manager ever gives one, decides between on duty and awake, and only for a mod that is on', () => {
+  expect(tierOf(crab, 'on', true)).toBe('duty') // used in the last seven days
+  expect(tierOf(crab, 'on', false)).toBe('awake') // on, idle
+  expect(tierOf(critter, 'on', false)).toBe('awake') // the lead mod is not on duty just for being the lead
+  expect(tierOf(critter, 'on', true)).toBe('duty')
+  expect(tierOf(crab, 'off', true)).toBe('napping') // off stays off whatever the signal says
+  expect(tierOf(crab, 'missing', true)).toBe('leave')
+})
+
+test('the lead mod is pinned first whatever state it is in, then the tiers in order, and inside a tier the mods are alphabetical by name', () => {
+  const states = (over: Record<string, 'on' | 'off' | 'missing'> = {}) => Object.fromEntries(MODS.map(m => [m.id, over[m.id] ?? 'on'])) as Record<string, 'on' | 'off' | 'missing'>
+  const all = orderMods(states())
+  expect(all.hero.id).toBe('critter-buddy')
+  expect(all.groups.map(g => g.tier)).toEqual(['awake'])
+  expect(all.groups[0]!.mods.map(m => m.id)).toEqual(['build-bell', 'crab', 'everywhere', 'forge', 'guard', 'session-diary', 'stunt']) // by title, A to Z
+  const mixed = orderMods(states({ crab: 'off', guard: 'missing', stunt: 'off', forge: 'missing', 'build-bell': 'off' }))
+  expect(mixed.groups.map(g => g.tier)).toEqual(['awake', 'napping', 'leave'])
+  expect(mixed.groups[0]!.mods.map(m => m.id)).toEqual(['everywhere', 'session-diary'])
+  expect(mixed.groups[1]!.mods.map(m => m.id)).toEqual(['build-bell', 'crab', 'stunt'])
+  expect(mixed.groups[2]!.mods.map(m => m.id)).toEqual(['forge', 'guard'])
+  const asleep = orderMods(states({ 'critter-buddy': 'off' }))
+  expect(asleep.hero.id).toBe('critter-buddy') // still first, now napping
+  expect(asleep.groups.map(g => g.tier)).toEqual(['awake'])
+  expect(asleep.groups.flatMap(g => g.mods).some(m => m.id === 'critter-buddy')).toBe(false) // never twice
+  expect(orderMods(states({ 'critter-buddy': 'missing' })).hero.id).toBe('critter-buddy')
+  // every mod appears exactly once
+  expect([mixed.hero, ...mixed.groups.flatMap(g => g.mods)].map(m => m.id).sort()).toEqual(MODS.map(m => m.id).sort())
+  // with a use signal, a tier above awake appears
+  const used = orderMods(states(), { crab: true })
+  expect(used.groups.map(g => g.tier)).toEqual(['duty', 'awake'])
+  expect(used.groups[0]!.mods.map(m => m.id)).toEqual(['crab'])
+})
+
+test('a divider is a small strip of ruled paper that names its tier and counts its mods, with no filter and nothing but its own markup', () => {
+  const d = dividerSvg('awake', 6)
+  expect(d.source).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" /)
+  expect(d.source).toContain('viewBox="0 0 600 ')
+  expect(d.source).toContain('>AWAKE<')
+  expect(d.source).toContain('6 mods')
+  expect(dividerSvg('napping', 1).source).toContain('1 mod<')
+  expect(dividerSvg('leave', 3).source).toContain('ON LEAVE')
+  expect(dividerSvg('duty', 2).source).toContain('ON DUTY')
+  expect(d.source).toContain('#9db4c8') // the ruled lines
+  expect(d.source).not.toMatch(/filter|<script|href=|<image|<foreignObject/i)
+  expect(d.width).toBe(640)
+  expect(d.height).toBeLessThan(60)
+  expect(d.alt).toBe('Awake: 6 mods')
+  expect(new Set([dividerSvg('duty', 2).source, dividerSvg('awake', 2).source, dividerSvg('napping', 2).source, dividerSvg('leave', 2).source]).size).toBe(4)
 })

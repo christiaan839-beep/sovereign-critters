@@ -225,7 +225,7 @@ test('the pane has a header with the count, refresh and close, and every mod: a 
       expect(await ui.find({ key: `mod-${m.id}` })).toBeDefined()
     }
     if (surface === 'desktop') {
-      expect((await ui.findAll({ type: 'Svg' })).length).toBe(8) // one picture a card
+      expect((await ui.findAll({ type: 'Svg' })).length).toBe(10) // one picture a card (8) and one ruled strip a tier (AWAKE and NAPPING in this stub)
       expect(await ui.find({ type: 'Text', text: /WHAT'S NEW/ })).toBeUndefined() // the words are in the picture
     } else {
       expect(await ui.find({ type: 'Svg' })).toBeUndefined() // no picture in a plain terminal
@@ -376,8 +376,10 @@ test('a terminal card has a border in the pair\'s clay when on and dim when off,
   expect((await card('crab'))?.props?.borderStyle).toBe('round')
   expect((await card('crab'))?.props?.borderColor).toBe('#d97757')
   expect((await card('forge'))?.props?.borderColor).toBe('#5d5a55')
-  expect(await ui.find({ type: 'Text', text: '[ON DUTY]' })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: '[ASLEEP]' })).toBeDefined() // forge is off in the stub list
+  expect(await ui.find({ type: 'Text', text: '[ON DUTY]' })).toBeDefined() // the lead mod, critter-buddy, is on
+  expect(await ui.find({ type: 'Text', text: '[AWAKE]' })).toBeDefined() // the others that are on
+  expect(await ui.find({ type: 'Text', text: '[NAPPING]' })).toBeDefined() // forge is off in the stub list
+  expect(await ui.find({ type: 'Text', text: '[ASLEEP]' })).toBeUndefined() // the old plain words are gone
   expect(await ui.find({ type: 'Text', text: MODS[0]!.line })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: '1. Switch it on here, then start a new session.' })).toBeDefined()
   expect((await ui.findAll({ type: 'Text', text: 'HOW TO USE' })).length).toBe(8)
@@ -439,8 +441,28 @@ test('on the desktop an on card, an asleep card and a not-installed card are thr
   const ui = await $.ui.mount({ plugin: 'mods', component: 'Pane', requestId: 'mods', surface: 'desktop', props: { bodyColumns: 80 } } as never)
   const src = async (id: string) => String(((await ui.find({ key: `mod-${id}` })) as unknown as { children?: unknown }) ? JSON.stringify(await ui.drawn()) : '')
   const all = await src('crab')
-  expect(all).toContain('ON DUTY')
-  expect(all).toContain('ASLEEP')
-  expect(all).toContain('NOT HERE')
+  expect(all).toContain('AWAKE') // crab: on, not the lead mod
+  expect(all).toContain('NAPPING') // forge: installed and off
+  expect(all).toContain('ON LEAVE') // the rest: not installed
+  expect(all).not.toContain('ON DUTY') // the lead mod is not installed in this stub
+  expect(all).not.toContain('NOT HERE')
+  await ui.unmount()
+})
+
+test('the pane puts the lead mod first, then the tiers in order, each alphabetical, with a strip between the tiers', async ($, on) => {
+  setup($, on)
+  await begin($)
+  const ui = await $.ui.mount({ plugin: 'mods', component: 'Pane', requestId: 'mods', surface: 'terminal', props: { bodyColumns: 80 } } as never)
+  const drawn = JSON.stringify(await ui.drawn())
+  const at = (id: string) => drawn.indexOf(`"mod-${id}"`)
+  const order = ['critter-buddy', 'build-bell', 'crab', 'everywhere', 'guard', 'session-diary', 'stunt', 'forge'].map(at)
+  expect(order.every(n => n >= 0)).toBe(true)
+  expect([...order].sort((a, b) => a - b)).toEqual(order) // already in the order they are drawn
+  const strip = (word: string, n: number) => drawn.indexOf(`── ${word} · ${n} ──`)
+  expect(strip('AWAKE', 6)).toBeGreaterThan(at('critter-buddy')) // the AWAKE strip sits after the lead mod
+  expect(strip('AWAKE', 6)).toBeLessThan(at('build-bell'))
+  expect(strip('NAPPING', 1)).toBeGreaterThan(at('stunt')) // the NAPPING strip sits between stunt and forge
+  expect(strip('NAPPING', 1)).toBeLessThan(at('forge'))
+  expect(drawn.indexOf('── ON DUTY')).toBe(-1) // the lead mod needs no strip of its own
   await ui.unmount()
 })

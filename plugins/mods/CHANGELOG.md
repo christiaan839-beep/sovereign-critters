@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0
+
+- Four stamps, four words, never plain ON/OFF: **ON DUTY** (on, and the lead mod), **AWAKE** (on), **NAPPING** (installed and switched off), **ON LEAVE** (not installed). Each stamp has its own mark, so it never relies on colour: a check, an eye, a ZZ, three dots. The plugin manager gives no signal for "used this week", so critter-buddy is ON DUTY when on and the others are AWAKE; nothing counts your use.
+- The pane is ordered: critter-buddy first, then the states in order, each alphabetical, with a ruled strip between them that names the state and counts its mods.
+
 ## 0.4.0
 
 - **Index cards.** Each mod in `/mods` is now a card: its name in title case, a version chip, a plain one-line "what it is", "How to use" in two or three short steps, and "What's new", the newest entry of that mod's own CHANGELOG (release notes, not file times). On the desktop each card is one picture: cream paper, ruled lines, typewriter text and a stamp that reads ON DUTY, ASLEEP or NOT HERE, each with its own mark (a tick, a dash, three dots) and border, so the three never differ by colour alone. In a plain terminal the same words sit in a rounded box.

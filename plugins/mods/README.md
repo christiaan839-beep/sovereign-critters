@@ -13,6 +13,7 @@ The control room for the sovereign-critters mods. Type `/mods` and one pane open
 Each mod is an index card: its name, its version, a plain line on what it is, how to use it in a few steps, and what is new (the newest entry of the mod's own changelog). On the desktop the card is a picture with a stamp: **ON DUTY**, **ASLEEP** or **NOT HERE**, each with its own mark, never colour alone; in a terminal it is a bordered box with the same words. The header has **refresh** and **close**.
 
 - **Lists every mod** with its version and a symbol and word for its state: `●` on, `○` off, `–` not installed. Never colour alone.
+- **Stamps each card with its state, in a word and a mark:** ON DUTY (a check), AWAKE (an eye), NAPPING (ZZ), ON LEAVE (dots). critter-buddy leads; the rest follow by state, each alphabetical. Nothing counts your use: the plugin manager gives no such signal, so ON DUTY is critter-buddy when it is on and every other mod that is on is AWAKE.
 - **Switches each one on or off.** The switch asks the plugin manager (`claude plugin enable` and `claude plugin disable`), then says plainly that a restart applies it. A mod you switched since this session began is marked "restart to apply" until you do.
 - **Installs the missing ones.** A mod that is not installed shows an `install` button; `/mods install all` adds every one.
 - **Opens each mod's own panes**: the cat corner and the stage, the diary, the week, the postcard, the crab's note, the stunt and everywhere panes. It runs that mod's own slash command, so the mod draws its own pane.

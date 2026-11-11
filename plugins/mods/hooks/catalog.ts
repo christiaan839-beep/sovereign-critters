@@ -40,6 +40,26 @@ export const actionFor = (word: string): Mod | undefined => {
   return w ? MODS.find(m => m.id === w || m.names.includes(w)) : undefined
 }
 
+/** Four states, four words. A mod that is on is on duty if it was used in the last seven days and awake if not; one that is off naps; one that is not installed is on leave. */
+export type Tier = 'duty' | 'awake' | 'napping' | 'leave'
+export const TIERS: Tier[] = ['duty', 'awake', 'napping', 'leave']
+export const STAMP_WORD: Record<Tier, string> = { duty: 'ON DUTY', awake: 'AWAKE', napping: 'NAPPING', leave: 'ON LEAVE' }
+
+/**
+ * Which of the four a mod is in. `used` is whether it was used in the last seven days, if anything can say: the plugin manager gives no
+ * such signal and nothing here counts use, so without one the lead mod that is on is on duty and every other that is on is awake.
+ */
+export const tierOf = (mod: Mod, state: State, used?: boolean): Tier =>
+  state === 'missing' ? 'leave' : state === 'off' ? 'napping' : (used ?? mod.id === 'critter-buddy') ? 'duty' : 'awake'
+
+/** The lead mod first, whatever its state; then the tiers in order, each alphabetical by the name on its card; an empty tier is left out. */
+export const orderMods = (states: Record<string, State>, used: Record<string, boolean> = {}): { hero: Mod; groups: { tier: Tier; mods: Mod[] }[] } => {
+  const hero = MODS[0]!
+  const rest = MODS.slice(1).sort((a, b) => (titleOf(a.id) < titleOf(b.id) ? -1 : titleOf(a.id) > titleOf(b.id) ? 1 : 0))
+  const groups = TIERS.map(tier => ({ tier, mods: rest.filter(m => tierOf(m, states[m.id] ?? 'missing', used[m.id]) === tier) })).filter(g => g.mods.length > 0)
+  return { hero, groups }
+}
+
 /** The name on a card: the id with dashes turned to spaces, in title case. */
 export const titleOf = (id: string): string => id.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 
