@@ -30,6 +30,14 @@
           "at": "5a3a16d",
           "kind": "docs",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read against the official mods guide and the host's own type declarations",
+          "found": "a subagent's turn.complete was counted as the person's turn; fixed with a test that failed first",
+          "at": "10f284e",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [
@@ -97,6 +105,14 @@
           "at": "5a3a16d",
           "kind": "docs",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "closing the alias gap the second red-team round left open",
+          "found": "a git alias in a config file ran unjudged; now read from git config and judged, with a test that failed first",
+          "at": "d2ecd7d",
+          "kind": "security",
+          "openHigh": 0
         }
       ],
       "seen": [],
@@ -121,6 +137,14 @@
           "at": "5a3a16d",
           "kind": "docs",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read against the official mods guide and the host's own type declarations",
+          "found": "a subagent's turn.complete was counted as the person's turn; fixed with a test that failed first",
+          "at": "10f284e",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [],
@@ -140,6 +164,14 @@
           "found": "failure toast, playback and tick wording corrected",
           "at": "5a3a16d",
           "kind": "docs",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read against the official mods guide and the host's own type declarations",
+          "found": "a subagent's turn.complete was counted as the person's turn; fixed with a test that failed first",
+          "at": "10f284e",
+          "kind": "code",
           "openHigh": 0
         }
       ],

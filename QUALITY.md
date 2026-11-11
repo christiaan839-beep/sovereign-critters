@@ -11,11 +11,11 @@ Eight gates. The lead mods (the first three) must meet all eight before release.
 
 | Mod | Tests pass | Strict validation | Hooks fail open | New tests failed first | Independent code review | Seen in the desktop app | Docs audited | Cold install by someone else | Verdict |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| critter-buddy | met | met | met | stale | stale | stale | stale | open | Not ready: 5 of 8 open |
+| critter-buddy | met | met | met | stale | met | stale | stale | open | Not ready: 4 of 8 open |
 | mods | met | met | met | open | open | open | stale | open | Not ready: 5 of 8 open |
-| guard | met | met | met | met | met | open | stale | open | Not ready: 3 of 8 open |
-| session-diary | met | met | met | open | open | open | stale | open | Not ready: 5 of 8 open |
-| build-bell | met | met | met | open | open | open | stale | open | Not ready: 5 of 8 open |
+| guard | met | met | met | stale | met | open | stale | open | Not ready: 4 of 8 open |
+| session-diary | met | met | met | open | met | open | stale | open | Not ready: 4 of 8 open |
+| build-bell | met | met | met | open | met | open | stale | open | Not ready: 4 of 8 open |
 | crab | met | met | met | open | open | open | stale | open | Not ready: 5 of 8 open |
 | stunt | met | met | met | open | open | open | stale | open | Not ready: 5 of 8 open |
 | everywhere | met | met | met | open | open | open | stale | open | Not ready: 5 of 8 open |
@@ -38,12 +38,13 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
-| Verdict | Not ready: 5 of 8 open |
+| Verdict | Not ready: 4 of 8 open |
 
 **Independent reviews**
 
 - 2026-11-11 (at 5a3a16d): independent code review of the clock, the painter cache, the band sky, trust and pane width. Found: 2 confirmed bugs and 5 smaller; all fixed with a test that failed first.
 - 2026-11-11 (at 5a3a16d): documentation audit against the code. Found: 14 claims corrected across the repo.
+- 2026-11-11 (at 10f284e): read against the official mods guide and the host's own type declarations. Found: a subagent's turn.complete was counted as the person's turn; fixed with a test that failed first.
 
 **New tests watched failing first**
 
@@ -101,13 +102,14 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell where a push goes, the push waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
-| Verdict | Not ready: 3 of 8 open |
+| Verdict | Not ready: 4 of 8 open |
 
 **Independent reviews**
 
 - 2026-11-11 (at 5a3a16d): independent red-team for ways past it. Found: 5 bypasses (piped scripts, an alias made on the line, xargs -I%, hidden command names), all fixed with a test that failed first; 2 gaps documented.
 - 2026-11-11 (at 1fbc7d5): second independent red-team round, run by the audit session (about 280 spellings of pushes to main and of force pushes). Found: no bypass.
 - 2026-11-11 (at 5a3a16d): documentation audit against the code. Found: the claim of no network and nothing read outside the session was corrected to say that guard runs git locally.
+- 2026-11-11 (at d2ecd7d): closing the alias gap the second red-team round left open. Found: a git alias in a config file ran unjudged; now read from git config and judged, with a test that failed first.
 
 **New tests watched failing first**
 
@@ -136,11 +138,12 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
-| Verdict | Not ready: 5 of 8 open |
+| Verdict | Not ready: 4 of 8 open |
 
 **Independent reviews**
 
 - 2026-11-11 (at 5a3a16d): documentation audit against the code. Found: no claims needed correcting.
+- 2026-11-11 (at 10f284e): read against the official mods guide and the host's own type declarations. Found: a subagent's turn.complete was counted as the person's turn; fixed with a test that failed first.
 
 **New tests watched failing first**
 
@@ -167,11 +170,12 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | any surface that plays sound or shows toasts |
-| Verdict | Not ready: 5 of 8 open |
+| Verdict | Not ready: 4 of 8 open |
 
 **Independent reviews**
 
 - 2026-11-11 (at 5a3a16d): documentation audit against the code. Found: failure toast, playback and tick wording corrected.
+- 2026-11-11 (at 10f284e): read against the official mods guide and the host's own type declarations. Found: a subagent's turn.complete was counted as the person's turn; fixed with a test that failed first.
 
 **New tests watched failing first**
 
