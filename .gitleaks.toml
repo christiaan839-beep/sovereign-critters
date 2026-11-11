@@ -6,3 +6,8 @@ useDefault = true
 description = "The fake token a session-diary test feeds the diary to prove it is never written down"
 paths = ['''plugins/critter-diary/tests/diary\.test\.tsx''']
 regexes = ['''SECRET123''']
+
+[[allowlists]]
+description = "The fake key-shaped note a critter-crab test hands to /crab hold to prove it is refused"
+paths = ['''plugins/critter-crab/tests/secret\.test\.tsx''']
+regexes = ['''abc123def456''']

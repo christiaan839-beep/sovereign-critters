@@ -69,7 +69,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - the corner and the stage have not been seen in the real app
 - the cat overlapping Pip when a side panel opens was seen once and not reproduced
 
-### critter-mods 0.6.1
+### critter-mods 0.7.0
 
 | | |
 | --- | --- |

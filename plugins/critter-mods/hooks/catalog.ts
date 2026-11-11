@@ -9,7 +9,7 @@ export type Installed = { id: string; version: string; enabled: boolean; install
 export type State = 'on' | 'off' | 'missing'
 
 // Each `line` below is a plain one-liner in my words, standing in until the founder's own: replace them here and nowhere else.
-/** The eight mods, critter-buddy first. What each opens is a slash command of its own plugin, never a command line. */
+/** The twelve mods, critter-buddy first. What each opens is a slash command of its own plugin, never a command line. */
 export const MODS: Mod[] = [
   { id: 'critter-buddy', names: ['critter', 'buddy'], line: 'A wizard and a cat live above your prompt and react to what Claude does.',
     opens: [{ label: 'corner', command: 'critter', args: 'corner' }, { label: 'stage', command: 'critter', args: 'stage' }] },
@@ -21,6 +21,10 @@ export const MODS: Mod[] = [
   { id: 'critter-crab', names: ['crab'], line: 'A small crab that remembers one note for each folder you work in.', opens: [{ label: 'note', command: 'crab', args: '' }] },
   { id: 'critter-measure', names: ['forge'], line: 'Lets Claude count words, letters and lines exactly instead of guessing.', opens: [] },
   { id: 'critter-tally', names: ['everywhere'], line: 'Shows your three most-used tools in a little window on the side.', opens: [{ label: 'pane', command: 'everywhere', args: '' }] },
+  { id: 'critter-clock', names: ['clock'], line: 'Tells you how long this session has run and how much of it Claude worked.', opens: [{ label: 'time', command: 'clock', args: '' }] },
+  { id: 'critter-ledger', names: ['ledger'], line: 'Counts the tokens this session has used, when you ask, with a limit of your own.', opens: [{ label: 'count', command: 'ledger', args: '' }] },
+  { id: 'critter-latch', names: ['latch'], line: 'Stops deletes you cannot undo: rm -rf outside your folder, git reset --hard.', opens: [] },
+  { id: 'critter-seal', names: ['seal'], line: 'Holds back a command that would send a secret to a host you have not listed.', opens: [] },
 ]
 
 /** The look-and-feel dials of the lead mod: each option is one of its own slash commands, fixed here. */
@@ -73,6 +77,10 @@ export const STEPS: Record<string, string[]> = {
   'critter-stunt': ['Switch it on here, then start a new session.', 'Type /stunt to open it.'],
   'critter-crab': ['Switch it on here, then start a new session.', 'Type /crab hold and a note to leave one.', 'Come back to the folder later: the crab has it.'],
   'critter-measure': ['Switch it on here, then start a new session.', 'Ask Claude to count a text exactly.'],
+  'critter-clock': ['Switch it on here, then start a new session.', 'Type /clock to see how long you have been at it.'],
+  'critter-ledger': ['Switch it on here, then start a new session.', 'Type /ledger to see the tokens used, or /ledger limit 500k.'],
+  'critter-latch': ['Switch it on here, then start a new session.', 'Nothing else to do: it stops the deletes it can read.'],
+  'critter-seal': ['Switch it on here, then start a new session.', 'Nothing else to do: add trusted hosts in its settings.'],
   'critter-tally': ['Switch it on here, then start a new session.', 'Type /everywhere to open it.'],
 }
 

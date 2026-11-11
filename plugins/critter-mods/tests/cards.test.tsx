@@ -29,7 +29,7 @@ test('every mod has a plain one-liner and two or three short steps, and the step
     expect(m.line.length).toBeLessThanOrEqual(90)
     expect(m.line).not.toMatch(/\b(hook|atom|pane|SVG|render|API|store)\b/i) // plain words: no engine talk on a card
   }
-  expect(new Set(MODS.map(m => m.line)).size).toBe(8)
+  expect(new Set(MODS.map(m => m.line)).size).toBe(12)
 })
 
 test('every mod has its own steps, keyed by its id: only a mod with no entry gets the default two', () => {
@@ -221,10 +221,10 @@ test('the lead mod is pinned first whatever state it is in, then the tiers in or
   const all = orderMods(states())
   expect(all.hero.id).toBe('critter-buddy')
   expect(all.groups.map(g => g.tier)).toEqual(['awake'])
-  expect(all.groups[0]!.mods.map(m => m.id)).toEqual(['critter-bell', 'critter-crab', 'critter-diary', 'critter-measure', 'critter-stunt', 'critter-tally', 'critter-ward']) // by title, A to Z
+  expect(all.groups[0]!.mods.map(m => m.id)).toEqual(['critter-bell', 'critter-clock', 'critter-crab', 'critter-diary', 'critter-latch', 'critter-ledger', 'critter-measure', 'critter-seal', 'critter-stunt', 'critter-tally', 'critter-ward']) // by title, A to Z
   const mixed = orderMods(states({ 'critter-crab': 'off', 'critter-ward': 'missing', 'critter-stunt': 'off', 'critter-measure': 'missing', 'critter-bell': 'off' }))
   expect(mixed.groups.map(g => g.tier)).toEqual(['awake', 'napping', 'leave'])
-  expect(mixed.groups[0]!.mods.map(m => m.id)).toEqual(['critter-diary', 'critter-tally'])
+  expect(mixed.groups[0]!.mods.map(m => m.id)).toEqual(['critter-clock', 'critter-diary', 'critter-latch', 'critter-ledger', 'critter-seal', 'critter-tally'])
   expect(mixed.groups[1]!.mods.map(m => m.id)).toEqual(['critter-bell', 'critter-crab', 'critter-stunt'])
   expect(mixed.groups[2]!.mods.map(m => m.id)).toEqual(['critter-measure', 'critter-ward'])
   const asleep = orderMods(states({ 'critter-buddy': 'off' }))

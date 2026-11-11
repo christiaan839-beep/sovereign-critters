@@ -9,9 +9,9 @@ const off_ = (id: string, version = '1.0.0'): Installed => ({ id: `${id}@${MARKE
 
 // ---- the catalogue -----------------------------------------------------------
 
-test('the control room knows the eight mods, critter-buddy first, each with a line of its own and the commands that open it', () => {
-  expect(MODS.map(m => m.id)).toEqual(['critter-buddy', 'critter-diary', 'critter-bell', 'critter-ward', 'critter-stunt', 'critter-crab', 'critter-measure', 'critter-tally'])
-  expect(new Set(MODS.map(m => m.line)).size).toBe(8) // no two alike
+test('the control room knows the twelve mods, critter-buddy first, each with a line of its own and the commands that open it', () => {
+  expect(MODS.map(m => m.id)).toEqual(['critter-buddy', 'critter-diary', 'critter-bell', 'critter-ward', 'critter-stunt', 'critter-crab', 'critter-measure', 'critter-tally', 'critter-clock', 'critter-ledger', 'critter-latch', 'critter-seal'])
+  expect(new Set(MODS.map(m => m.line)).size).toBe(12) // no two alike
   for (const m of MODS) {
     expect(m.line.length).toBeGreaterThan(20)
     expect(m.line.length).toBeLessThanOrEqual(90)
@@ -133,10 +133,10 @@ test('/mods list says every mod in plain lines, and how many are on', async ($, 
   setup($, on)
   await begin($)
   const text = await run($, 'list')
-  expect(text).toContain('Mods: 7 of 8 on.')
+  expect(text).toContain('Mods: 11 of 12 on.')
   expect(text).toMatch(/● critter-buddy +1\.0\.0 +on/)
   expect(text).toMatch(/○ critter-measure +1\.0\.0 +off/)
-  expect(text.split('\n').length).toBe(1 + 8 + 1) // headline, eight mods, one line on how to use it
+  expect(text.split('\n').length).toBe(1 + 12 + 1) // headline, twelve mods, one line on how to use it
 })
 
 test('/mods opens the control room as a pane, and says so', async ($, on) => {
@@ -208,8 +208,8 @@ test('/mods install adds a missing mod from the marketplace, one mod or all of t
   expect(await run($, 'install critter-measure')).toMatch(/critter-measure is installed\. Restart Claude Code to load it/i)
   expect(ran.some(a => a.join(' ') === 'claude plugin install critter-measure@sovereign-critters --scope user')).toBe(true)
   const text = await run($, 'install all')
-  expect(text).toMatch(/Installed 7/)
-  expect(ran.filter(a => a.includes('install')).length).toBe(1 + 7) // critter-crab was already there
+  expect(text).toMatch(/Installed 11/)
+  expect(ran.filter(a => a.includes('install')).length).toBe(1 + 11) // critter-crab was already there
   expect(await run($, 'install crab')).toMatch(/crab is already installed/i)
 })
 
@@ -218,7 +218,7 @@ test('the pane has a header with the count, refresh and close, and every mod: a 
   await begin($)
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ plugin: 'critter-mods', component: 'Pane', requestId: 'mods', surface, props: { bodyColumns: 80 } } as never)
-    expect(await ui.find({ type: 'Text', text: 'Your mods · 7 of 8 on' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: 'Your mods · 11 of 12 on' })).toBeDefined()
     expect(((await ui.find({ key: 'refresh' })) as { props?: { hotkey?: string } } | undefined)?.props?.hotkey).toBe('r')
     expect(((await ui.find({ key: 'close' })) as { props?: { hotkey?: string } } | undefined)?.props?.hotkey).toBe('q')
     for (const m of MODS) {
@@ -226,7 +226,7 @@ test('the pane has a header with the count, refresh and close, and every mod: a 
       expect(await ui.find({ key: `mod-${m.id}` })).toBeDefined()
     }
     if (surface === 'desktop') {
-      expect((await ui.findAll({ type: 'Svg' })).length).toBe(10) // one picture a card (8) and one ruled strip a tier (AWAKE and NAPPING in this stub)
+      expect((await ui.findAll({ type: 'Svg' })).length).toBe(14) // one picture a card (12) and one ruled strip a tier (AWAKE and NAPPING in this stub)
       expect(await ui.find({ type: 'Text', text: /WHAT'S NEW/ })).toBeUndefined() // the words are in the picture
     } else {
       expect(await ui.find({ type: 'Svg' })).toBeUndefined() // no picture in a plain terminal
@@ -309,7 +309,7 @@ test('a long state line is cut to the pane\'s width, restart note and all', asyn
   const ui = await $.ui.mount({ plugin: 'critter-mods', component: 'Pane', requestId: 'mods', surface: 'terminal', props: { bodyColumns: 28 } } as never)
   expect(await ui.find({ type: 'Text', text: 'off, restart to apply' })).toBeDefined() // the card says what a restart will do
   const titles = (await ui.findAll({ type: 'Text', text: /^[●○–] / })) as { text?: string }[]
-  expect(titles.length).toBe(8)
+  expect(titles.length).toBe(12)
   for (const t of titles) expect(cellsOf(String(t.text))).toBeLessThanOrEqual(28 - 4 - 12 + 2) // card border and padding, the switch, and the symbol
   await ui.unmount()
 })
@@ -350,7 +350,7 @@ test('the footer carries a count of the mods that are on, after whatever the foo
   await begin($)
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ plugin: 'critter-mods', component: 'SessionMode', requestId: 'r1', props: { modes: ['auto mode on'] }, surface } as never)
-    expect((await ui.find({ type: 'Text', text: /auto mode on/ }))?.text).toBe('auto mode on · mods 7/8')
+    expect((await ui.find({ type: 'Text', text: /auto mode on/ }))?.text).toBe('auto mode on · mods 11/12')
     await ui.unmount()
   }
 })
@@ -383,8 +383,8 @@ test('a terminal card has a border in the pair\'s clay when on and dim when off,
   expect(await ui.find({ type: 'Text', text: '[ASLEEP]' })).toBeUndefined() // the old plain words are gone
   expect(await ui.find({ type: 'Text', text: MODS[0]!.line })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: '1. Switch it on here, then start a new session.' })).toBeDefined()
-  expect((await ui.findAll({ type: 'Text', text: 'HOW TO USE' })).length).toBe(8)
-  expect((await ui.findAll({ type: 'Text', text: 'No release notes found.' })).length).toBe(8) // the stub has no changelogs
+  expect((await ui.findAll({ type: 'Text', text: 'HOW TO USE' })).length).toBe(12)
+  expect((await ui.findAll({ type: 'Text', text: 'No release notes found.' })).length).toBe(12) // the stub has no changelogs
   await ui.unmount()
 })
 
@@ -400,7 +400,7 @@ test('each card shows the top entry of that mod\'s own CHANGELOG, read from its 
   await begin($)
   await run($, '') // opening the control room reads the notes
   const heads = ran.filter(a => a[0] === 'head')
-  expect(heads).toHaveLength(8)
+  expect(heads).toHaveLength(12)
   expect(heads[0]).toEqual(['head', '-c', '4000', `${CACHE}/critter-buddy/1.0.0/CHANGELOG.md`])
   const term = await $.ui.mount({ plugin: 'critter-mods', component: 'Pane', requestId: 'mods', surface: 'terminal', props: { bodyColumns: 80 } } as never)
   expect(await term.find({ type: 'Text', text: 'v2.5.0' })).toBeDefined()
@@ -418,10 +418,10 @@ test('a changelog that cannot be read, and a path the plugin manager gave that i
   const { ran } = setup($, on, withPaths({ 'critter-measure': '/etc', 'critter-crab': `${CACHE}/critter-crab/1.0.0/../../../..` }), undefined, argv => argv[0] === 'head' ? { value: { exitCode: 1, stdout: '', stderr: 'no such file', isStdoutTruncated: false, isStderrTruncated: false } } : undefined)
   await begin($)
   await run($, '')
-  expect(ran.filter(a => a[0] === 'head')).toHaveLength(6) // critter-measure and crab were never read: their paths are not trusted
+  expect(ran.filter(a => a[0] === 'head')).toHaveLength(10) // critter-measure and crab were never read: their paths are not trusted
   expect(ran.some(a => a.join(' ').includes('/etc') || a.join(' ').includes('..'))).toBe(false)
   const term = await $.ui.mount({ plugin: 'critter-mods', component: 'Pane', requestId: 'mods', surface: 'terminal', props: { bodyColumns: 80 } } as never)
-  expect((await term.findAll({ type: 'Text', text: 'No release notes found.' })).length).toBe(8)
+  expect((await term.findAll({ type: 'Text', text: 'No release notes found.' })).length).toBe(12)
   await term.unmount()
 })
 
@@ -432,7 +432,7 @@ test('refresh reads the plugin manager and the notes again', async ($, on) => {
   const before = ran.filter(a => a.includes('list')).length
   await ui.press({ key: 'refresh' })
   expect(ran.filter(a => a.includes('list')).length).toBe(before + 1)
-  expect(ran.filter(a => a[0] === 'head').length).toBeGreaterThanOrEqual(8)
+  expect(ran.filter(a => a[0] === 'head').length).toBeGreaterThanOrEqual(12)
   await ui.unmount()
 })
 
@@ -456,12 +456,12 @@ test('the pane puts the lead mod first, then the tiers in order, each alphabetic
   const ui = await $.ui.mount({ plugin: 'critter-mods', component: 'Pane', requestId: 'mods', surface: 'terminal', props: { bodyColumns: 80 } } as never)
   const drawn = JSON.stringify(await ui.drawn())
   const at = (id: string) => drawn.indexOf(`"mod-${id}"`)
-  const order = ['critter-buddy', 'critter-bell', 'critter-crab', 'critter-diary', 'critter-stunt', 'critter-tally', 'critter-ward', 'critter-measure'].map(at)
+  const order = ['critter-buddy', 'critter-bell', 'critter-clock', 'critter-crab', 'critter-diary', 'critter-latch', 'critter-ledger', 'critter-seal', 'critter-stunt', 'critter-tally', 'critter-ward', 'critter-measure'].map(at)
   expect(order.every(n => n >= 0)).toBe(true)
   expect([...order].sort((a, b) => a - b)).toEqual(order) // already in the order they are drawn
   const strip = (word: string, n: number) => drawn.indexOf(`── ${word} · ${n} ──`)
-  expect(strip('AWAKE', 6)).toBeGreaterThan(at('critter-buddy')) // the AWAKE strip sits after the lead mod
-  expect(strip('AWAKE', 6)).toBeLessThan(at('critter-bell'))
+  expect(strip('AWAKE', 10)).toBeGreaterThan(at('critter-buddy')) // the AWAKE strip sits after the lead mod
+  expect(strip('AWAKE', 10)).toBeLessThan(at('critter-bell'))
   expect(strip('NAPPING', 1)).toBeGreaterThan(at('critter-ward')) // the NAPPING strip sits between ward and critter-measure
   expect(strip('NAPPING', 1)).toBeLessThan(at('critter-measure'))
   expect(drawn.indexOf('── ON DUTY')).toBe(-1) // the lead mod needs no strip of its own
@@ -517,9 +517,9 @@ test('/mods install all names every mod that would not install, and why', async 
   })
   await begin($)
   const text = await run($, 'install all')
-  expect(text).toMatch(/Installed 5: /)
+  expect(text).toMatch(/Installed 9: /)
   expect(text).toMatch(/Could not install 2: critter-ward \(.+\), critter-measure \(network down\)/)
-  expect(text).not.toMatch(/^Installed 7/)
+  expect(text).not.toMatch(/^Installed 11/)
 })
 
 test('starting a session does not wait on the plugin manager, and the list that arrives late is still used', async ($, on) => {
@@ -565,7 +565,7 @@ test('one flaky read does not wipe a good list, and a switch that failed but hap
   await new Promise(r => setTimeout(r, 30))
   expect(await run($, 'off crab')).toMatch(/did switch critter-crab off/i)
   broken = true
-  expect(await run($, 'list')).toMatch(/Mods: 6 of 8 on/) // the last good list stands
+  expect(await run($, 'list')).toMatch(/Mods: 10 of 12 on/) // the last good list stands
 })
 
 

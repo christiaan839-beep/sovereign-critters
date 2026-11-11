@@ -19,7 +19,7 @@ Kept so a long run survives a context summary. Newest state first. Update it in 
 ## Needs the founder
 
 - [ ] Look at the four new mods in the real app (none has been seen live; icons are placeholders, no poster art).
-- [ ] Add the four to the `/mods` control room catalog (`plugins/critter-mods/hooks/catalog.ts`); this changes its card tests.
+- [x] Added the four to the `/mods` control room (critter-mods 0.7.0, 64 tests).
 - [ ] Decide on the PR. The guard blocks pushes to main, so nothing here is pushed.
 - [ ] Marketplace: the Claude Marketplace article lists partner agents bought with committed spend; it says nothing about free open-source mods. Ask how a free mod gets listed before planning for it.
 
