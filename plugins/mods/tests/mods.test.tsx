@@ -1,6 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
-import { DIALS, HUB, MARKET, MODS, actionFor, cellsOf, fit, idOf, installArgv, listLine, parseList, restartNeeded, stateOf, toggleArgv } from '../hooks/catalog'
+import { DIALS, HUB, MARKET, MODS, actionFor, cellsOf, fit, idOf, installArgv, listLine, parseList, parseTopEntry, restartNeeded, stateOf, toggleArgv, wrap } from '../hooks/catalog'
+import { cardSvg } from '../hooks/card-svg'
 import type { Installed } from '../hooks/catalog'
 
 const on_ = (id: string, version = '1.0.0'): Installed => ({ id: `${id}@${MARKET}`, version, enabled: true })
@@ -43,9 +44,9 @@ test('the plugin manager\'s list is read with suspicion: a bad entry is skipped,
     { id: 'forge@sovereign-critters', version: '0.1.0', enabled: false },
     { id: 'guard@sovereign-critters', version: '?', enabled: true },
   ])
-  expect(parseList('not json')).toEqual([])
-  expect(parseList('{"a":1}')).toEqual([])
-  expect(parseList('')).toEqual([])
+  expect(parseList('not json')).toBeUndefined()
+  expect(parseList('{"a":1}')).toBeUndefined()
+  expect(parseList('')).toBeUndefined()
   expect(idOf('crab')).toBe('crab@sovereign-critters')
 })
 
@@ -465,4 +466,30 @@ test('the pane puts the lead mod first, then the tiers in order, each alphabetic
   expect(strip('NAPPING', 1)).toBeLessThan(at('forge'))
   expect(drawn.indexOf('── ON DUTY')).toBe(-1) // the lead mod needs no strip of its own
   await ui.unmount()
+})
+
+test('review fixes: a bad or truncated plugin list is unreadable, not "nothing installed", and one odd entry does not spoil the rest', () => {
+  expect(parseList('not json')).toBeUndefined()
+  expect(parseList('{"a":1}')).toBeUndefined()
+  expect(parseList('')).toBeUndefined()
+  expect(parseList('warning: something\n[{"id":"crab@sovereign-critters","enabled":true}]')).toBeUndefined() // a line before the JSON
+  expect(parseList('[]')).toEqual([]) // an honest empty list is still empty
+  const odd = JSON.stringify([
+    { id: 'a(@sovereign-critters', enabled: true, installPath: '/x/plugins/cache/sovereign-critters/a(/1.0.0' },
+    { id: '.*@sovereign-critters', enabled: true, installPath: '/x/plugins/cache/sovereign-critters/crab/1.0.0' },
+    { id: 'crab@sovereign-critters', version: '0.2.0', enabled: true, installPath: '/x/plugins/cache/sovereign-critters/crab/0.2.0' },
+  ])
+  const list = parseList(odd)!
+  expect(list.map(x => x.id)).toContain('crab@sovereign-critters') // the good entry survives
+  expect(list.find(x => x.id === 'crab@sovereign-critters')?.installPath).toBe('/x/plugins/cache/sovereign-critters/crab/0.2.0')
+  expect(list.find(x => x.id === '.*@sovereign-critters')?.installPath).toBeUndefined() // an id is a literal name, never a pattern
+})
+
+test('review fixes: a changelog with Windows line endings still gives its bullets, and the card text cannot break the SVG', () => {
+  const notes = parseTopEntry('# Changelog\r\n\r\n## 1.2.0\r\n\r\n- first thing\r\n- second thing\r\n- third\r\n')
+  expect(notes).toEqual({ heading: '1.2.0', bullets: ['first thing', 'second thing'] })
+  const svg = cardSvg({ id: 'crab', title: 'Crab', version: '1\u001b[31m', tier: 'awake', line: 'a\u0008b \ud83d lone', steps: ['x'], notes: { heading: 'h\u0000', bullets: ['y￾'] } } as never).source
+  expect(svg).not.toMatch(/[\u0000-\u0008\u000b\u000c\u000e-\u001f￾￿]/)
+  expect(svg).not.toMatch(/[\ud800-\udbff](?![\udc00-\udfff])/)
+  expect([...wrap('x'.repeat(55) + '😀' + 'y'.repeat(10), 56)].join('')).not.toMatch(/[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/) // a break never lands inside an emoji
 })

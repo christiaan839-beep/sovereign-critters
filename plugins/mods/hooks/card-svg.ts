@@ -28,7 +28,8 @@ const PITCH = 22 // between ruled lines
 const TOP = 124 // the first ruled line of the body
 const CHARS = 58 // typewriter characters that fit between the margins at 15 px
 
-const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')
+// XML 1.0 forbids most control characters and a lone surrogate: either would make the whole picture unreadable, so they are dropped first.
+const esc = (s: string): string => s.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]|[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')
 
 type Row = { text: string; kind: 'body' | 'label' | 'note' | 'restart'; gap?: boolean }
 

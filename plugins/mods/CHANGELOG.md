@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.4
+
+- **Fixed: a plugin list that cannot be read no longer looks like "nothing installed".** If `claude plugin list --json` printed a warning before its JSON, or was cut off, the control room showed every mod as ON LEAVE and offered to install what was already there. It now says the plugin manager cannot be read.
+- **Fixed: one odd entry in the list could spoil all of it**, and a mod name is now matched as a plain name, never as a pattern.
+- **Fixed: a changelog with Windows line endings showed no notes** on its card; and a control character or half an emoji in a changelog could make the card unreadable, so they are dropped, and long words are broken between whole characters.
+- The README now says what it reads (bytes, not characters), what else it runs (other mods' own commands) and that it holds the last list within a session.
+
 ## 0.5.3
 
 - The listing card now carries a homepage, a repository link and keywords. No behaviour change.

@@ -30,3 +30,20 @@ test('an emoji with a skin tone, a joined family and a combining accent count ea
   expect(measure('a\r\nb\r\n').lines).toBe(2)
   expect(measure('👍🏽').bytes).toBe(8)
 })
+
+test('a text of hundreds of thousands of lines is counted, not a crash', () => {
+  const m = measure('\n'.repeat(300_000))
+  expect(m.lines).toBe(300_000)
+  expect(m.longestLine).toBe(0)
+  expect(measure('ab\n'.repeat(200_000) + 'cde').longestLine).toBe(3)
+})
+
+test('the model is told when it hands measure something that is not a string, and not given a confident zero', async $ => {
+  for (const text of [42, { a: 1 }, ['a', 'b'], null]) {
+    const ran = await $.tool.call({ tool: 'mcp__forge__measure', text } as never)
+    expect(ran.result, JSON.stringify(text)).toBe('measure needs a text: a string in "text".')
+  }
+  const missing = await $.tool.call({ tool: 'mcp__forge__measure' } as never)
+  expect(missing.result).toBe('measure needs a text: a string in "text".')
+  expect((await $.tool.call({ tool: 'mcp__forge__measure', text: '' })).result).toBe('0 characters, 0 words, 0 lines (the longest 0 characters), 0 bytes') // an empty string is still a text
+})

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.3
+
+- **Fixed: a note cannot be disguised with Unicode direction controls** (such as a right-to-left override that reverses the text in the band); they are removed like the colour codes and control characters already were.
+
 ## 0.2.2
 
 - The listing card now carries a homepage, a repository link and keywords. No behaviour change.

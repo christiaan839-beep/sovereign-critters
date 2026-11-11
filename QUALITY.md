@@ -63,11 +63,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - the corner and the stage have not been seen in the real app
 - the cat overlapping Pip when a side panel opens was seen once and not reproduced
 
-### mods 0.5.3
+### mods 0.5.4
 
 | | |
 | --- | --- |
-| Tests passing | 54 |
+| Tests passing | 56 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -195,11 +195,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - where its three settings are set is not documented
 - no independent code review yet
 
-### crab 0.2.2
+### crab 0.2.3
 
 | | |
 | --- | --- |
-| Tests passing | 20 |
+| Tests passing | 21 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -288,11 +288,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - never seen in the real app
 - no independent code review yet
 
-### forge 0.1.2
+### forge 0.1.3
 
 | | |
 | --- | --- |
-| Tests passing | 5 |
+| Tests passing | 7 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | any surface (it is a tool the model calls) |

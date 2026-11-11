@@ -9,7 +9,7 @@ Gives Claude a tool that counts a text exactly: characters as Unicode code point
 Registers one tool, `measure`, which the model sees as `mcp__forge__measure`. Give it a text and it answers with:
 
 - **characters**, counted as Unicode code points;
-- **words**, **lines**, and **UTF-8 bytes**.
+- **words**, **lines**, the **longest line**, and **UTF-8 bytes** (a lone half of an emoji, which is not valid text, counts as the three bytes of the replacement character). It answers a clear message, not a count, if what it is given is not a string.
 
 A model guesses at these. This counts. `héllo` is 5 characters and 6 bytes, because `é` takes two bytes in UTF-8.
 

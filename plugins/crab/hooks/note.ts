@@ -22,6 +22,7 @@ export const cleanNote = (raw: unknown, cap = MAX_NOTE): string => {
     .replace(/\u001b[@-_]/g, '')
     .replace(/[\n\r\t\u2028\u2029]/g, ' ')
     .replace(/[\u0000-\u001f\u007f-\u009f]/g, '')
+    .replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '') // direction controls cannot reverse the band's text
     .replace(/\s+/g, ' ')
     .trim()
   return [...flat].slice(0, cap).join('').trimEnd()

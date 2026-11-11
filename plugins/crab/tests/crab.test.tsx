@@ -286,3 +286,7 @@ test('even in a window too narrow for the crab the line keeps eight cells, and a
   await run($, 'drop') // puts down only this folder's
   expect(Object.keys(store.notes as object)).toEqual([hashOf('/work/atlas')])
 })
+
+test('a note cannot be disguised with Unicode direction controls', () => {
+  expect(cleanNote('fix ‮gnirts‬ and ⁦x⁩ ‎ok‏')).toBe('fix gnirts and x ok')
+})

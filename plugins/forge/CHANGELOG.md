@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3
+
+- **Fixed: `measure` now answers a clear message when the model hands it something that is not a string** (a number, an object, nothing) instead of a confident count of zero or of "[object Object]".
+- **Fixed: a very long text no longer risks overflowing the stack** when it finds the longest line (reproduced at 130,000 lines in Node). The README now mentions the longest line and the lone-surrogate byte count.
+
 ## 0.1.2
 
 - The listing card now carries a homepage, a repository link and keywords. No behaviour change.

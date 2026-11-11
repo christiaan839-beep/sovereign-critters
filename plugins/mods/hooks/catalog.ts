@@ -79,7 +79,7 @@ export const STEPS: Record<string, string[]> = {
 /** What a mod's own CHANGELOG says at the top: its newest heading and that entry's first two bullets, cleaned and cut. Release notes, not file times. */
 export type Notes = { heading: string; bullets: string[] }
 export const parseTopEntry = (md: string): Notes | undefined => {
-  const rows = md.split('\n')
+  const rows = md.split(/\r?\n/)
   const i = rows.findIndex(r => /^## /.test(r))
   if (i < 0) return undefined
   const bullets: string[] = []
@@ -94,17 +94,19 @@ export const parseTopEntry = (md: string): Notes | undefined => {
 }
 
 /** An install path is trusted only as this marketplace's cache folder for that mod; it is then read with `head`, never a shell. */
+const literal = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // a name is a name, never a pattern
 export const safeInstallPath = (p: unknown, id: string): string | undefined =>
-  typeof p === 'string' && !p.includes('..') && new RegExp(`^/[^\\0\\n\\r]*/plugins/cache/${MARKET}/${id}/[0-9][0-9A-Za-z.+-]*$`).test(p) ? p : undefined
+  typeof p === 'string' && !p.includes('..') && new RegExp(`^/[^\\0\\n\\r]*/plugins/cache/${literal(MARKET)}/${literal(id)}/[0-9][0-9A-Za-z.+-]*$`).test(p) ? p : undefined
 
-/** Text wrapped at `width` characters on spaces; a word longer than the line is broken. */
+/** Text wrapped at `width` characters on spaces; a word longer than the line is broken, by whole characters (never inside an emoji). */
 export const wrap = (text: string, width: number): string[] => {
   const out: string[] = []
   let line = ''
   for (let word of text.split(/\s+/).filter(Boolean)) {
-    while (word.length > width) {
+    while ([...word].length > width) {
       if (line) { out.push(line); line = '' }
-      out.push(word.slice(0, width)); word = word.slice(width)
+      const chars = [...word]
+      out.push(chars.slice(0, width).join('')); word = chars.slice(width).join('')
     }
     if (!line) line = word
     else if (line.length + 1 + word.length <= width) line += ' ' + word
@@ -114,18 +116,26 @@ export const wrap = (text: string, width: number): string[] => {
   return out
 }
 
-/** `claude plugin list --json`, read with suspicion: this marketplace's entries only, a bad entry skipped, a bad document empty. */
-export const parseList = (stdout: string): Installed[] => {
+/**
+ * `claude plugin list --json`, read with suspicion: this marketplace's entries only, a bad entry skipped. A document that is not a JSON
+ * array (a warning line before it, a cut-off output) is `undefined`, never an empty list: an empty list means nothing is installed, and
+ * the control room would then offer to install what is already there.
+ */
+export const parseList = (stdout: string): Installed[] | undefined => {
   let doc: unknown
-  try { doc = JSON.parse(stdout) } catch { return [] }
-  if (!Array.isArray(doc)) return []
+  try { doc = JSON.parse(stdout) } catch { return undefined }
+  if (!Array.isArray(doc)) return undefined
   const out: Installed[] = []
   for (const x of doc) {
-    if (typeof x !== 'object' || x === null) continue
-    const r = x as Record<string, unknown>
-    if (typeof r.id !== 'string' || !r.id.endsWith(`@${MARKET}`) || typeof r.enabled !== 'boolean') continue
-    const path = safeInstallPath(r.installPath, r.id.slice(0, r.id.indexOf('@')))
-    out.push({ id: r.id, version: typeof r.version === 'string' ? r.version : '?', enabled: r.enabled, ...(path ? { installPath: path } : {}) })
+    try {
+      if (typeof x !== 'object' || x === null) continue
+      const r = x as Record<string, unknown>
+      if (typeof r.id !== 'string' || !r.id.endsWith(`@${MARKET}`) || typeof r.enabled !== 'boolean') continue
+      const path = safeInstallPath(r.installPath, r.id.slice(0, r.id.indexOf('@')))
+      out.push({ id: r.id, version: typeof r.version === 'string' ? r.version : '?', enabled: r.enabled, ...(path ? { installPath: path } : {}) })
+    } catch {
+      // one odd entry never spoils the rest
+    }
   }
   return out
 }

@@ -12,7 +12,7 @@ export function measure(text: string): Measure {
     characters: [...text].length,
     words: trimmed === '' ? 0 : trimmed.split(/\s+/).length,
     lines: lines.length,
-    longestLine: Math.max(0, ...lines.map(line => [...line].length)),
+    longestLine: lines.reduce((most, line) => Math.max(most, [...line].length), 0), // a loop, not a spread: a text of 100,000 lines would overflow the call stack
     bytes: new TextEncoder().encode(text).length,
   }
 }
@@ -43,5 +43,5 @@ export const register: Register = on => {
 
   // The model calls it as mcp__forge__measure. Every call is answered here; nothing beneath runs it.
   on('tool.call', { tool: 'mcp__forge__measure' }, ($, e) =>
-    ({ result: describe(measure(String(e.text ?? ''))) })).catch(($, e, next) => next(e))
+    ({ result: typeof e.text === 'string' ? describe(measure(e.text)) : 'measure needs a text: a string in "text".' })).catch(($, e, next) => next(e))
 }
