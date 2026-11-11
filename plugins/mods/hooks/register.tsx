@@ -10,7 +10,7 @@ const USAGE = 'Usage: /mods [list | on <mod> | off <mod> | install <mod|all> | o
 
 // What the plugin manager last said, and which mods this session loaded. Module variables start over on a reload;
 // session.start reads them again, and the plugin manager is the truth whenever it is asked.
-const S: { list: Installed[] | undefined; loaded: Set<string>; notes: Record<string, Notes | undefined> } = { list: undefined, loaded: new Set(), notes: {} }
+const S: { list: Installed[] | undefined; loaded: Set<string> | undefined; notes: Record<string, Notes | undefined> } = { list: undefined, loaded: undefined, notes: {} }
 let last = '' // the last thing the control room did, shown at the foot of the pane
 
 const redraw = ($: any) => {
@@ -37,8 +37,16 @@ const readNotes = async ($: any, path: string): Promise<Notes | undefined> => {
     return undefined
   }
 }
+/** What this session loaded is what was on when its first good read of the plugin manager came back; until then nothing claims a restart is needed. */
+const seed = (list: Installed[] | undefined) => {
+  if (list && !S.loaded) S.loaded = new Set(list.filter(x => x.enabled).map(x => x.id.split('@')[0]!))
+}
+const loadedHas = (id: string): boolean => (S.loaded ? S.loaded.has(id) : stateNow0(id))
+const stateNow0 = (id: string): boolean => !!S.list?.find(x => x.id === idOf(id))?.enabled // unseeded: as it is now, so nothing needs a restart
 const refresh = async ($: any) => {
-  S.list = await readList($)
+  const fresh = await readList($)
+  if (fresh) S.list = fresh // one flaky read does not wipe the last good list
+  seed(fresh)
   const found = await Promise.all(MODS.map(async m => [m.id, S.list?.find(x => x.id === `${m.id}@sovereign-critters`)?.installPath] as const))
   const notes = await Promise.all(found.map(async ([id, path]) => [id, path ? await readNotes($, path) : undefined] as const))
   S.notes = Object.fromEntries(notes)
@@ -48,7 +56,7 @@ const stateNow = (mod: Mod) => stateOf(mod, S.list ?? [])
 const onCount = () => MODS.filter(m => stateNow(m).state === 'on').length
 const lines = () => [
   `Mods: ${onCount()} of ${MODS.length} on.`,
-  ...MODS.map(m => listLine(m, stateNow(m), S.loaded, 100)),
+  ...MODS.map(m => listLine(m, stateNow(m), new Set(MODS.filter(x => loadedHas(x.id)).map(x => x.id)), 100)),
   '/mods off <name> · /mods on <name> · /mods open <name> · /mods install all',
 ]
 
@@ -65,6 +73,7 @@ const setMod = async ($: any, mod: Mod, want: 'on' | 'off'): Promise<string> => 
     const r = await $.process.run(argv, { timeoutMs: 30_000 })
     if (r.exitCode !== 0) {
       await refresh($) // a switch that timed out may have happened all the same: the pane shows what is true
+      if (stateNow(mod).state === want) return `The plugin manager reported a problem, but it did switch ${mod.id} ${want}. Restart Claude Code to apply.`
       return `The plugin manager would not switch ${mod.id} ${want}: ${fit(String(r.stderr || r.stdout || 'no reason given').trim().split('\n')[0] ?? '', 90)}`
     }
   } catch {
@@ -72,10 +81,10 @@ const setMod = async ($: any, mod: Mod, want: 'on' | 'off'): Promise<string> => 
     return CANNOT
   }
   await refresh($)
-  return want === 'off' ? `${mod.id} is off. Restart Claude Code to apply.` : S.loaded.has(mod.id) ? `${mod.id} is on.` : `${mod.id} is on. Restart Claude Code to load it.`
+  return want === 'off' ? `${mod.id} is off. Restart Claude Code to apply.` : loadedHas(mod.id) ? `${mod.id} is on.` : `${mod.id} is on. Restart Claude Code to load it.`
 }
 
-type Installing = { ok: boolean; text: string; why: string }
+type Installing = { ok: boolean; text: string; why: string; unreachable?: boolean }
 const installOne = async ($: any, mod: Mod): Promise<Installing> => {
   if (stateNow(mod).state !== 'missing') return { ok: false, text: `${mod.id} is already installed.`, why: 'already installed' }
   try {
@@ -85,9 +94,9 @@ const installOne = async ($: any, mod: Mod): Promise<Installing> => {
       const why = fit(String(r.stderr || r.stdout || 'no reason given').trim().split('\n')[0] ?? '', 90)
       return { ok: false, text: `The plugin manager would not install ${mod.id}: ${why}`, why }
     }
-  } catch {
+  } catch (err) {
     await refresh($)
-    return { ok: false, text: CANNOT, why: 'the plugin manager could not be reached' }
+    return { ok: false, text: CANNOT, why: fit(String((err as { message?: string })?.message ?? 'no reason given').split('\n')[0] ?? '', 90), unreachable: true }
   }
   await refresh($)
   return { ok: true, text: `${mod.id} is installed. Restart Claude Code to load it.`, why: '' }
@@ -144,11 +153,12 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     // The plugin manager can take seconds to answer: the session starts without waiting, and the list is filled in when it arrives.
     // What this session loaded is what was on when it began, so only the first answer says it.
-    S.loaded = new Set()
+    S.loaded = undefined
+    S.list = undefined
     const began: Promise<void> = Promise.resolve(readList($)).then(list => {
       if (!list) return
       S.list = S.list ?? list
-      S.loaded = new Set(list.filter(x => x.enabled).map(x => x.id.split('@')[0]!))
+      seed(list)
       redraw($)
     }).catch(() => undefined)
     void began
@@ -185,14 +195,15 @@ export const register: Register = on => {
           const missing = MODS.filter(m => stateNow(m).state === 'missing')
           const done: string[] = []
           const failed: string[] = []
+          let unreachable = 0
           for (const m of missing) {
             const r = await installOne($, m)
             if (r.ok) done.push(m.id)
-            else failed.push(r.why.startsWith('the plugin manager could not') ? m.id : `${m.id} (${r.why})`)
+            else { failed.push(`${m.id} (${r.why})`); if (r.unreachable) unreachable += 1 }
           }
           if (!missing.length) return say('Every mod is already installed.')
-          const lost = failed.length ? `Could not install ${failed.length}: ${failed.join(', ')}.` : ''
-          return say(done.length ? `Installed ${done.length}: ${done.join(', ')}. ${lost} Restart Claude Code to load them.`.replace(/\. {2}/, '. ') : failed.length === missing.length && failed.every(f => !f.includes('(')) ? CANNOT : lost)
+          if (!done.length && unreachable === missing.length) return say(CANNOT)
+          return say([done.length ? `Installed ${done.length}: ${done.join(', ')}.` : '', failed.length ? `Could not install ${failed.length}: ${failed.join(', ')}.` : '', done.length ? 'Restart Claude Code to load them.' : ''].filter(Boolean).join(' '))
         }
         const mod = actionFor(words[1]!)
         return say(mod ? await installMod($, mod) : `No mod is called "${fit(words[1]!, 24)}". ${USAGE}`)
@@ -252,7 +263,7 @@ export const register: Register = on => {
           }
           const m = it.m
           const s = stateNow(m)
-          const need = S.list ? restartNeeded(s.state, S.loaded.has(m.id)) : false
+          const need = S.list ? restartNeeded(s.state, loadedHas(m.id)) : false
           const toggle = s.state === 'missing' ? 'install' : s.state === 'on' ? '━● on' : '●━ off'
           const steps = STEPS[m.id] ?? DEFAULT_STEPS
           const notes = S.notes[m.id]

@@ -518,7 +518,7 @@ test('/mods install all names every mod that would not install, and why', async 
   await begin($)
   const text = await run($, 'install all')
   expect(text).toMatch(/Installed 5: /)
-  expect(text).toMatch(/Could not install 2: guard, forge \(network down\)/)
+  expect(text).toMatch(/Could not install 2: guard \(.+\), forge \(network down\)/)
   expect(text).not.toMatch(/^Installed 7/)
 })
 
@@ -536,4 +536,34 @@ test('starting a session does not wait on the plugin manager, and the list that 
   await new Promise(r => setTimeout(r, 50))
   await run($, 'off crab')
   expect(await run($, 'list')).toMatch(/○ crab +1\.0\.0 +off, restart to apply/) // crab was loaded when the session began
+})
+
+
+// ---- second review ----
+test('when the first read failed, the first good read says what this session loaded, and nothing claims a restart is needed before that', async ($, on) => {
+  let n = 0
+  setup($, on, LIST, undefined, argv => (argv.includes('list') && n++ === 0 ? { value: { ...PROCESS_OK, exitCode: 1, stdout: '', stderr: 'slow' } } : undefined))
+  await begin($)
+  await new Promise(r => setTimeout(r, 30))
+  const text = await run($, 'list')
+  expect(text).toMatch(/● critter-buddy +1\.0\.0 +on$/m) // loaded, because the first good read says so: no "restart to load"
+  expect(text).not.toMatch(/restart to load/)
+})
+
+test('one flaky read does not wipe a good list, and a switch that failed but happened is said to have happened', async ($, on) => {
+  let flipped = false
+  let broken = false
+  setup($, on, LIST, undefined, argv => {
+    if (argv.includes('disable')) { flipped = true; return { value: { ...PROCESS_OK, exitCode: 1, stdout: '', stderr: 'timed out' } } }
+    if (argv.includes('list')) {
+      if (broken) return { value: { ...PROCESS_OK, exitCode: 1, stdout: '', stderr: 'flaky' } }
+      if (flipped) { const doc = JSON.parse(LIST) as { id: string; enabled: boolean }[]; return { value: { ...PROCESS_OK, stdout: JSON.stringify(doc.map(x => (x.id.startsWith('crab@') ? { ...x, enabled: false } : x))) } } }
+    }
+    return undefined
+  })
+  await begin($)
+  await new Promise(r => setTimeout(r, 30))
+  expect(await run($, 'off crab')).toMatch(/did switch crab off/i)
+  broken = true
+  expect(await run($, 'list')).toMatch(/Mods: 6 of 8 on/) // the last good list stands
 })

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.6
+
+- **Fixed:** no mod claims "restart to load" before the control room knows what this session loaded; the first good read of the plugin manager settles it, even if the first one timed out.
+- **Fixed:** one failed read of the plugin manager no longer wipes the last good list from the pane.
+- **Fixed:** a switch the plugin manager reported as failed but actually made is now said to have happened.
+- **Fixed:** `/mods install all` keeps each failure's reason, including when the plugin manager could not be started.
+
 ## 0.5.5
 
 - **Fixed:** after a switch that failed or timed out the pane reads the list again, so it shows what the plugin manager actually did instead of a stale state.
