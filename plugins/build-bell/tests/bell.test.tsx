@@ -114,3 +114,56 @@ test('nineteen seconds is still a tick, and five is the first one', async ($, on
 test('five seconds exactly ticks', async ($, on) => {
   expect((await turn($, on, 5_000)).bells).toEqual(['sounds/tick.wav'])
 })
+
+// ---- review fixes: the settings can be set, a command and its turn ring once, and the bell never holds up a result ----
+test('minSeconds can be set: a 6 s command rings when the threshold is 5', { options: { minSeconds: 5 } }, async ($, on) => {
+  expect((await run($, on, 6_000)).bells).toEqual(['sounds/bell.wav'])
+})
+
+test('sound can be turned off and the toast stays', { options: { sound: false } }, async ($, on) => {
+  const { toasts, bells } = await run($, on, 45_000)
+  expect(toasts).toEqual(['The command finished in 45 s'])
+  expect(bells).toEqual([])
+})
+
+test('shortTurns can be turned off and the tick goes', { options: { shortTurns: false } }, async ($, on) => {
+  expect((await turn($, on, 6_000)).bells).toEqual([])
+})
+
+test('a long command and the turn it ends rings once, not twice', async ($, on) => {
+  const toasts: string[] = []
+  const bells: string[] = []
+  let clock = 3_000_000
+  on('clock.now', () => ({ value: clock }))
+  on('prompt.submit', (_: unknown, e: { text: string; inputText: string }) => ({ text: e.text, inputText: e.inputText }) as never)
+  on('tool.call', () => { clock += 45_000; return { result: 'ok' } as never })
+  on('turn.complete', () => ({ text: 'done' }))
+  on('ui.toast', (_: unknown, e: { text: string }) => { toasts.push(e.text); return { value: undefined } })
+  on('audio.play', (_: unknown, e: { clip: { asset?: string } }) => { bells.push(e.clip.asset ?? ''); return { value: undefined } })
+  await $.prompt.submit({ text: 'go', inputText: 'go' } as never)
+  await $.tool.call({ tool: 'Bash', command: 'npm test' } as never)
+  clock += 3_000 // Claude reads the result and answers
+  await $.turn.complete({ answer: 'done' } as never)
+  expect(bells).toEqual(['sounds/bell.wav'])
+  expect(toasts).toEqual(['The command finished in 45 s'])
+  // but a turn that goes on a long while after the command's bell has not been announced: it rings
+  await $.prompt.submit({ text: 'again', inputText: 'again' } as never)
+  clock += 90_000
+  await $.turn.complete({ answer: 'done' } as never)
+  expect(bells).toEqual(['sounds/bell.wav', 'sounds/bell.wav'])
+})
+
+test('the bell is not awaited: a player that never answers does not hold up the command or the turn', async ($, on) => {
+  let clock = 4_000_000
+  on('clock.now', () => ({ value: clock }))
+  on('prompt.submit', (_: unknown, e: { text: string; inputText: string }) => ({ text: e.text, inputText: e.inputText }) as never)
+  on('tool.call', () => { clock += 45_000; return { result: 'ok' } as never })
+  on('turn.complete', () => ({ text: 'done' }))
+  on('ui.toast', () => ({ value: undefined }))
+  on('audio.play', () => new Promise(() => undefined) as never)
+  const soon = <T,>(p: Promise<T>) => Promise.race([p, new Promise<string>(r => setTimeout(() => r('held up'), 200))])
+  await $.prompt.submit({ text: 'go', inputText: 'go' } as never)
+  expect(await soon($.tool.call({ tool: 'Bash', command: 'make' } as never))).not.toBe('held up')
+  clock += 90_000
+  expect(await soon($.turn.complete({ answer: 'done' } as never))).not.toBe('held up')
+})

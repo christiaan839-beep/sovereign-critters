@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0
+
+- **Fixed:** the three settings (how many seconds before it rings, sound, the tick after short turns) can now actually be set; they were read but never declared, so there was nowhere to change them. They are in the plugin's settings.
+- **Fixed:** a long command and the turn it ends no longer ring twice; the turn stays quiet when the command's bell has just rung.
+- **Fixed:** the bell is started and left, so a slow or stuck sound player can no longer hold up a command's result.
+
 ## 0.4.5
 
 - **Fixed:** the bell no longer rings, and the turn clock no longer stops, when a subagent finishes: only the end of your own turn counts.

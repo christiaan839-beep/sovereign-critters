@@ -14,7 +14,7 @@ Eight gates. The lead mods (the first three) must meet all eight before release.
 | critter-buddy | met | met | met | stale | stale | stale | stale | open | Not ready: 5 of 8 open |
 | mods | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | guard | met | met | met | stale | stale | open | stale | open | Not ready: 5 of 8 open |
-| session-diary | met | met | met | open | met | open | stale | open | Not ready: 4 of 8 open |
+| session-diary | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | build-bell | met | met | met | open | met | open | stale | open | Not ready: 4 of 8 open |
 | crab | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | stunt | met | met | met | open | met | open | stale | open | Not ready: 4 of 8 open |
@@ -140,7 +140,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
-| Verdict | Not ready: 4 of 8 open |
+| Verdict | Not ready: 5 of 8 open |
 
 **Independent reviews**
 
@@ -166,11 +166,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - the 14-day week does not survive a restart (session-scoped state)
 - /diary clear does not clear the week
 
-### build-bell 0.4.5
+### build-bell 0.5.0
 
 | | |
 | --- | --- |
-| Tests passing | 14 |
+| Tests passing | 19 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | any surface that plays sound or shows toasts |

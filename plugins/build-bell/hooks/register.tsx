@@ -15,6 +15,15 @@ export const bellLine = (ms: number, failed: boolean): string => {
 /** The line for a turn that ran long: what Claude did takes the place of "the command". */
 export const turnLine = (ms: number): string => bellLine(ms, false).replace('The command finished in', 'Claude finished after')
 
+/** The sound is started and left: a player that is slow, missing or stuck never holds up the command's result or the end of the turn. */
+const ring = ($: any, asset: string, gain: number): void => {
+  try {
+    void Promise.resolve($.audio.play({ asset }, { gain })).catch(() => undefined)
+  } catch {
+    // no player
+  }
+}
+
 export const register: Register = (on, options) => {
   const minSeconds = typeof options.minSeconds === 'number' && options.minSeconds > 0 ? options.minSeconds : DEFAULT_MIN_SECONDS
   const withSound = options.sound !== false
@@ -22,20 +31,26 @@ export const register: Register = (on, options) => {
 
   // A turn that ran long rings too: you looked away from the whole of it, not only from one command.
   let turnStart = 0
+  let commandRang = 0 // when a command's bell last rang in this turn: the turn's own bell would say the same thing twice
   on('prompt.submit', async ($, e, next) => {
-    try { turnStart = await $.clock.now() } catch { /* never hold up a prompt */ }
+    try { turnStart = await $.clock.now(); commandRang = 0 } catch { /* never hold up a prompt */ }
     return next(e)
   }).catch(($, e, next) => next(e))
   on('turn.complete', async ($, e, next) => {
     if (e.agentId) return next(e) // a subagent's answer is its own turn.complete: it is not the end of the person's turn
     try {
-      const took = turnStart ? (await $.clock.now()) - turnStart : 0
+      const now = await $.clock.now()
+      const took = turnStart ? now - turnStart : 0
+      const announced = commandRang > 0 && now - commandRang < minSeconds * 1000 // a command's bell rang just before the turn ended
       turnStart = 0
+      commandRang = 0
       if (took >= minSeconds * 1000) {
-        $.ui.toast(turnLine(took), { timeoutMs: 6000 })
-        if (withSound) await $.audio.play({ asset: 'sounds/bell.wav' }, { gain: 0.6 })
+        if (!announced) {
+          $.ui.toast(turnLine(took), { timeoutMs: 6000 })
+          if (withSound) ring($, 'sounds/bell.wav', 0.6)
+        }
       } else if (took >= TICK_FROM_SECONDS * 1000 && withSound && withTick) {
-        await $.audio.play({ asset: 'sounds/tick.wav' }, { gain: 0.5 }) // a short turn: a soft tick, no toast
+        ring($, 'sounds/tick.wav', 0.5) // a short turn: a soft tick, no toast
       }
     } catch {
       // a bell that cannot ring never holds up the end of a turn
@@ -49,10 +64,12 @@ export const register: Register = (on, options) => {
     begun.catch(() => undefined)
     const ran = await next(e)
     try {
-      const took = (await $.clock.now()) - (await begun)
+      const ended = await $.clock.now()
+      const took = ended - (await begun)
       if (took >= minSeconds * 1000 && ran.deny === undefined) {
+        commandRang = ended
         $.ui.toast(bellLine(took, ran.isError === true), { timeoutMs: 6000 })
-        if (withSound) await $.audio.play({ asset: 'sounds/bell.wav' }, { gain: 0.6 })
+        if (withSound) ring($, 'sounds/bell.wav', 0.6)
       }
     } catch {
       // a bell that cannot ring (no player, no clock) never holds up the command
