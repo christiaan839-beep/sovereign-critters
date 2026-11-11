@@ -97,11 +97,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the index cards have not been photographed in the real app
 
-### critter-ward 0.2.2
+### critter-ward 0.2.3
 
 | | |
 | --- | --- |
-| Tests passing | 70 |
+| Tests passing | 71 |
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell where a push goes, the push waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |

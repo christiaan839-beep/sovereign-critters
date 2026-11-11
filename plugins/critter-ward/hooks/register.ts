@@ -653,19 +653,24 @@ const NOTED = new Set(['checkout', 'switch', 'rebase', 'branch', 'symbolic-ref',
 // reads it from: `-b NAME`, `-bNAME`, `-fbNAME` (a bundle ends at the flag that takes a value), `--orphan NAME`,
 // `--orphan=NAME`. found is false when no such flag is there; name is undefined when one is but its value is missing.
 function flagValue(args: string[], shorts: string, longs: string[]): { found: boolean; name?: string } {
+  let out: { found: boolean; name?: string } = { found: false } // git keeps the last of a repeated option
   for (let k = 0; k < args.length; k++) {
     const a = args[k]!
     if (a === '--') break
     if (a.startsWith('--')) {
       if (a === '--force' || !spells(a, ...longs)) continue // --force is its own option, not a prefix of --force-create
-      return { found: true, name: a.includes('=') ? a.slice(a.indexOf('=') + 1) : args[k + 1] }
+      out = { found: true, name: a.includes('=') ? a.slice(a.indexOf('=') + 1) : args[k + 1] }
+      continue
     }
     if (!a.startsWith('-') || a.length < 2) continue
     for (let j = 1; j < a.length; j++) {
-      if (shorts.includes(a[j]!)) return { found: true, name: a.slice(j + 1) || args[k + 1] }
+      if (shorts.includes(a[j]!)) {
+        out = { found: true, name: a.slice(j + 1) || args[k + 1] }
+        break
+      }
     }
   }
-  return { found: false }
+  return out
 }
 function note(sub: string, args: string[], changes: Changes) {
   const named = args.filter(a => !a.startsWith('-'))
