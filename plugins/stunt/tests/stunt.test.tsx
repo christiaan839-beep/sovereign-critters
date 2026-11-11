@@ -16,7 +16,7 @@ const unpack = (cells: string) => new Uint32Array(Uint8Array.from(atob(cells), c
 // The test's hooks stand for the engine: the surfaces the session draws on, whether they place the pane (and the
 // engine's record of it, open or not), and each blit, which the kit does not paint. It hands back what was asked.
 function engine(on: On, surfaces: RenderSurface[], isPlaced: boolean, isOpen = false) {
-  const asked = { opens: [] as unknown[], blits: [] as unknown[] }
+  const asked = { opens: [] as unknown[], blits: [] as unknown[], close: () => { isOpen = false } }
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('command.register', ($, e) => ({ value: { command: e.name } }))
   on('tool.call', () => ({ result: 'ok' }))
@@ -146,4 +146,17 @@ test('a second /stunt keeps one blink, not two', async ($, on) => {
   await $.command.run(STUNT)
   await clock.advance(4160)
   expect(asked.blits.length).toBe(2)
+})
+
+test('closing the pane in the middle of a blink leaves no follow-up flip behind', async ($, on) => {
+  const asked = engine(on, ['terminal'], true)
+  const clock = mock.clock(on)
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.command.run(STUNT)
+  await clock.advance(4000) // eyes shut: the 160 ms timer to open them is now waiting
+  expect(asked.blits).toHaveLength(1)
+  asked.close() // the pane goes (the person, or an unload)
+  await clock.advance(160)
+  await clock.advance(12_000)
+  expect(asked.blits).toHaveLength(1) // nothing painted into a pane that is gone, and the blink has stopped
 })

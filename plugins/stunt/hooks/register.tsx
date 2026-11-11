@@ -59,6 +59,7 @@ export const register: Register = on => {
   // there and closing the pane stops it. A reload drops the module's timers, so session.start starts it again when
   // the stand is still up.
   let blink: Timer | undefined
+  let reopen: Timer | undefined // the 160 ms follow-up that opens the eyes again: it must not outlive the pane
   let flip = async (_isBlinking: boolean) => {}
 
   on('session.start', async ($, e, next) => {
@@ -66,6 +67,7 @@ export const register: Register = on => {
     // Every four seconds the crowd flips the eye cards and back: a blit repaints the mounted Raster, no render pass.
     // Each flip paints the strip as it stands then, so a call that lands mid-blink keeps its card.
     flip = async (isBlinking: boolean) => {
+      if (!(await $.ui.panes()).some(pane => pane.id === PANE)) { blink?.cancel(); blink = undefined; reopen?.cancel(); reopen = undefined; return } // the pane is gone: stop
       const cells = paint(await read($, calls), isBlinking)
       await $.ui.blit({ requestId: PANE, key: 'stand', cells })
     }
@@ -74,7 +76,8 @@ export const register: Register = on => {
     blink?.cancel()
     blink = $.clock.every(4000, async () => {
       await flip(true)
-      $.clock.after(160, () => void flip(false))
+      reopen?.cancel()
+      reopen = $.clock.after(160, () => void flip(false))
     })
     return next(e)
   }).catch(($, e, next) => next(e))
@@ -93,7 +96,8 @@ export const register: Register = on => {
     blink?.cancel()
     blink = $.clock.every(4000, async () => {
       await flip(true)
-      $.clock.after(160, () => void flip(false))
+      reopen?.cancel()
+      reopen = $.clock.after(160, () => void flip(false))
     })
     return { text: 'The stand is up.' }
   })
@@ -103,6 +107,8 @@ export const register: Register = on => {
     const closed = await next(e)
     blink?.cancel()
     blink = undefined
+    reopen?.cancel()
+    reopen = undefined
     return closed
   })
 
