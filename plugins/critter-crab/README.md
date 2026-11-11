@@ -1,6 +1,6 @@
 # critter-crab
 
-![crab: it holds your place.](preview.png)
+![critter-crab: it holds your place.](preview.png)
 
 A small pixel crab that holds a note for you. Tell it where you stopped, and it is there again when you come back to the folder, in a new session, after a restart.
 

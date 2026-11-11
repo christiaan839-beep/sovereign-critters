@@ -1,6 +1,6 @@
 # build-bell
 
-![build-bell: A bell for the long ones](preview.png)
+![critter-bell: A bell for the long ones](preview.png)
 
 A soft bell and a toast when a long command finishes, so you can look away while a build, an install or a test run goes.
 

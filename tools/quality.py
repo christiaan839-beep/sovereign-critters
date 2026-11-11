@@ -25,6 +25,11 @@ install by someone who is not the founder. The lead mods must meet all eight bef
 import json, os, re, subprocess, sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+
+
+def plugin_dirs(plugins_root):
+    """Folder names under plugins/ that are plugins: those holding .claude-plugin/plugin.json. A stray folder (a journal, a cache the host recreates) is not one."""
+    return sorted(d for d in os.listdir(plugins_root) if not d.startswith('.') and os.path.isfile(os.path.join(plugins_root, d, '.claude-plugin', 'plugin.json')))
 FACTS = json.load(open(os.path.join(ROOT, 'tools', 'quality-facts.json'), encoding='utf-8'))
 LEAD = FACTS['order'][:3]
 

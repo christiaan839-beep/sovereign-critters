@@ -1,6 +1,6 @@
 # critter-tally
 
-![everywhere: One pane, each app's own way.](preview.png)
+![critter-tally: One pane, each app's own way.](preview.png)
 
 /everywhere opens a pane of the three tools the session called most, drawn by each app from its own elements.
 

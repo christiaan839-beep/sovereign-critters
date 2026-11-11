@@ -15,6 +15,7 @@ root = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(os.pat
 start = re.compile(r"\n  on\('(%s)'" % '|'.join(re.escape(e) for e in EVENTS))
 bad = []
 for path in sorted(glob.glob(os.path.join(root, '*', 'hooks', 'register.ts*'))):
+    if not os.path.isfile(os.path.join(os.path.dirname(os.path.dirname(path)), '.claude-plugin', 'plugin.json')): continue  # not a plugin
     plugin = os.path.basename(os.path.dirname(os.path.dirname(path)))
     if plugin in FAILS_CLOSED:
         continue

@@ -1,6 +1,6 @@
 # session-diary
 
-![session-diary: What Claude did, in order](preview.png)
+![critter-diary: What Claude did, in order](preview.png)
 
 `/diary` opens a pane that keeps what Claude did this session.
 

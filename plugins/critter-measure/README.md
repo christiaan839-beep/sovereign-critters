@@ -1,6 +1,6 @@
 # forge
 
-![forge: It counts what you can't see.](preview.png)
+![critter-measure: It counts what you can't see.](preview.png)
 
 Gives Claude a tool that counts a text exactly: characters as Unicode code points (so some emoji count as more than one), words, lines and UTF-8 bytes.
 

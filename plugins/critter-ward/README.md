@@ -1,6 +1,6 @@
 # guard
 
-![guard: Stops the push before it happens.](preview.png)
+![critter-ward: Stops the push before it happens.](preview.png)
 
 Stops a git push that forces, or that writes main or master, before the Bash tool runs it. It fails closed, and it is best effort: no substitute for branch protection on the server.
 

@@ -139,8 +139,17 @@ class Render(unittest.TestCase):
     def test_the_output_is_stable_so_a_check_can_compare_it(self):
         self.assertEqual(quality.render(MEASURED, UNCHANGED), quality.render(MEASURED, UNCHANGED))
 
+    def test_a_stray_folder_without_a_manifest_is_not_a_plugin(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as t:
+            os.makedirs(os.path.join(t, 'real', '.claude-plugin'))
+            open(os.path.join(t, 'real', '.claude-plugin', 'plugin.json'), 'w').write('{}')
+            os.makedirs(os.path.join(t, 'stray', '.governor'))  # a journal the host leaves behind
+            os.makedirs(os.path.join(t, 'ignored', '.claude-plugin', 'types'))  # only a cache of types
+            self.assertEqual(quality.plugin_dirs(t), ['real'])
+
     def test_every_plugin_in_the_repo_has_a_row_and_every_row_a_plugin(self):
-        folders = sorted(d for d in os.listdir(os.path.join(quality.ROOT, 'plugins')) if not d.startswith('.') and os.path.isdir(os.path.join(quality.ROOT, 'plugins', d)))
+        folders = quality.plugin_dirs(os.path.join(quality.ROOT, 'plugins'))
         self.assertEqual(sorted(quality.FACTS['order']), folders)
         self.assertEqual(sorted(quality.FACTS['plugins']), folders)
 

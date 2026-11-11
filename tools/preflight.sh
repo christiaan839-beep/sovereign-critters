@@ -18,6 +18,7 @@ command -v python3 >/dev/null 2>&1 || { note 'FAIL  python3 is not on PATH'; exi
 # 1. validate and test: every plugin and every example must pass both, exactly
 : >"$TMP/counts.tsv"   # name, tests passing, validated: what tools/quality.py checks QUALITY.md against
 for dir in plugins/*/ examples/*/; do
+  [ -f "${dir}.claude-plugin/plugin.json" ] || continue   # a folder without a manifest is not a plugin (the host leaves journals in old ones)
   p=${dir%/}; valid=bad; passing=0
   if claude plugin validate "$p" --strict >"$TMP/v.log" 2>&1; then ok "$p validate --strict"; valid=ok; else bad "$p validate --strict"; sed 's/^/      /' "$TMP/v.log"; fi
   if claude plugin test "$p" >"$TMP/t.log" 2>&1; then ok "$p test ($(grep -Eo '[0-9]+ pass' "$TMP/t.log" | tail -1))"; passing=$(grep -Eo '[0-9]+ pass' "$TMP/t.log" | tail -1 | grep -Eo '[0-9]+'); else bad "$p test"; sed 's/^/      /' "$TMP/t.log" | tail -40; fi
@@ -43,6 +44,7 @@ if python3 -m unittest tools.test_quality >"$TMP/u.log" 2>&1; then ok 'tools/qua
 # 3. every sound
 for s in plugins/*/sounds; do
   [ -d "$s" ] || continue
+  [ -f "${s%/sounds}/.claude-plugin/plugin.json" ] || continue
   if python3 tools/check-sounds.py "$s" >"$TMP/s.log" 2>&1; then ok "$s sounds"; else bad "$s sounds"; sed 's/^/      /' "$TMP/s.log"; fi
 done
 
@@ -76,6 +78,7 @@ fi
 # 5b. types, when TypeScript is installed (the repo itself takes no dependency; each plugin has its own tsconfig.json)
 if command -v tsc >/dev/null 2>&1; then
   for d in plugins/*/; do
+    [ -f "$d/.claude-plugin/plugin.json" ] || continue
     [ -f "$d/tsconfig.json" ] || continue
     if tsc -p "$d" --noEmit >"$TMP/tsc" 2>&1; then ok "${d%/} typecheck"; else bad "${d%/} typecheck"; sed 's/^/      /' "$TMP/tsc" | head -10; fi
   done

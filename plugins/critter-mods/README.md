@@ -1,6 +1,6 @@
 # critter-mods
 
-![mods: One room for every switch.](preview.png)
+![critter-mods: One room for every switch.](preview.png)
 
 The control room for the sovereign-critters mods. Type `/mods` and one pane opens, on the right, with every mod in it: whether it is on, a switch for each, and a button for each of its own panes.
 
