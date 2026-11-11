@@ -424,9 +424,16 @@
     "critter-clock": {
       "surfaces": "any surface that runs hooks (it draws nothing)",
       "reviews": [],
-      "seen": [],
+      "seen": [
+        {
+          "date": "2026-11-11",
+          "surface": "Claude desktop app (typed by the founder; the answer read from the session transcript)",
+          "what": "/clock answered \"5m 41s here. Claude worked 2m 25s of it. The longest turn was 1m 18s.\"; the founder did not notice the line when it appeared",
+          "at": "1dadf72"
+        }
+      ],
       "gaps": [
-        "never seen in the real app"
+        "the hourly toast has not been seen in the real app"
       ],
       "failFirst": null,
       "coldInstall": []
@@ -434,9 +441,17 @@
     "critter-ledger": {
       "surfaces": "any surface that runs hooks (it draws nothing)",
       "reviews": [],
-      "seen": [],
+      "seen": [
+        {
+          "date": "2026-11-11",
+          "surface": "Claude desktop app (typed by the founder; the answer read from the session transcript)",
+          "what": "/ledger answered \"2.4m used: 8k out, 163k in, 2.2m read from the cache. The biggest turn was 1.3m. No limit set (/ledger limit 500k).\"",
+          "at": "1dadf72"
+        }
+      ],
       "gaps": [
-        "never seen in the real app; token counts come from the engine's per-turn usage, not checked against a bill"
+        "never seen in the real app; token counts come from the engine's per-turn usage, not checked against a bill",
+        "the toast for passing a limit has not been seen in the real app"
       ],
       "failFirst": null,
       "coldInstall": []
