@@ -20,6 +20,10 @@ Eight gates. The lead mods (the first three) must meet all eight before release.
 | critter-stunt | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | critter-tally | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | critter-measure | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
+| critter-clock | met | met | met | open | open | open | open | open | Not ready: 5 of 8 open |
+| critter-ledger | met | met | met | open | open | open | open | open | Not ready: 5 of 8 open |
+| critter-latch | met | met | met | open | open | open | open | open | Not ready: 5 of 8 open |
+| critter-seal | met | met | met | open | open | open | open | open | Not ready: 5 of 8 open |
 
 met: done, and nothing has changed since. stale: done, but the plugin has changed since, so it needs another look. open: not done yet.
 
@@ -103,7 +107,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | --- | --- |
 | Tests passing | 71 |
 | Strict validation | passes |
-| Tool-path hooks | fails closed on purpose: when it cannot tell where a push goes, the push waits |
+| Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
 | Verdict | Not ready: 5 of 8 open |
 
@@ -332,3 +336,123 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 **Known gaps**
 
 - never called by the model in the real app
+
+### critter-clock 0.1.0
+
+| | |
+| --- | --- |
+| Tests passing | 9 |
+| Strict validation | passes |
+| Tool-path hooks fail open | yes, checked by preflight |
+| Surfaces | any surface that runs hooks (it draws nothing) |
+| Verdict | Not ready: 5 of 8 open |
+
+**Independent reviews**
+
+- none yet
+
+**New tests watched failing first**
+
+- not recorded yet
+
+**Seen working in the real app**
+
+- not yet
+
+**Cold install by someone who is not the founder**
+
+- not yet
+
+**Known gaps**
+
+- never seen in the real app
+
+### critter-ledger 0.1.0
+
+| | |
+| --- | --- |
+| Tests passing | 9 |
+| Strict validation | passes |
+| Tool-path hooks fail open | yes, checked by preflight |
+| Surfaces | any surface that runs hooks (it draws nothing) |
+| Verdict | Not ready: 5 of 8 open |
+
+**Independent reviews**
+
+- none yet
+
+**New tests watched failing first**
+
+- not recorded yet
+
+**Seen working in the real app**
+
+- not yet
+
+**Cold install by someone who is not the founder**
+
+- not yet
+
+**Known gaps**
+
+- never seen in the real app; token counts come from the engine's per-turn usage, not checked against a bill
+
+### critter-latch 0.1.0
+
+| | |
+| --- | --- |
+| Tests passing | 16 |
+| Strict validation | passes |
+| Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
+| Surfaces | any surface that runs hooks (it draws nothing) |
+| Verdict | Not ready: 5 of 8 open |
+
+**Independent reviews**
+
+- none yet
+
+**New tests watched failing first**
+
+- not recorded yet
+
+**Seen working in the real app**
+
+- not yet
+
+**Cold install by someone who is not the founder**
+
+- not yet
+
+**Known gaps**
+
+- never seen in the real app; an independent review for ways past it is still to do
+
+### critter-seal 0.1.0
+
+| | |
+| --- | --- |
+| Tests passing | 15 |
+| Strict validation | passes |
+| Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
+| Surfaces | any surface that runs hooks (it draws nothing) |
+| Verdict | Not ready: 5 of 8 open |
+
+**Independent reviews**
+
+- none yet
+
+**New tests watched failing first**
+
+- not recorded yet
+
+**Seen working in the real app**
+
+- not yet
+
+**Cold install by someone who is not the founder**
+
+- not yet
+
+**Known gaps**
+
+- never seen in the real app; an independent review for ways past it is still to do

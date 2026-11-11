@@ -1,0 +1,19 @@
+{
+  "name": "critter-ledger",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "icon": "./.claude-plugin/icon.png",
+  "description": "Counts the tokens this session has used, only when you ask (/ledger). Set your own limit with /ledger limit 500k and it says so once when you pass it. Nothing leaves your machine.",
+  "author": {
+    "name": "Sovereign Matrix"
+  },
+  "homepage": "https://github.com/christiaan839-beep/sovereign-critters/tree/main/plugins/critter-ledger",
+  "repository": "https://github.com/christiaan839-beep/sovereign-critters",
+  "keywords": [
+    "tokens",
+    "usage",
+    "limit",
+    "session",
+    "status"
+  ]
+}

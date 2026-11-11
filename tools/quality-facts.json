@@ -9,7 +9,11 @@
     "critter-crab",
     "critter-stunt",
     "critter-tally",
-    "critter-measure"
+    "critter-measure",
+    "critter-clock",
+    "critter-ledger",
+    "critter-latch",
+    "critter-seal"
   ],
   "plugins": {
     "critter-buddy": {
@@ -406,6 +410,46 @@
       "seen": [],
       "gaps": [
         "never called by the model in the real app"
+      ],
+      "failFirst": null,
+      "coldInstall": []
+    },
+    "critter-clock": {
+      "surfaces": "any surface that runs hooks (it draws nothing)",
+      "reviews": [],
+      "seen": [],
+      "gaps": [
+        "never seen in the real app"
+      ],
+      "failFirst": null,
+      "coldInstall": []
+    },
+    "critter-ledger": {
+      "surfaces": "any surface that runs hooks (it draws nothing)",
+      "reviews": [],
+      "seen": [],
+      "gaps": [
+        "never seen in the real app; token counts come from the engine's per-turn usage, not checked against a bill"
+      ],
+      "failFirst": null,
+      "coldInstall": []
+    },
+    "critter-latch": {
+      "surfaces": "any surface that runs hooks (it draws nothing)",
+      "reviews": [],
+      "seen": [],
+      "gaps": [
+        "never seen in the real app; an independent review for ways past it is still to do"
+      ],
+      "failFirst": null,
+      "coldInstall": []
+    },
+    "critter-seal": {
+      "surfaces": "any surface that runs hooks (it draws nothing)",
+      "reviews": [],
+      "seen": [],
+      "gaps": [
+        "never seen in the real app; an independent review for ways past it is still to do"
       ],
       "failFirst": null,
       "coldInstall": []

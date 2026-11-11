@@ -1,0 +1,27 @@
+{
+  "name": "critter-clock",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "icon": "./.claude-plugin/icon.png",
+  "description": "Shows how long the session has run and how much of it Claude spent working. Ask with /clock; it speaks unasked once an hour, if you leave that on. It never blocks a tool.",
+  "author": {
+    "name": "Sovereign Matrix"
+  },
+  "homepage": "https://github.com/christiaan839-beep/sovereign-critters/tree/main/plugins/critter-clock",
+  "repository": "https://github.com/christiaan839-beep/sovereign-critters",
+  "keywords": [
+    "clock",
+    "time",
+    "session",
+    "status",
+    "focus"
+  ],
+  "userConfig": {
+    "hourToast": {
+      "type": "boolean",
+      "title": "Say so on the hour",
+      "description": "One quiet toast each full hour of the session. Off keeps it silent until you type /clock.",
+      "default": true
+    }
+  }
+}

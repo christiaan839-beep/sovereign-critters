@@ -1,0 +1,30 @@
+# critter-latch
+
+An opt-in guard against deletes you cannot take back. Install it and it stops these before the Bash tool runs them:
+
+- a recursive `rm` that reaches outside the folder you opened, or would remove that folder or one above it (`rm -rf ..`, `rm -rf ~`, `rm -rf *`);
+- `git reset --hard`;
+- `git clean -f` (any spelling that forces and is not a dry run);
+- `git checkout .`, `git checkout -f` and `git restore .` over the whole tree.
+
+```
+latch: rm -r reaches outside the folder you opened (/work/app). Ask the person to run it themselves if they meant it.
+```
+
+A recursive delete inside the folder (`rm -rf dist`) goes through. So do `git clean -n`, `git reset --soft` and `git checkout main`.
+
+## How it reads
+
+It reads the command line, past `sudo`, `env`, `time`, `nice`, `xargs`, `bash -c`, `eval`, `$( )`, backticks, `cd` on the same line, and shell keywords. A target it cannot read (`$VAR`, a brace, a backtick) is held back, not guessed.
+
+## Limits
+
+It is best effort and no substitute for a backup or for version control.
+
+- It reads how a command is spelled, not what a script does. `make clean`, `npm run reset`, `find -delete`, `rsync --delete`, a git alias and a program that deletes on its own are invisible to it.
+- It guards `rm` and four git commands. It does not guard `mv`, `dd`, `>` truncation, `git branch -D`, `git stash drop` or `git push --force` (that is [critter-ward](../critter-ward)).
+- It judges the folder the session was opened in. If it cannot tell which that is, a recursive delete waits.
+- It fails closed for a line that names `rm`, `git` or `xargs` and that it cannot read; any other command goes on as if the mod were not there.
+- It never reads file contents, keeps nothing and sends nothing.
+
+To run a stopped command anyway, run it yourself in a terminal.

@@ -49,6 +49,26 @@
       "name": "critter-tally",
       "source": "./plugins/critter-tally",
       "description": "/everywhere: a pane of your three most-used tools, drawn by each app its own way."
+    },
+    {
+      "name": "critter-clock",
+      "source": "./plugins/critter-clock",
+      "description": "/clock: how long the session has run and how much of it Claude spent working. Times only."
+    },
+    {
+      "name": "critter-ledger",
+      "source": "./plugins/critter-ledger",
+      "description": "/ledger: tokens used this session, with a limit of your own. Silent until you ask."
+    },
+    {
+      "name": "critter-latch",
+      "source": "./plugins/critter-latch",
+      "description": "Opt-in: stops recursive deletes outside your folder, git reset --hard, git clean -f and checkout over the whole tree."
+    },
+    {
+      "name": "critter-seal",
+      "source": "./plugins/critter-seal",
+      "description": "Opt-in: holds back a command that sends a secret to a host you have not listed."
     }
   ]
 }
