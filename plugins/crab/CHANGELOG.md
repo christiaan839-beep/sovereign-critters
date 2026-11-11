@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.6
+
+- **Fixed:** a new session in a folder that cannot be identified no longer inherits the previous folder's note.
+
 ## 0.2.5
 
 - **Fixed:** while the store will not read, `/crab` and `/crab drop` now say so instead of claiming the crab holds nothing; when it reads again the band comes back by itself.

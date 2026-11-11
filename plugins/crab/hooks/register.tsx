@@ -23,6 +23,7 @@ export const register: Register = on => {
   let unread = false // the store would not read at the start: ask it again before saying there is nothing
 
   on('session.start', async ($, e, next) => {
+    key = undefined // this folder is not known until it hashes
     try {
       key = hashOf(String(e.cwd ?? ''))
       sessionAt = await $.clock.now()

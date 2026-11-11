@@ -1,6 +1,6 @@
 {
   "name": "crab",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "license": "Apache-2.0",
   "icon": "./.claude-plugin/icon.png",
   "description": "The crab holds your place: /crab hold <text> leaves a one-line note for this folder, and a small pixel crab carries it in a band above the prompt. It is there again when you come back to the folder in a new session. Nothing is drawn until you give it a note.",
