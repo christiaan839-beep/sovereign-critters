@@ -2409,3 +2409,34 @@ test('the doctor names the desktop when it is attached, even if the command even
   expect(surfaceOf([], 'desktop')).toBe('desktop')
   expect(surfaceOf([])).toBe('terminal')
 })
+
+import { skyFor as skyForContrast, TINTS as TINTS_CONTRAST } from '../hooks/world'
+
+// The sky was tuned so quiet that on a desktop window it read as nothing at all. These are the floors it must now clear, on the
+// WCAG contrast ratio (1 is identical, 21 is black on white): the ground band against the paper, the near ridge against the ground,
+// the far ridge against the ground, a cloud against the paper, and the sun or moon against the paper. Not loud: just seen.
+const luminance = (hex: string): number => {
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(c => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!
+}
+const contrast = (a: string, b: string): number => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
+  return (hi! + 0.05) / (lo! + 0.05)
+}
+test('every sky, in every phase, season, weather and folder tint, has a ground, ridges, clouds and a sun you can see', () => {
+  const misses: string[] = []
+  for (const phase of ['dawn', 'day', 'dusk', 'night'] as const)
+    for (const season of ['summer', 'autumn', 'winter', 'spring'] as const)
+      for (const weather of ['clear', 'cloud', 'rain', 'storm'] as const)
+        for (const tint of [undefined, ...TINTS_CONTRAST.map((_, i) => i)]) {
+          const s = skyForContrast({ phase, season, weather, festive: false, tint })
+          const floor = (what: string, ratio: number, min: number) => { if (ratio < min) misses.push(`${phase}/${season}/${weather}/tint ${tint}: ${what} ${ratio.toFixed(2)} < ${min}`) }
+          floor('ground on paper', contrast(s.paper, s.ground), 1.2)
+          floor('near ridge on ground', contrast(s.ground, s.ridgeColour), 1.12)
+          floor('far ridge on ground', contrast(s.ground, s.ridgeFarColour), 1.06)
+          floor('cloud on paper', contrast(s.paper, s.cloudColour), 1.12)
+          if (!s.bodyHidden) floor('sun or moon on paper', contrast(s.paper, s.bodyColor), 1.4)
+        }
+  expect(misses.slice(0, 6)).toEqual([]) // the first few that miss, named
+  expect(misses.length).toBe(0)
+})

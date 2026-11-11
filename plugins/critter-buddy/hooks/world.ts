@@ -133,6 +133,24 @@ const mix = (a: string, b: string, k: number): string => {
   const n = (h: string, i: number) => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16)
   return '#' + [0, 1, 2].map(i => Math.round(n(a, i) + (n(b, i) - n(a, i)) * k).toString(16).padStart(2, '0')).join('')
 }
+/** How bright a colour is to the eye, 0 (black) to 1 (white), as WCAG reckons it. */
+const luma = (hex: string): number => {
+  const [r, g, b] = [0, 1, 2].map(i => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16) / 255).map(c => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!
+}
+const ratio = (a: string, b: string): number => (Math.max(luma(a), luma(b)) + 0.05) / (Math.min(luma(a), luma(b)) + 0.05)
+/**
+ * A colour, moved away from the one it sits on until the two differ by at least `min` on the WCAG contrast ratio (darker on a light
+ * paper, lighter on a dark one) and no further. The palette is quiet on purpose, but a sky that cannot be told from the window
+ * behind it is no sky: this keeps its hue and gives it the least push that makes it seen.
+ */
+export const seen = (colour: string, on: string, min: number): string => {
+  const toward = luma(on) > 0.4 ? '#2a2418' : '#ffffff'
+  if (ratio(colour, on) >= min) return colour
+  let [lo, hi] = [0, 1] // the least push that clears the floor, found by halving, so a small change in the colour is a small change in the result
+  for (let i = 0; i < 14; i++) { const k = (lo + hi) / 2; if (ratio(mix(colour, toward, k), on) >= min) hi = k; else lo = k }
+  return mix(colour, toward, hi)
+}
 /** The far ridge along the horizon: a gentle highveld skyline of two slow swells, one row of blocks, the same every time. */
 export const RIDGE: string = Array.from({ length: 400 }, (_, i) => '▁▂▃▄▅'[Math.max(0, Math.min(4, Math.round(2 + 1.6 * Math.sin(i / 9) + 0.9 * Math.sin(i / 3.7 + 1))))]).join('')
 
@@ -160,23 +178,27 @@ export const skyFor = (o: { phase: Phase; season: Season; weather: Weather; fest
   const dark = o.phase === 'night' || o.phase === 'dusk'
   const warm = (c: string): string => (o.glow ? mix(c, o.phase === 'night' ? '#efe4c4' : o.phase === 'dusk' ? '#e0875f' : '#d4a548', 0.06) : c) // while Claude thinks the light warms a little
   const cloudy = o.weather !== 'clear'
+  const paper = warm(lean(PAPER[o.phase], 0.035))
+  const ground = seen(warm(ground0), paper, 1.2) // the floors: ground on paper 1.2, near ridge on ground 1.12, far ridge 1.06, cloud on paper 1.12, sun or moon 1.4
+  const ridgeNear = seen(dark ? mix(ground, '#8f7cc4', 0.3) : mix(ground, '#4fa39a', 0.22), ground, 1.12)
+  const ridgeFar = seen(dark ? mix(ground, '#8f7cc4', 0.15) : mix(ground, '#4fa39a', 0.1), ground, 1.06)
   return {
     key: `${o.phase}-${o.season}-${o.weather}-${o.festive ? 'lights' : 'plain'}${o.glow ? '-glow' : ''}${o.tint === undefined ? '' : `-t${o.tint}`}`,
-    paper: warm(lean(PAPER[o.phase], 0.035)),
-    ground: warm(ground0),
+    paper,
+    ground,
     body: dark && o.phase === 'night' ? '☾' : '●',
-    bodyColor: o.phase === 'night' ? '#efe4c4' : o.phase === 'dusk' ? '#e0875f' : o.phase === 'dawn' ? '#eeb07f' : '#d4a548',
+    bodyColor: seen(o.phase === 'night' ? '#efe4c4' : o.phase === 'dusk' ? '#e0875f' : o.phase === 'dawn' ? '#eeb07f' : '#d4a548', paper, 1.4),
     bodyTop: o.phase === 'day' ? 2 : 8, // the sun is low at dawn and dusk
     bodyHidden: o.weather === 'storm', // a storm hides it
     stars: o.phase === 'night' && o.weather !== 'storm' ? STARS : o.phase === 'dusk' ? STARS.slice(0, 8) : ([] as typeof STARS),
-    cloudColour: CLOUD_COLOUR[o.phase][o.weather],
+    cloudColour: seen(CLOUD_COLOUR[o.phase][o.weather], paper, 1.12),
     clouds: cloudy ? place(o.weather === 'cloud' ? 3 : 6, 3, 10, 130) : ([] as { top: number; left: number }[]),
     rain: o.weather === 'rain' ? place(12, 40, 30, 150) : o.weather === 'storm' ? place(28, 40, 30, 150) : ([] as { top: number; left: number }[]),
     bolt: o.weather === 'storm' ? { top: 6, left: 74 } : undefined,
     lights: o.festive,
     // two ridges, each the ground a shade toward violet at night and toward teal by day: the near one stronger, the far one faint
-    ridgeColour: dark ? mix(ground0, '#8f7cc4', 0.3) : mix(ground0, '#4fa39a', 0.22),
-    ridgeFarColour: dark ? mix(ground0, '#8f7cc4', 0.15) : mix(ground0, '#4fa39a', 0.1),
+    ridgeColour: ridgeNear,
+    ridgeFarColour: ridgeFar,
     wisps: o.weather === 'clear' && !dark ? place(3, 20, 7, 120) : ([] as { top: number; left: number }[]), // a clear day still has high thin cloud
   }
 }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.26.3
+
+- **The sky can be seen.** By day the ground band differed from the paper by about 5 to 10 percent, the ridges and clouds by less, which on a desktop window reads as no sky at all. Every part now has a floor, kept in every hour, season, weather and folder tint: ground against paper 1.2 on the contrast scale (1 is identical), near ridge 1.12, far ridge 1.06, clouds 1.12, sun or moon 1.4. A colour already above its floor is left alone; one below it is moved the least distance that clears it, keeping its hue. Still quiet, not loud. If it is now too much, the floors are the `seen(...)` calls in `skyFor` (`hooks/world.ts`).
+
 ## 0.26.2
 
 - **`/critter doctor` names the right surface.** On the desktop app it used to say "Surface: terminal" (the command event carries no surface), and so told you only the desktop draws a backdrop. It now asks which surfaces are attached.
