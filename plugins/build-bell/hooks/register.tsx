@@ -24,8 +24,18 @@ const ring = ($: any, asset: string, gain: number): void => {
   }
 }
 
+/** The toast is shown and left: a toaster that rejects is no business of the command or the turn. */
+const toast = ($: any, text: string): void => {
+  try {
+    void Promise.resolve($.ui.toast(text, { timeoutMs: 6000 })).catch(() => undefined)
+  } catch {
+    // no toaster
+  }
+}
+
 export const register: Register = (on, options) => {
-  const minSeconds = typeof options.minSeconds === 'number' && options.minSeconds > 0 ? options.minSeconds : DEFAULT_MIN_SECONDS
+  const asked = Number(options.minSeconds)
+  const minSeconds = Number.isFinite(asked) && asked > 0 ? asked : DEFAULT_MIN_SECONDS
   const withSound = options.sound !== false
   const withTick = options.shortTurns !== false
 
@@ -46,7 +56,7 @@ export const register: Register = (on, options) => {
       commandRang = 0
       if (took >= minSeconds * 1000) {
         if (!announced) {
-          $.ui.toast(turnLine(took), { timeoutMs: 6000 })
+          toast($, turnLine(took))
           if (withSound) ring($, 'sounds/bell.wav', 0.6)
         }
       } else if (took >= TICK_FROM_SECONDS * 1000 && withSound && withTick) {
@@ -68,7 +78,7 @@ export const register: Register = (on, options) => {
       const took = ended - (await begun)
       if (took >= minSeconds * 1000 && ran.deny === undefined) {
         commandRang = ended
-        $.ui.toast(bellLine(took, ran.isError === true), { timeoutMs: 6000 })
+        toast($, bellLine(took, ran.isError === true))
         if (withSound) ring($, 'sounds/bell.wav', 0.6)
       }
     } catch {

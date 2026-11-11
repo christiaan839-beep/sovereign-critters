@@ -167,3 +167,12 @@ test('the bell is not awaited: a player that never answers does not hold up the 
   clock += 90_000
   expect(await soon($.turn.complete({ answer: 'done' } as never))).not.toBe('held up')
 })
+
+test('a toast that rejects never becomes an unhandled rejection or holds up the result', async ($, on) => {
+  let clock = 5_000_000
+  on('clock.now', () => ({ value: clock }))
+  on('tool.call', () => { clock += 25_000; return { result: 'ok' } as never })
+  on('ui.toast', () => Promise.reject(new Error('no toaster')) as never)
+  on('audio.play', () => ({ value: undefined }))
+  expect(await $.tool.call({ tool: 'Bash', command: 'make' } as never)).toBeDefined()
+})

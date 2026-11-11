@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.1
+
+- **Fixed:** a toast that fails can no longer disturb the command or the turn.
+
 ## 0.5.0
 
 - **Fixed:** the three settings (how many seconds before it rings, sound, the tick after short turns) can now actually be set; they were read but never declared, so there was nowhere to change them. They are in the plugin's settings.
