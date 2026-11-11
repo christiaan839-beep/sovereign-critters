@@ -51,7 +51,7 @@ Submit each plugin at claude.ai/directory/manage. The directory needs, and each 
 
 Two outside testers follow this on a machine that has never seen the mods. It needs the public repository from step 3 (or a private one the tester has been invited to), because it installs from GitHub with no clone. Give them this page and nothing else.
 
-**Before you start:** Claude Code 2.1.275 or later (`claude --version`), and a window at least 110 columns wide for the first look.
+**Before you start:** Claude Code 2.1.275 or later (`claude --version`), and a window at least 110 columns wide for the first look. While the repository is still private, the tester's machine also needs a git credential for github.com (an SSH key, or `gh auth login` then `gh auth setup-git`), or the marketplace add fails with a clone error that does not say why.
 
 1. Start Claude Code in any folder you trust.
 2. Add the marketplace and install the lead plugin:

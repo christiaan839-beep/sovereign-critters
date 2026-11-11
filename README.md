@@ -11,6 +11,8 @@ Small, careful mods for Claude Code from Sovereign Matrix: pixel characters that
 
 Start a new session afterwards: plugins load at start-up.
 
+In the desktop app you can do the same from the interface: click **+** next to the prompt box, then **Plugins**, **Add marketplace** with `christiaan839-beep/sovereign-critters`, then **Add plugin**.
+
 ## What is here
 
 | Plugin | What it is |
