@@ -1,6 +1,6 @@
 # tools
 
-`preflight.sh` is the one to run before every commit: `bash tools/preflight.sh` validates and tests the root and all nine plugins, checks every sound, and scans the files for home paths, model ids, secret-shaped strings, emails and merge markers. It exits non-zero on any real failure. (The root's `claude plugin test` exits 1 with "no hooks module"; that one reason is expected and passes.)
+`preflight.sh` is the one to run before every commit: `bash tools/preflight.sh` validates and tests the root and all thirteen plugins, checks every sound, and scans the files for home paths, model ids, secret-shaped strings, emails and merge markers. It exits non-zero on any real failure. (The root's `claude plugin test` exits 1 with "no hooks module"; that one reason is expected and passes.)
 
 `review.sh` and `media.sh` run outside the Claude sandbox (headless Chrome needs a socket directory).
 
@@ -12,3 +12,5 @@
 `out/` is scratch: do not commit it.
 
 - `quality.py` writes `QUALITY.md` from what the plugins measure (version, tests, validation, hooks) and what people witnessed (`quality-facts.json`: reviews and sightings with dates). `python3 tools/quality.py --write` after a change; preflight warns when the file is out of date. `test_quality.py` tests it.
+
+- `icons.py` draws the icons of clock, ledger, latch and seal on the family's 42 by 42 grid (standard library only, the same bytes every run); `python3 tools/icons.py --check` is part of preflight. `posters.sh` writes their poster pages with `posters.py` and photographs them into each `preview.png` (it needs Chrome, so it runs outside the sandbox). A poster line is a claim the README makes: change them together.

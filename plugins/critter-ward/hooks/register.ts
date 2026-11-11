@@ -18,7 +18,8 @@ import type { Register } from 'claude-code'
 // fails or times out, or the line cannot be read), the command waits. Outside it: a push made by a script or
 // another program (make, an npm script, gh, an MCP tool), a command built while the line runs (eval or sh -c of
 // an expansion, a variable run as a command), a git alias in a config file, and what the server does with a
-// push. It is best effort, and no substitute for branch protection on the server.
+// push. It stops an accidental push to main; it is not a security boundary against a script written to get past it,
+// and it is no substitute for branch protection on the server.
 
 const PROTECTED = new Set(['main', 'master'])
 
@@ -28,7 +29,7 @@ const PROTECTED = new Set(['main', 'master'])
 // and what a heredoc or here-string gives it on standard input. An expansion stays in its word ($NAME as
 // written, a $( ) as $(…)), and a word the shell would expand as a brace or a glob is marked, so the judgement
 // can see a word it cannot read ahead.
-export type Command = { words: string[]; nested: Part[][]; stdin: string[] }
+export type Command = { words: string[]; nested: Part[][]; stdin: string[]; files?: string[] }
 // What joins commands: ; (or a newline), &, |, && and ||; ( and ) mark a subshell.
 export type Part = Command | ';' | '&' | '|' | '&&' | '||' | '(' | ')'
 type Heredoc = { to: Command; tag: string; tabs: boolean; expands: boolean }
@@ -62,13 +63,14 @@ export function split(s: string, text = false): Part[] {
     let cmd: Command = { words: [], nested: [], stdin: [] }
     let word: string | undefined
     let wild = false // the word holds a brace or a glob character outside quotes
-    let into: 'words' | 'stdin' | 'nowhere' = 'words' // where a redirection sends the next word
+    let into: 'words' | 'stdin' | 'nowhere' | 'files' = 'words' // where a redirection sends the next word (files: the file an output redirection writes)
     let depth = 0
     const add = (t: string) => (word = (word ?? '') + t)
     const end = () => {
       if (word === undefined) return
       if (wild && !/^(\{|\}|\[\[?|\]\]?)$/.test(word)) word += WILD // { } [ [[ alone are words of the shell
-      if (into !== 'nowhere') cmd[into].push(word)
+      if (into === 'files') (cmd.files ??= []).push(word)
+      else if (into !== 'nowhere') cmd[into].push(word)
       into = 'words'
       word = undefined
       wild = false
@@ -125,8 +127,9 @@ export function split(s: string, text = false): Part[] {
         into = 'stdin'
       } else if (s.startsWith('<<', i)) heredoc()
       else {
+        const writes = (s[i] === '>' || s.startsWith('&>', i)) && !/^>&[\d-]/.test(s.slice(i, i + 3)) // > >> >| &> write the file; < and <& read it, and >&2 is no file
         while (/[<>&|]/.test(s.charAt(i + 1))) i++
-        into = 'nowhere'
+        into = writes ? 'files' : 'nowhere'
       }
     }
     // << starts a heredoc, its body on the lines after this one. A quoted tag keeps the body's $( ) from running.
@@ -350,7 +353,7 @@ export function unwrap(words: string[]) {
 // One git push: its words after `push`, git's own options before it, where it runs (a directory, or undefined
 // when the guard cannot tell which repository it is in), the variables the guard hands to the git it asks (those
 // of its VAR= words that locate the repository and its settings), and why the guard cannot read it at all.
-export type Push = { args: string[]; git: string[]; cwd?: string; env: Record<string, string>; unknown?: string; changes?: Changes; alias?: string }
+export type Push = { args: string[]; git: string[]; cwd?: string; env: Record<string, string>; unknown?: string; changes?: Changes; alias?: string; ask?: string }
 
 // Every git push in a command line, wherever it stands: after a cd, VAR= words or a wrapper, inside ( ), $( ) or
 // ` `, in a bash -c script or eval's words, or in a heredoc that a shell reads.
@@ -376,6 +379,17 @@ const RUNNERS = new Set([
   ...['firejail', 'nsenter', 'unshare', 'chrt', 'taskset', 'numactl', 'proxychains', 'proxychains4', 'torsocks'],
   ...['fakeroot', 'faketime', 'valgrind', 'systemd-run', 'tmux', 'screen', 'xvfb-run', 'dbus-run-session'],
 ])
+// Words that name a file in git's own state or settings: the repository's .git (HEAD, config, hooks, refs), a
+// gitconfig, or the XDG git directory. A line that writes one changes what git answers, or runs, after the guard has asked.
+const GITFILE = /(^|[\/=])\.git(\/|$)|gitconfig|\.config\/git(\/|$)/
+const GITHOOK = /(^|[\/=])\.git\/hooks(\/|$)/
+// Commands that only read the files they are given (sed, perl and awk write only with -i), so a .git word after one is no write.
+const READERS = new Set(['cat', 'head', 'tail', 'less', 'more', 'bat', 'grep', 'egrep', 'fgrep', 'rg', 'ag', 'ls', 'stat', 'wc', 'diff', 'cmp', 'file', 'test', '[', '[[', 'echo', 'printf', 'find', 'du', 'tree', 'od', 'xxd', 'hexdump', 'strings', 'realpath', 'readlink', 'basename', 'dirname', 'git', 'sort', 'uniq', 'cut', 'tr', 'open', 'code'])
+const EDITORS = new Set(['sed', 'perl', 'awk', 'gawk', 'ruby'])
+// Commands that put their last word, or the one after of=, where they are told.
+const WRITERS = new Set(['tee', 'cp', 'mv', 'install', 'ln', 'dd', 'touch', 'truncate', 'rsync'])
+// Commands that turn their input into the script a shell is then fed.
+const DECODERS = new Set(['base64', 'basenc', 'xxd', 'openssl', 'rev', 'gunzip', 'gzcat', 'zcat', 'bzcat', 'xzcat', 'unxz', 'uudecode', 'tr'])
 // Compound commands open at these words and close at fi, done, esac or }; the loops among them run their body again.
 const OPENS = new Set(['if', 'while', 'until', 'for', 'select', 'case', '{'])
 const CLOSES = new Set(['fi', 'done', 'esac', '}'])
@@ -460,6 +474,33 @@ function walk(parts: Part[], start: string | undefined, changes: Changes, outer:
     const name = base(words[0] ?? '')
     const there = dir === undefined ? here : dir === null ? undefined : join(here, dir)
     const unknown = (why: string) => found.push({ args: [], git: [], env: {}, unknown: why })
+    // An expansion run as a command or a script cannot be read ahead, but it is too common to refuse (eval "$(direnv
+    // hook zsh)"): the person is asked, and a push the guard can read on the same line is still refused.
+    const asks = (why: string) => found.push({ args: [], git: [], env: {}, ask: why })
+    // A word that begins with a command substitution, or with a variable the line filled from one (or from read).
+    const dynamic = (w: string) => /^\s*\$\(…\)/.test(w) || (changes.dyn ?? []).some(v => new RegExp(`^\\s*\\$\\{?${v}\\b`).test(w))
+    const hit = (ps: Push[]) => ps.some(p => !p.ask)
+    // Whether a shell among a command's words runs a push in the words after it; what it runs from an expansion is passed up to ask.
+    const shellWithin = () => {
+      const ran = words.slice(1).flatMap((w, j) => (SHELLS.has(base(w)) ? inside(words.slice(j + 1).map(quote).join(' '), undefined) : []))
+      found.push(...ran.filter(p => p.ask))
+      return hit(ran)
+    }
+    // What the line writes into git's own files, or into a file it then points git at, changes what git answers (or
+    // runs) after the guard has asked it; a hook written here may run git push at the next commit.
+    const editing = EDITORS.has(name) && words.some(w => /^-[A-Za-z]*i|^--in-place/.test(w))
+    const targets = [
+      ...(part.files ?? []),
+      ...(WRITERS.has(name) ? words.slice(1).filter(w => !w.startsWith('-')).map(w => w.replace(/^of=/, '')) : []),
+      ...(editing ? words.slice(1).filter(w => !w.startsWith('-')) : []),
+    ]
+    const touches = [...(part.files ?? []), ...(READERS.has(name) || (EDITORS.has(name) && !editing) ? [] : words.slice(1))].filter(w => GITFILE.test(w))
+    ;(changes.wrote ??= []).push(...targets)
+    if (touches.length) changes.stale ??= 'this line writes into git’s own files (.git, a gitconfig)'
+    if (touches.some(w => GITHOOK.test(w))) unknown('it writes a git hook, and a hook can run git push')
+    const written = changes.wrote
+    if (written.length && (Object.entries(env).some(([key, value]) => (LOCATES(key) || /^GIT_CONFIG_VALUE_\d+$/.test(key)) && written.includes(value)) || (name === 'git' && words.some(w => /include/i.test(w) && written.includes(w.slice(w.indexOf('=') + 1))))))
+      changes.stale ??= 'this line points git at a settings file it has just written'
     // A script the command runs (bash -c, env -S, source) runs with its variables; a trap or an alias runs later, in
     // the shell's own.
     const inside = (text: string, at: string | undefined, vars = env) => walk(split(text), at, changes, vars).found
@@ -475,19 +516,28 @@ function walk(parts: Part[], start: string | undefined, changes: Changes, outer:
     } else if (name === 'source' || name === '.') {
       for (const s of [...part.stdin, ...feeds(n)]) found.push(...inside(s, here))
       move(undefined, !piped) // a script may cd
-    } else if (SHELLS.has(name)) for (const s of [...scripts(words, part.stdin), ...feeds(n)]) found.push(...inside(s, there))
+    } else if (SHELLS.has(name)) {
+      for (const s of [...scripts(words, part.stdin), ...feeds(n)]) found.push(...inside(s, there))
+      // (sh -c "$(…)" and eval "$(…)" are read as the command named by an expansion, below.) A shell fed by a decoder runs what it prints.
+      const maker = parts[n - 1] === '|' ? (parts[n - 2] as Command | undefined) : undefined
+      if (!words.slice(1).some(w => /^-[A-Za-z]*c[A-Za-z]*$/.test(w)) && maker && typeof maker === 'object' && DECODERS.has(base(maker.words[0] ?? '')))
+        asks(`it runs ${name} on what ${base(maker.words[0]!)} prints`)
+    }
     else if (name === 'git' || name === 'git-push') found.push(...git(words, there, env, xargs, changes))
     else if (name === 'alias') {
       blind = true
       for (const w of words.slice(1)) found.push(...inside(w.slice(w.indexOf('=') + 1), undefined, outer))
     } else if (name === 'trap' && words[1] && !words[1].startsWith('-')) found.push(...inside(words[1], undefined, outer))
-    else if (EXPORTS.has(name) || !words.length) {
+    else if (name === 'read') {
+      for (const w of words.slice(1).filter(w => !w.startsWith('-'))) (changes.dyn ??= []).push(w)
+    } else if (EXPORTS.has(name) || !words.length) {
       // VAR=value alone, or export (and its kin): the variables hold for the rest of the shell.
       const vars: Record<string, string> = words.length ? {} : { ...own }
       for (const w of words.slice(1).filter(w => !w.startsWith('-'))) {
         const [key, value] = assigns(w) ?? [w, '']
         vars[key] = value
       }
+      for (const [key, value] of Object.entries(vars)) if (value.includes('$(…)')) (changes.dyn ??= []).push(key)
       if (words.length && configures(vars)) unknown('it sets git settings in its environment (GIT_CONFIG_…)')
       if (Object.values(vars).some(v => /git|push/i.test(v))) changes.names = true // a variable that holds git or push may be run as a command later on the line
       if (Object.keys(vars).some(LOCATES)) move(undefined, !piped)
@@ -498,19 +548,23 @@ function walk(parts: Part[], start: string | undefined, changes: Changes, outer:
           let e = j + 1
           while (e < words.length && words[e] !== ';' && words[e] !== '+') e++
           const runs = walk([{ words: words.slice(j + 1, e), nested: [], stdin: [] }], undefined, changes).found
-          if (runs.length) unknown('it runs git push through find, which the guard does not read')
+          if (hit(runs)) unknown('it runs git push through find, which the guard does not read')
           j = e
         }
     } else if (RUNNERS.has(name)) {
       // Each word may be a script (su -c '…'), and the words from git or a shell on may be the command it runs.
       const carried = words.slice(1).some((w, j) => {
         const rest = words.slice(j + 1)
-        return inside(w, undefined).length || (['git', 'git-push', 'eval', ...SHELLS].includes(base(w)) && inside(rest.map(quote).join(' '), undefined).length)
+        return hit(inside(w, undefined)) || (['git', 'git-push', 'eval', ...SHELLS].includes(base(w)) && hit(inside(rest.map(quote).join(' '), undefined)))
       })
       if (carried) unknown(`it runs git push through ${name}, which the guard does not read`)
     } else if (unread(words[0] ?? '')) {
       // A command named by an expansion may be git: refused when its words name push, or git, or when a variable the line set holds either.
       if (words.some(w => w.includes('push') || w.toLowerCase().includes('git')) || changes.names) unknown('it runs a command named by an expansion')
+      else if (dynamic(words[0]!)) asks('it runs a command named by an expansion')
+    } else if (!['echo', 'printf'].includes(name) && shellWithin()) {
+      // A wrapper the guard does not list (arch -arm64 bash -c '…'): a shell among its words runs the words after it.
+      unknown(`it runs git push through ${name}, which the guard does not read`)
     } else if (!['echo', 'printf'].includes(name) && words.some((w, j) => j > 0 && (base(w) === 'git' || unread(w)) && words[j + subcommand(words.slice(j))] === 'push'))
       unknown(`it runs git push through ${name}, which the guard does not read`)
 
@@ -598,9 +652,9 @@ function git(words: string[], here: string | undefined, env: Record<string, stri
     if (options.some(o => o.toLowerCase().includes(`alias.${sub.toLowerCase()}=`))) unknown = 'it runs a git alias set on the command line'
     else if (made !== undefined) unknown = 'it runs a git alias this line just made, and the guard cannot read it'
     else if (unread(sub)) unknown = 'its git subcommand is an expansion'
-    else if (xargs && !QUIET.has(sub)) unknown = 'xargs may put push where its git subcommand is'
+    else if (xargs && (sub === '' || !QUIET.has(sub))) unknown = 'xargs may put push where its git subcommand is'
     else if (options.some((o, j) => unread(o) && /^(-c|--config-env)$/.test(options[j - 1] ?? ''))) unknown = 'it sets a git setting the guard cannot read'
-    else if (runs(sub, args).some(s => walk(split(s), undefined, changes).found.length)) unknown = `it runs git push through git ${sub}`
+    else if ([...runs(sub, args), ...options.flatMap((o, j) => (options[j - 1] === '-c' ? [o.slice(o.indexOf('=') + 1)] : []))].some(s => walk(split(s), undefined, changes).found.some(p => !p.ask))) unknown = `it runs git push through git ${sub}`
     else if (/^(send-pack|http-push)$/.test(sub) || (sub === 'subtree' && args.includes('push'))) unknown = `git ${sub} pushes in a way the guard does not read`
     else {
       note(sub, args, changes)
@@ -616,9 +670,19 @@ function git(words: string[], here: string | undefined, env: Record<string, stri
 }
 const loading = (name: string) => `it sets ${name}, which changes the program that runs or what it loads`
 
-// The commands a git command runs: rebase's --exec (-x), submodule foreach's and bisect run's.
+// The commands a git command runs: rebase's --exec (-x, -ix, -xcmd, --ex), filter-branch's filters, the programs
+// fetch, pull, clone and ls-remote start (--upload-pack, --receive-pack), difftool's, submodule foreach's and bisect run's.
+const valueOf = (args: string[], j: number, ...longs: string[]) => (spells(args[j]!, ...longs) ? (args[j]!.includes('=') ? args[j]!.slice(args[j]!.indexOf('=') + 1) : (args[j + 1] ?? '')) : undefined)
 function runs(sub: string, args: string[]) {
-  if (sub === 'rebase') return args.flatMap((a, j) => (/^(-x|--exec)$/.test(a) ? [args[j + 1] ?? ''] : a.startsWith('--exec=') ? [a.slice(7)] : []))
+  const longs = (...names: string[]) => args.flatMap((a, j) => (a.startsWith('--') ? (valueOf(args, j, ...names) ?? []) : []))
+  if (sub === 'rebase')
+    return [...longs('exec'), ...args.flatMap((a, j) => {
+      const m = /^-[A-Za-z]*x/.exec(a) // a bundle that holds x: -x CMD, -ix CMD, -xCMD
+      return !a.startsWith('--') && m ? [a.slice(m[0].length) || (args[j + 1] ?? '')] : []
+    })]
+  if (sub === 'filter-branch') return args.flatMap((a, j) => (/^--((env|tree|index|parent|msg|commit|tag-name)-filter|setup)(=|$)/.test(a) ? [a.includes('=') ? a.slice(a.indexOf('=') + 1) : (args[j + 1] ?? '')] : []))
+  if (/^(fetch|pull|clone|ls-remote|archive)$/.test(sub)) return longs('upload-pack', 'receive-pack', 'exec')
+  if (sub === 'difftool') return [...longs('extcmd'), ...args.flatMap((a, j) => (a === '-x' ? [args[j + 1] ?? ''] : []))]
   const at = args.indexOf(sub === 'submodule' ? 'foreach' : sub === 'bisect' ? 'run' : '')
   if (at < 0) return []
   // foreach hands its words to a shell as one script; bisect run runs its words as they are.
@@ -629,7 +693,7 @@ function runs(sub: string, args: string[]) {
 // runs: the branches the line may check out (UNREAD when the guard cannot tell which), the branches whose
 // upstream it may set ('HEAD' for the one checked out), why the settings git reports may be stale by then, and a
 // variable the line sets for the shell that changes the program that runs (PATH=, export LD_PRELOAD=).
-type Changes = { heads: string[]; fresh: string[]; stale?: string; loads?: string; alias?: Record<string, string>; names?: boolean }
+type Changes = { heads: string[]; fresh: string[]; stale?: string; loads?: string; alias?: Record<string, string>; names?: boolean; wrote?: string[]; dyn?: string[] }
 // What a push carries: the changes made so far, as they stand when it is found.
 const seen = (changes: Changes): Changes => ({ heads: [...changes.heads], fresh: [...changes.fresh], stale: changes.stale })
 const UNREAD = WILD
@@ -685,12 +749,17 @@ function note(sub: string, args: string[], changes: Changes) {
       head(made)
       changes.fresh.push(made)
     } else if (args.includes('-') || args.some(a => a.startsWith('@{'))) changes.heads.push(UNREAD)
-    else if (named.length === 1 && !args.includes('--')) {
-      for (const b of new Set([named[0]!, named[0]!.replace(/^[^/]*\//, '')])) head(b)
-      changes.fresh.push(...named)
+    else {
+      // A word before a lone -- is still a branch; with paths after it, git restores them and stays where it is.
+      const at = args.indexOf('--')
+      const before = (at < 0 ? args : args.slice(0, at)).filter(a => !a.startsWith('-'))
+      if (before.length === 1 && (at < 0 || at === args.length - 1)) {
+        for (const b of new Set([before[0]!, before[0]!.replace(/^[^/]*\//, '')])) head(b)
+        changes.fresh.push(...before)
+      }
     }
   } else if (sub === 'rebase') {
-    if (named.length >= 2) head(named[named.length - 1]!) // rebase UPSTREAM BRANCH checks BRANCH out first
+    if (named.length >= (args.includes('--root') ? 1 : 2)) head(named[named.length - 1]!) // rebase UPSTREAM BRANCH checks BRANCH out first; with --root there is no upstream
   } else if (sub === 'branch') {
     // Making, moving or copying a branch, or setting an upstream, may give a branch an upstream; -m and -c may
     // rename the branch checked out.
@@ -704,6 +773,10 @@ function note(sub: string, args: string[], changes: Changes) {
     if (args.some(a => /^(-[dD]|--delete)$/.test(a)) || (!target.length && !upstream)) return
     changes.fresh.push('HEAD', ...target)
     if (moved && target.length) head(target[target.length - 1]!)
+  } else if (sub === 'bisect') {
+    if (args[0] === 'reset' && args[1] && !args[1].startsWith('-')) head(branch(args[1])) // bisect reset REV checks REV out
+  } else if (sub === 'update-ref') {
+    if (args.includes('--stdin')) stale('git update-ref --stdin on this line can make one branch a symbolic ref to another')
   } else if (sub === 'symbolic-ref') {
     if (args.some(a => /^(-d|--delete)$/.test(a)) || named.length < 2) return
     if (named[0] === 'HEAD') head(branch(named[1]!))
@@ -798,6 +871,7 @@ export async function judge(push: Push, ask: () => Promise<Repo>, depth = 0): Pr
     if (value === undefined) return undefined // not an alias: some other program git runs
     const rest = push.args.map(quote).join(' ')
     for (const p of pushes(value.startsWith('!') ? `${value.slice(1)} ${rest}` : `git ${value} ${rest}`)) {
+      if (p.ask) continue
       if (p.git.length) return `the alias ${push.alias} runs git with options, which the guard does not read ahead`
       const why = await judge(p, ask, depth + 1)
       if (why) return why
@@ -872,6 +946,7 @@ const waits = (error: { message?: string }) =>
 export const register: Register = on => {
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     for (const push of pushes(e.command)) {
+      if (push.ask) continue // put to the person by the permission check below, never refused here
       const why = await judge(push, async () => {
         // Ask git, in the push's own repository, which branch is checked out (none when detached), where its
         // settings send a push, and which branches are other names for one. Each answer counts only when git exits
@@ -901,4 +976,14 @@ export const register: Register = on => {
     .catch(($, e, next) =>
       next.called ? next(e) : { deny: waits(next.error) },
     )
+
+  // A line that runs an expansion nobody can read ahead (eval "$(…)", … | base64 -d | sh) may push or may not. A refusal
+  // would strand eval "$(direnv hook zsh)", so the permission check puts it to the person. A push the guard can read on
+  // the same line is still refused above. If this check breaks, the host decides as if the mod were not here.
+  on('tool.check', { tool: 'Bash' }, async ($, e, next) => {
+    const command = (e.input as { command?: unknown } | undefined)?.command
+    const why = typeof command === 'string' && command ? pushes(command).find(p => p.ask)?.ask : undefined
+    if (why) return { decision: 'ask' as const, reason: `guard: ${why}, so the guard cannot read ahead whether it pushes.` }
+    return next(e)
+  }).catch(($, e, next) => next(e))
 }

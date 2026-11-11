@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0
+
+Round two of the independent review ran 641 lines against real git and a bare remote: 50 moved main past the guard. The ones the header promised to read are fixed, each with a test that failed first and that a sabotaged copy of the fix fails again.
+
+- **Fixed: a branch checked out in a spelling the guard did not read.** `git checkout main -- && git push`, `git rebase --root main`, and `git bisect reset main` all left main checked out for the push. `git checkout main -- file` still stays where it is, as git does.
+- **Fixed: a branch made a name for another with `git update-ref --stdin`** (`symref-update`, `symref-create`) now keeps a push that names no destination from being read ahead.
+- **Fixed: writes into git's own files.** `echo ... > .git/HEAD`, `>> .git/config`, `sed -i` on them, `>> ~/.gitconfig`, `GIT_CONFIG_GLOBAL=` or `git -c include.path=` pointing at a file the line has just written, now keep a push from being read ahead. A write into `.git/hooks` is refused outright.
+- **Fixed: programs a git command starts.** `git rebase -x"cmd"`, `-ix cmd`, `--ex cmd`, `git filter-branch --msg-filter`, `git fetch --upload-pack=`, `git difftool -x` and `git -c core.sshCommand=` are read as scripts, as `rebase --exec` already was.
+- **Fixed: `echo push | xargs git`** (a bare `git` under xargs) and **a shell behind a wrapper the guard does not list**, such as `arch -arm64 bash -c "git push origin main"`, are refused.
+- **Added: lines that run an expansion are marked to ask the person** (`eval "$(…)"`, `sh -c "$(…)"`, `… | base64 -d | sh`, `C=$(…); eval "$C"`, `read c; $c`). They are never refused, so `eval "$(direnv hook zsh)"` is not stranded. The permission check puts such a line to you with the reason; a push the guard can read on the same line is still refused.
+- **Changed: the README now says plainly** that the guard stops accidental pushes to main and is not a security boundary against a determined script.
+
 ## 0.2.3
 
 - The README's title now carries the new name (`critter-ward`); it still said `guard`.

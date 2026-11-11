@@ -1,5 +1,7 @@
 # critter-ledger
 
+![critter-ledger: The tokens you used, when you ask.](preview.png)
+
 The tokens this session has used, when you ask. Type `/ledger`.
 
 ```

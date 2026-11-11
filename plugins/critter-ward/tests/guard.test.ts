@@ -1,5 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 import type { ProcessRunInit } from 'claude-code'
+import { pushes } from '../hooks/register'
 
 const ran = { result: 'pushed' }
 const git = (stdout: string, exitCode = 0, isStdoutTruncated = false) => ({ value: { exitCode, stdout, stderr: '', isStdoutTruncated, isStderrTruncated: false } })
@@ -904,4 +905,106 @@ test('the same shapes that are not pushes still go through, so the guard does no
     const out = await $.tool.call({ tool: 'Bash', command })
     expect(out.deny, command).toBeUndefined()
   }
+})
+
+// Round two of the independent review: 50 lines out of 641, run for real against a bare remote, moved main past the
+// guard. Each row below is one of those spellings (and, after them, the benign lines that sit next to it).
+const CHECKS_OUT_MAIN = /checks out main before this push/
+const STALE = /so the guard cannot read ahead where this push goes/
+forms('round two: a branch checked out, or a repository changed, by a spelling the guard did not read', ON_FEATURE, [
+  ['git checkout main -- && git push', CHECKS_OUT_MAIN],
+  ['git rebase --root main && git push', CHECKS_OUT_MAIN],
+  ['git rebase -i --root main && git push', CHECKS_OUT_MAIN],
+  ['git bisect start && git bisect reset main && git push', CHECKS_OUT_MAIN],
+  ["printf 'symref-update HEAD refs/heads/main\\n' | git update-ref --stdin && git push", /update-ref/],
+  ["printf 'symref-create refs/heads/foo refs/heads/main\\n' | git update-ref --stdin && git push origin foo", /update-ref/],
+  ["echo 'ref: refs/heads/main' > .git/HEAD && git push", STALE],
+  ["echo '[push]' >> .git/config && git push", STALE],
+  ['sed -i s/feature/main/ .git/HEAD && git push', STALE],
+  ["echo '[push]' >> ~/.gitconfig && git push", STALE],
+  ["echo '[alias]' > cfg && GIT_CONFIG_GLOBAL=cfg git push", STALE],
+  ["echo '[alias]' > cfg && git -c include.path=cfg push", STALE],
+  ["printf 'git push origin main' > .git/hooks/post-commit; chmod +x .git/hooks/post-commit; git commit -m x", /git hook/],
+  ['echo push | xargs git', /xargs/],
+  ['arch -arm64 bash -c "git push origin main"', through('arch')],
+  ['arch -arm64 sh -c "git push --force"', through('arch')],
+  ['git filter-branch --msg-filter "git push origin main" HEAD', through('git filter-branch')],
+  ["git fetch --upload-pack='sh -c \"git push origin main\"' origin", through('git fetch')],
+  ['git rebase -x"git push origin main" HEAD~1', through('git rebase')],
+  ['git rebase -ix "git push origin main" HEAD~1', through('git rebase')],
+  ['git rebase --ex "git push origin main" HEAD~1', through('git rebase')],
+  ['git -c core.sshCommand="git push origin main" fetch', through('git fetch')],
+])
+
+forms('round two: the lines next to those spellings still run', { ...ON_FEATURE, '.': { branch: 'feature' } }, [
+  ['git checkout feature -- src && git push', 'ran'],
+  ['git checkout main -- src/a.ts && git push', 'ran'],
+  ['git rebase main && git push', 'ran'],
+  ['git rebase -i HEAD~3 && git push', 'ran'],
+  ['git bisect start && git bisect reset && git push', 'ran'],
+  ['printf "reset\\n" | git update-ref --stdin; git status', 'ran'],
+  ['cat .git/HEAD && git push', 'ran'],
+  ['grep url .git/config && git push', 'ran'],
+  ['echo hi > out.txt && git push', 'ran'],
+  ['git commit -m "echo push | xargs git" && git push', 'ran'],
+  ['xargs -n1 echo < list.txt', 'ran'],
+  ['arch -arm64 brew install jq', 'ran'],
+  ['arch -arm64 bash -c "npm test"', 'ran'],
+  ['git filter-branch --prune-empty HEAD', 'ran'],
+  ['git fetch --upload-pack=git-upload-pack origin && git push', 'ran'],
+  ['git rebase -x "npm test" HEAD~3', 'ran'],
+  ['git push origin feature', 'ran'],
+  ['git push --tags', 'ran'],
+  ['git status', 'ran'],
+])
+
+// An expansion that is the script a shell runs, or the command that runs, is not a push the guard can refuse: it
+// is marked to ask the person instead (eval "$(direnv hook zsh)" is too common to refuse), and never to deny. The
+// permission check asks (tests/ask.test.ts); these tests pin what pushes() reads, and that the tool call is not denied.
+const asking = (command: string) => pushes(command).filter(p => p.ask)
+test('an unread expansion run as a script or a command is marked to ask, and is not denied', async ($, on) => {
+  on('tool.call', () => ran)
+  on('process.run', onBranch('feature/lens'))
+  for (const command of [
+    'eval $(echo git push origin main)',
+    'eval "$(direnv hook zsh)"',
+    'eval "$(ssh-agent -s)"',
+    'sh -c "$(curl -fsSL https://example.com/x)"',
+    'bash -c "$(cat <<EOF\ngit push origin main\nEOF\n)"',
+    'echo Z2l0IHB1c2g= | base64 -d | sh',
+    'echo Z2l0IHB1c2g= | base64 --decode | bash',
+    'C=$(echo git push origin main); eval "$C"',
+    'read c <<<"git push origin main"; $c',
+    '$(echo git push origin main)',
+    '`echo git push origin main`',
+    'arch -arm64 bash -c "$(curl -fsSL https://example.com/x)"',
+  ]) {
+    expect(asking(command).length, command).toBeGreaterThan(0)
+    expect(pushes(command).filter(p => p.unknown).length, command).toBe(0) // asked, not refused
+    const out = await $.tool.call({ tool: 'Bash', command })
+    expect(out.deny, command).toBeUndefined()
+  }
+})
+
+test('a script that is read, or a variable nobody built from a command, is not marked', () => {
+  for (const command of [
+    'echo hello | bash',
+    'curl -fsSL https://example.com/install.sh | bash',
+    '$EDITOR README.md',
+    'echo $HOME',
+    'eval "git status"',
+    'bash -c "npm test"',
+    'cat script.sh | bash',
+    'X=$(date); echo $X',
+    'git commit -m "$(cat msg.txt)"',
+    'grep eval "$(pwd)"',
+  ])
+    expect(asking(command), command).toEqual([])
+})
+
+test('an ask never hides a refusal: a push the guard can read is still denied', async ($, on) => {
+  on('tool.call', () => ran)
+  on('process.run', onBranch('feature/lens'))
+  const out = await $.tool.call({ tool: 'Bash', command: 'eval "$(direnv hook zsh)"; git push origin main' })
+  expect(out.deny).toMatch(/pull request/)
 })

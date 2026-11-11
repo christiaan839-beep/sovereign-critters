@@ -1,6 +1,6 @@
 {
   "name": "critter-clock",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "Apache-2.0",
   "icon": "./.claude-plugin/icon.png",
   "description": "Shows how long the session has run and how much of it Claude spent working. Ask with /clock; it speaks unasked once an hour, if you leave that on. It never blocks a tool.",
