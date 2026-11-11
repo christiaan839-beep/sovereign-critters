@@ -2,6 +2,9 @@
 
 ## 0.5.2
 
+- **Fixed:** the five-second guard on store steps no longer leaves a timer running after each step, and a host without a timer simply does not time them.
+- Known limit: a store step that gives up is not cancelled, so a very late write could still land after `/diary clear`.
+
 - **Fixed:** a store that never answers can no longer hang `/diary clear` or stop the week recording; each store step gives up after five seconds.
 
 ## 0.5.1

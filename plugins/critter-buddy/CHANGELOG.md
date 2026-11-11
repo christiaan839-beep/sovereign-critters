@@ -2,6 +2,7 @@
 
 ## 0.30.2
 
+
 - **Gentler voice, all the way down:** the greetings, the weekday lines and the warnings no longer scold, nag or watch you (for example "is not working, you are", "counting your keystrokes", "no undo"). A test now checks every line the pair can say.
 
 ## 0.30.1

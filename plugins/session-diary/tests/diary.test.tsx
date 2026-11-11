@@ -30,8 +30,9 @@ test('the markdown is empty when nothing happened, and counts what did', () => {
 })
 
 const kept = new Map<string, { value: unknown; version: number }>()
-const stub = (on: any) => {
+const stub = (on: any, timers = true) => {
   kept.clear()
+  if (timers) on('clock.after', () => ({ value: { cancel: () => undefined } })) // the five-second guard on store steps
   on('state.get', (_: unknown, e: { plugin: string; key: string }) => ({ value: kept.get(`${e.plugin}.${e.key}`) ?? { value: undefined, version: 0 } }))
   on('state.set', (_: unknown, e: { plugin: string; key: string; value: unknown; ifVersion?: number }) => {
     const id = `${e.plugin}.${e.key}`
@@ -414,7 +415,7 @@ test('a clock that steps back cannot make a day vanish, and names are cleaned of
 
 test('a store that hangs cannot hang /diary clear or stop the week for good: each store step gives up after five seconds', async ($, on) => {
   const clock = mock.clock(on, { now: AT })
-  stub(on)
+  stub(on, false)
   let hang = true
   const store2: Record<string, unknown> = {}
   on('store.get', (_: unknown, e: { key: string }) => (hang ? (new Promise(() => undefined) as never) : ({ value: store2[e.key] })))

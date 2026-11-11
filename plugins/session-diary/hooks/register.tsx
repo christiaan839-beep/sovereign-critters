@@ -145,8 +145,13 @@ const DAYS = 'days'
 let queue: Promise<unknown> = Promise.resolve()
 /** A store step that gives up after five seconds, so one that never answers cannot stop the queue for good. */
 const STORE_GIVES_UP_MS = 5000
-const patient = <T,>($: any, step: Promise<T> | T): Promise<T> =>
-  Promise.race([Promise.resolve(step), new Promise<never>((_, no) => { $.clock.after(STORE_GIVES_UP_MS, () => no(new Error('the store did not answer'))) })])
+const patient = <T,>($: any, step: Promise<T> | T): Promise<T> => {
+  let timer: { cancel?: () => void } | undefined
+  const late = new Promise<never>((_, no) => {
+    try { timer = $.clock.after(STORE_GIVES_UP_MS, () => no(new Error('the store did not answer'))) } catch { /* no timer here: the step is simply not timed */ }
+  })
+  return Promise.race([Promise.resolve(step), late]).then(v => { timer?.cancel?.(); return v }, e => { timer?.cancel?.(); throw e }) // a step that answered leaves no timer behind
+}
 const bump = ($: any, f: (list: Day[]) => Day[]): void => {
   queue = queue.then(async () => { await patient($, $.store.set(DAYS, f(cleanDays(await patient($, $.store.get(DAYS)))))) }).catch(() => undefined)
 }

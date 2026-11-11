@@ -799,12 +799,12 @@ export const NIGHT = [
 // The weekday only colours a daylight greeting; the night keeps its own lines. 0 is Sunday.
 export const WEEKDAY: readonly (readonly string[])[] = [
   ['sunday. {pip} keeps the orb low', 'sunday. {cat} kept the warm end of the sofa for you', 'sunday. {pip} put the list face down', 'sunday. {cat} says one email is plenty, and so is resting', 'sunday. the slow light suits {cat}'],
-  ['monday. {cat} is easing in, and so can you', 'monday. {pip} brought a list', 'monday. {cat} is easing in, loudly', 'monday. {pip} polished the orb for the occasion', 'monday. the week starts when {cat} says'],
+  ['monday. {cat} says begin with the small thing', 'monday. {pip} brought a list', 'monday. {cat} is easing in, loudly', 'monday. {pip} polished the orb for the occasion', 'monday. the week starts when {cat} says'],
   ['tuesday. {cat} is settled in', 'tuesday. {pip} polished the orb', 'tuesday. the quiet day, says {pip}', 'tuesday. {cat} found a rhythm and sat on it', 'tuesday. {pip} has the good pen out'],
   ['wednesday. the middle, says {pip}', 'wednesday. {cat} checked the clock twice', 'wednesday. half done, {pip} insists', 'wednesday. {cat} is pacing the hump', 'wednesday. {pip} measured the week and it holds'],
   ['thursday. {pip} can smell friday', 'thursday. {cat} is pacing themself', 'thursday. nearly, says {pip}', 'thursday. {cat} is pretending it is friday', 'thursday. {pip} sorted what can wait'],
   ['friday. {pip} suspects the weekend', 'friday. {cat} has one eye on the door', 'friday. {pip} is wrapping things up neatly', 'friday. {cat} will believe it at five', 'friday. one good push, says {pip}'],
-  ['saturday. {cat} kept your spot on the sofa', 'saturday. {pip} lit the orb anyway', 'saturday. {cat} took the sofa and kept the peace', 'saturday. {pip} says the braai can wait an hour', 'saturday. a gentle one, says {pip}'],
+  ['saturday. {cat} kept the good cushion for you', 'saturday. {pip} lit the orb anyway', 'saturday. {cat} took the sofa and kept the peace', 'saturday. {pip} says the braai can wait an hour', 'saturday. a gentle one, says {pip}'],
 ]
 /** The weekday in Africa/Johannesburg (UTC+2, no daylight saving), 0 for Sunday, from epoch milliseconds. */
 export const weekdayOf = (ms: number): number => (((Math.floor((ms + 7_200_000) / 86_400_000) + 4) % 7) + 7) % 7

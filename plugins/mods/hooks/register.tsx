@@ -252,7 +252,7 @@ export const register: Register = on => {
         <Box key="head" flexDirection="row" justifyContent="space-between">
           <Text bold>{S.list ? `Your mods · ${onCount()} of ${MODS.length} on` : 'Your mods'}</Text>
           <Box flexDirection="row" columnGap={1}>
-            <Button key="refresh" label="refresh" hotkey="r" onPress={act(async () => ((await refresh($)) ? 'Refreshed.' : STALE))} />
+            <Button key="refresh" label="refresh" hotkey="r" onPress={act(async () => ((await refresh($)) ? 'Refreshed.' : S.list ? STALE : CANNOT))} />
             <Button key="close" label="close" hotkey="q" onPress={() => $.ui.close({ id: PANE })} />
           </Box>
         </Box>
