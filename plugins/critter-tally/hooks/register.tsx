@@ -56,8 +56,10 @@ export const register: Register = on => {
   })
 
   on('tool.call', async ($, e, next) => {
-    await update($, tally, t => ({ ...t, [e.tool]: (Object.hasOwn(t, e.tool) ? t[e.tool]! : 0) + 1 }))
-    return next(e)
+    const ran = await next(e)
+    // Counted after the tool and not waited for: a state that is slow or stuck must not hold up a result.
+    void update($, tally, t => ({ ...t, [e.tool]: (Object.hasOwn(t, e.tool) ? t[e.tool]! : 0) + 1 })).catch(() => undefined)
+    return ran
   }).catch(($, e, next) => next(e))
 
   // One hook draws the pane for each app; each app's table supplies its own Box, Text and Button.

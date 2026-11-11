@@ -119,8 +119,10 @@ export const register: Register = on => {
   })
 
   on('tool.call', async ($, e, next) => {
-    await Promise.all([update($, calls, list => [...list, e.tool].slice(-COLUMNS)), update($, total, n => n + 1)]) // independent atoms: written together
-    return next(e)
+    const ran = await next(e)
+    // Counted after the tool and not waited for: a state that is slow or stuck must not hold up a result.
+    void Promise.all([update($, calls, list => [...list, e.tool].slice(-COLUMNS)), update($, total, n => n + 1)]).catch(() => undefined) // independent atoms: written together
+    return ran
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {

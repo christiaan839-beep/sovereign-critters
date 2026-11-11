@@ -172,3 +172,34 @@ test('a pane lookup that fails never raises out of the blink, and a closed pane 
   await clock.advance(12_000)
   expect(asked.blits).toHaveLength(0)
 })
+
+test('a state that never answers does not hold up a tool, and the tool still gets its result', async ($, on) => {
+  on('tool.call', () => ({ result: 'ran' }))
+  on('state.get', () => new Promise(() => undefined) as never)
+  const soon = <T,>(p: Promise<T>) => Promise.race([p, new Promise<string>(r => setTimeout(() => r('held up'), 200))])
+  const ran = await soon($.tool.call({ tool: 'Read', file_path: 'README.md' }))
+  expect(ran).not.toBe('held up')
+  expect((ran as { result: string }).result).toBe('ran')
+})
+
+test('a state that refuses a write does not stop the tool', async ($, on) => {
+  on('tool.call', () => ({ result: 'ran' }))
+  on('state.set', () => { throw new Error('read-only') })
+  const ran = await $.tool.call({ tool: 'Read', file_path: 'README.md' })
+  expect(ran.result).toBe('ran')
+})
+
+test('the state keeps the last forty tool names and counts all of them', async ($, on) => {
+  const kept = new Map<string, { value: unknown; version: number }>()
+  on('state.get', (_: unknown, e: { plugin: string; key: string }) => ({ value: kept.get(`${e.plugin}.${e.key}`) ?? { value: undefined, version: 0 } }))
+  on('state.set', (_: unknown, e: { plugin: string; key: string; value: unknown }) => {
+    const v = (kept.get(`${e.plugin}.${e.key}`)?.version ?? 0) + 1
+    kept.set(`${e.plugin}.${e.key}`, { value: e.value, version: v })
+    return { value: { isSet: true, version: v } }
+  })
+  on('tool.call', () => ({ result: 'ok' }))
+  for (let i = 0; i < 45; i++) await $.tool.call({ tool: i < 5 ? 'Read' : 'Bash' })
+  await new Promise(r => setTimeout(r, 50)) // the count is written behind the result
+  expect(kept.get('critter-stunt.calls')?.value).toEqual(Array(40).fill('Bash'))
+  expect(kept.get('critter-stunt.total')?.value).toBe(45)
+})

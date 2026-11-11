@@ -2,11 +2,13 @@
 
 ## 0.6.1
 
-- The README's title now carries the new name (`critter-diary`); it still said `session-diary`. No behaviour change.
+- **Fixed:** the session's lines are now written behind the tool's result, like the week; a state that hangs can no longer hold up a tool.
+- **Fixed:** the log line shown when `/diary` is taken by another plugin still used the old name. The README title and the rename note below did too.
+- Tests: a hung state, and the 80-character cap on a tool name.
 
 ## 0.6.0
 
-- **Renamed from `session-diary` to `critter-diary`**, so the whole family shares one name and none is a bare common word. The slash commands are unchanged. To move over: update the marketplace, install `critter-diary`, and remove the old plugin; anything it stored (a crab note, the diary's week) starts fresh under the new name.
+- **Renamed from `session-diary` to `critter-diary`**, so the whole family shares one name and none is a bare common word. The slash commands are unchanged. To move over: update the marketplace, install `critter-diary`, and remove the old plugin. The week it kept (14 days of counts) starts fresh under the new name.
 - **Fixed:** a tool named like an object property (`constructor`, `toString`, `__proto__`) is now counted as itself in the day, the week and the postcard; before, its count turned into text.
 
 ## 0.5.2

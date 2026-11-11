@@ -2,11 +2,11 @@
 
 ## 0.2.1
 
-- The README's title now carries the new name (`critter-measure`); it still said `forge`. No behaviour change.
+- Docs: the README title used the old name, and the rename note listed things it never stored.
 
 ## 0.2.0
 
-- **Renamed from `forge` to `critter-measure`**, so the whole family shares one name and none is a bare common word. The slash commands are unchanged. To move over: update the marketplace, install `critter-measure`, and remove the old plugin; anything it stored (a crab note, the diary's week) starts fresh under the new name.
+- **Renamed from `forge` to `critter-measure`**, so the whole family shares one name and none is a bare common word. The slash commands are unchanged. To move over: update the marketplace, install `critter-measure`, and remove the old plugin. It stored nothing, so nothing is lost.
 
 ## 0.1.3
 
