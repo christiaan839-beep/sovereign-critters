@@ -411,8 +411,9 @@ function rm(args: Word[], where: Where, fed: boolean, roots: string[] | undefine
   const { root, home } = where
   if (fed) {
     // What find or git ls-files names is inside where they look; anything else that feeds rm is unreadable.
-    const ok = roots !== undefined && roots.every(r => !r.startsWith('~') && [...where.dirs].every(d => d !== undefined && within(root, normalize(r.startsWith('/') ? r : d + '/' + r))))
-    if (!ok) return 'rm -r has a target the guard cannot read: it comes from another command'
+    const read = roots !== undefined && roots.every(r => !r.startsWith('~')) && [...where.dirs].every(d => d !== undefined)
+    if (!read) return 'rm -r has a target the guard cannot read: it comes from another command'
+    if (!roots!.every(r => [...where.dirs].every(d => within(root, normalize(r.startsWith('/') ? r : d + '/' + r))))) return `rm -r reaches outside the folder you opened (${root})`
   }
   for (const t of targets) {
     if (fed && /^(?:\{\}|\{\.\}|%|\{\})$/.test(t.text)) continue // the placeholder for what find or xargs hands over
@@ -558,7 +559,7 @@ function cd(args: Word[], where: Where): void {
     if (!target || target.unread || target.text === '-' || target.text.startsWith('~') || d === undefined || where.root === undefined) ok.add(undefined)
     else {
       const next = normalize(target.text.startsWith('/') ? target.text : d + '/' + target.text)
-      ok.add(within(where.root, next) ? next : undefined)
+      ok.add(next) // a folder outside is still a folder the guard read: what is deleted from there reaches outside
     }
   }
   for (const d of ok) where.all.add(d)

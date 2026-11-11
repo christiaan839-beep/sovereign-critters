@@ -17,7 +17,7 @@ A recursive delete inside the folder (`rm -rf dist`, `find . -name __pycache__ -
 
 ## How it reads
 
-It reads the command line, past `sudo`, `env`, `time`, `nice`, `xargs`, `find -exec`, `bash -c`, `eval`, `echo ... | sh`, `$( )`, backticks, redirects, heredocs, line continuations and shell keywords. It follows `cd`, `pushd` and `popd` on the same line, and when a `cd` might not have happened (after `;`, `||` or in a subshell) it judges a relative target against every folder the command could be in. A target it cannot read (`$VAR`, a brace, a backtick) is held back, not guessed.
+It reads the command line, past `sudo`, `env`, `time`, `nice`, `xargs`, `find -exec`, `bash -c`, `eval`, `echo ... | sh`, `$( )`, backticks, redirects, heredocs, line continuations and shell keywords. It follows `cd`, `pushd` and `popd` on the same line, and when a `cd` might not have happened (after `;`, `||` or in a subshell) it judges a relative target against every folder the command could be in. A `cd` it can read to a folder outside the one you opened makes a recursive delete after it a clear stop (`cd /tmp/x && rm -rf dist`). A target it cannot read (`$VAR`, a brace, a backtick) is held back, not guessed.
 
 ## Limits
 
@@ -31,4 +31,4 @@ It is best effort and no substitute for a backup or for version control.
 - It fails closed for a line that names `rm`, `git` or `xargs` and that it cannot read; any other command goes on as if the mod were not there.
 - It never reads file contents, keeps nothing and sends nothing.
 
-A command it stopped is refused. A command it could not read (a `$VAR` target, an `eval` of something unknown) is put to you as a question instead, so a false alarm costs one click. To run a refused command anyway, run it yourself in a terminal.
+A command it stopped is refused. A command it could not read (a `$VAR` target, an `eval` of something unknown) is put to you as a question instead, so a false alarm costs one click. In a permission mode that answers questions for you (auto mode), the question may be answered without reaching you: that was seen on 2026-11-11, and it is why only what the guard truly cannot read is a question. To run a refused command anyway, run it yourself in a terminal.

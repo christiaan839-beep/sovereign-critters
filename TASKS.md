@@ -12,12 +12,14 @@ Kept so a long run survives a context summary. Newest state first. Update it in 
 
 ## Open
 
+- [ ] In auto mode a guard's question (`tool.check` returning ask) was answered without reaching the person (seen with latch, 2026-11-11). Latch's README says so. Check the same for seal (a host it cannot read) and ward (a line that runs an expansion), and say so in their READMEs; decide whether either should refuse instead.
 - [ ] A fourth review round on latch and seal only if the founder wants one: each round found fewer and smaller holes, but spelling-based guards will keep missing things (scripts, aliases, multi-step encoding). The READMEs say so instead of promising a clean bill.
 - [x] critter-ward puts a line that runs an expansion (`eval "$(…)"`) to the person through `tool.check`, the way latch and seal ask (in 0.3.0, three tests, the first watched failing).
 
 ## Needs the founder
 
-- [ ] Look at the four new mods in the real app, in a new session: `/clock`, `/ledger`, a held `git reset --hard`, a held send of `.env`. None has been seen live. Record each sighting in `tools/quality-facts.json`.
+- [x] Latch, seal and ward seen stopping a command in the desktop app, in an agent session (2026-11-11, recorded in `tools/quality-facts.json`). The sighting found latch 0.1.1 asking about `cd /outside && rm -rf dist` where it should refuse; fixed in 0.1.2 with a test that failed first.
+- [ ] `/clock` and `/ledger` are still unseen: only a person can type them. Type each in a session and record what it said.
 - [ ] The release bar: the reviews and the docs audit went stale with these changes, and the cold install by someone else is still open for every mod.
 - [ ] Marketplace: the Claude Marketplace article lists partner agents bought with committed spend; it says nothing about free open-source mods. Ask how a free mod gets listed before planning for it.
 
