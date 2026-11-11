@@ -155,8 +155,11 @@ const patient = <T,>($: any, step: Promise<T> | T): Promise<T> => {
 const bump = ($: any, f: (list: Day[]) => Day[]): void => {
   queue = queue.then(async () => { await patient($, $.store.set(DAYS, f(cleanDays(await patient($, $.store.get(DAYS)))))) }).catch(() => undefined)
 }
-/** Resolves when every write to the week so far has settled. A tool never waits on it: a store that hangs must not hold up a result. */
-export const idle = (): Promise<unknown> => queue
+// The session's lines are written the same way: started and left, so a tool never waits on them either.
+let writing: Promise<unknown> = Promise.resolve()
+const leave = (step: Promise<unknown>): void => { writing = Promise.all([writing, step.catch(() => undefined)]) }
+/** Resolves when every write to the week and to the session's lines so far has settled. A tool never waits on it: a store that hangs must not hold up a result. */
+export const idle = (): Promise<unknown> => Promise.all([queue, writing])
 const week = async ($: any): Promise<Day[]> => cleanDays(await Promise.resolve($.store.get(DAYS)).catch(() => undefined))
 
 export const register: Register = on => {
@@ -183,7 +186,7 @@ export const register: Register = on => {
       if (!ok) errors += 1
       const name = String(e.tool).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]+/g, ' ').slice(0, 80)
       bump($, list => addTool(list, started, name, ok)) // queued and left: the tool's result does not wait on the store
-      await update($, entries, (list: Entry[]): Entry[] => [...list, { kind: 'tool', at: started, tool: name, ms, ok } as Entry].slice(-KEEP))
+      leave(update($, entries, (list: Entry[]): Entry[] => [...list, { kind: 'tool', at: started, tool: name, ms, ok } as Entry].slice(-KEEP))) // started and left, like the week's write: a state that hangs must not hold up the result
     } catch {
       // a diary that cannot write never holds up the tool
     }
@@ -198,7 +201,7 @@ export const register: Register = on => {
       const [t, er] = [tools, errors]
       tools = 0; errors = 0; turnStart = 0
       bump($, list => addTurn(list, now, ms))
-      await update($, entries, (list: Entry[]): Entry[] => [...list, { kind: 'turn', at: now, tools: t, errors: er, ms } as Entry].slice(-KEEP))
+      leave(update($, entries, (list: Entry[]): Entry[] => [...list, { kind: 'turn', at: now, tools: t, errors: er, ms } as Entry].slice(-KEEP)))
     } catch {
       // see above
     }
@@ -209,7 +212,7 @@ export const register: Register = on => {
     try {
       await $.command.register({ name: 'diary', description: 'Open the session diary: every tool call, its time, and a line for each turn. /diary copy puts it on the clipboard as markdown; /diary clear empties it; /diary week sums up the last seven days (/diary week copy for markdown). /diary postcard sums up this session on one screen (/diary postcard copy for markdown).' })
     } catch {
-      $.ui.log('session-diary: /diary is taken by another plugin')
+      $.ui.log('critter-diary: /diary is taken by another plugin')
     }
     return next(e)
   }).catch(($, e, next) => next(e))
@@ -217,6 +220,7 @@ export const register: Register = on => {
   on('command.run', { command: 'diary' }, async ($, e) => {
     const sub = e.args.trim()
     if (sub === 'clear') {
+      await patient($, writing).catch(() => undefined) // a line still on its way would otherwise land after the clear
       await update($, entries, () => [] as Entry[])
       let cleared = true
       queue = queue.then(() => patient($, $.store.set(DAYS, []))).catch(() => { cleared = false })

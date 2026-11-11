@@ -1,8 +1,13 @@
 # Changelog
 
+## 0.3.1
+
+- Docs: the rename note below no longer says the diary's week was lost with the crab.
+- Tests: the folder key is pinned to the value earlier releases wrote, so a note held last week is still found.
+
 ## 0.3.0
 
-- **Renamed from `crab` to `critter-crab`**, so the whole family shares one name and none is a bare common word. The slash commands are unchanged. To move over: update the marketplace, install `critter-crab`, and remove the old plugin; anything it stored (a crab note, the diary's week) starts fresh under the new name.
+- **Renamed from `crab` to `critter-crab`**, so the whole family shares one name and none is a bare common word. The slash commands are unchanged. To move over: update the marketplace, install `critter-crab`, and remove the old plugin. The notes you left in your folders start fresh under the new name; hold them again.
 
 ## 0.2.6
 

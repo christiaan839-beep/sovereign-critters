@@ -1,8 +1,13 @@
 # Changelog
 
+## 0.2.1
+
+- **Fixed:** the call is counted after the tool runs and is not waited for; a state that hangs can no longer hold up a tool.
+- Tests: a hung state, a refused write, and the 40-name cap in the state.
+
 ## 0.2.0
 
-- **Renamed from `stunt` to `critter-stunt`**, so the whole family shares one name and none is a bare common word. The slash commands are unchanged. To move over: update the marketplace, install `critter-stunt`, and remove the old plugin; anything it stored (a crab note, the diary's week) starts fresh under the new name.
+- **Renamed from `stunt` to `critter-stunt`**, so the whole family shares one name and none is a bare common word. The slash commands are unchanged. To move over: update the marketplace, install `critter-stunt`, and remove the old plugin. It keeps nothing between sessions, so nothing is lost.
 
 ## 0.1.5
 
