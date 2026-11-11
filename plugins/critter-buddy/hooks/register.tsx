@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { windowWidth, fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, wizardPoseFor, isQuiet, motionTick, welcomeLine, cleanMemory, cleanStreak, doctorLines, backdropOutcome, surfaceOf, newProbe, noteBeat, perfLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import { windowWidth, fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, wizardPoseFor, isQuiet, motionTick, welcomeLine, cleanMemory, cleanStreak, doctorLines, withSky, backdropFailure, backdropOutcome, surfaceOf, newProbe, noteBeat, perfLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
 import { TINTS, tintOf, tintFor, SKY_CHOICES, hourSast, dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, RIDGE_FAR, thinkingOf, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
 import type { Flight, SkyChoice, Streak } from './world'
 import type { SoundName, Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
@@ -599,13 +599,15 @@ export const register: Register = on => {
     // Other mods draw here too (usage-line, snoozing-pet): keep their rows beneath ours.
     const others = await next(e)
     const rows = paint({ ...s, cols })
+    // Where the app has drawn no backdrop (this version has none, or it refused), the sky is drawn behind the pair, in the same picture.
+    const bandSky = vector && !skyDrawn ? skyFor(skyArgs(await $.clock.now(), s.joy, s.fails, thinkingOf(s))) : undefined
     const lb = fitControls(controlLabels(s, moodOf(s), nm), cols)
     const [statusMain, statusRest] = statusParts(s.label, moodOf(s), usageText ? named(usageText, nm) : '', cols)
     return (
       <Box flexDirection="column">
         {vector ? (
-          <Box key="art" flexDirection="column">
-            <Box key="art-row" flexDirection="row" justifyContent="flex-end">{svg(paintSvg({ ...s, cols }, 5), 'The critter and the tabby cat on the bar')}</Box>
+          <Box key="art" flexDirection="column" backgroundColor={bandSky?.paper}>
+            <Box key="art-row" flexDirection="row" justifyContent="flex-end">{svg(bandSky ? withSky(paintSvg({ ...s, cols }, 5), bandSky) : paintSvg({ ...s, cols }, 5), 'The critter and the tabby cat on the bar')}</Box>
             <Text> </Text>
           </Box>
         ) : rowsOf(Text, rows, 'r')}
@@ -989,11 +991,11 @@ const syncSky = async ($: any, now: number, s: { joy: number; fails?: number; lo
   lastSky = key
   const outcome = await drawBackdrop($, { id: key, glass: glassOf(a.phase) })
   skyDrawn = outcome.drawn
-  skyRetryAt = outcome.drawn ? 0 : now + 10_000 // the surface may attach later: ask again in ten seconds, not every beat
+  skyRetryAt = outcome.drawn ? 0 : outcome.final ? Number.MAX_SAFE_INTEGER : now + 10_000 // the surface may attach later: ask again in ten seconds, not every beat
 }
 
 // Not every host has a backdrop to draw on: a missing or refused call is not the mod's problem.
-const drawBackdrop = async ($: any, arg: { id: string; glass: ReturnType<typeof glassOf> } | undefined): Promise<{ drawn: boolean }> => {
+const drawBackdrop = async ($: any, arg: { id: string; glass: ReturnType<typeof glassOf> } | undefined): Promise<{ drawn: boolean; final?: boolean }> => {
   try {
     const answer = await $.ui.backdrop(arg)
     if (arg === undefined) { backdropNote = 'cleared (the pair are hidden)'; return { drawn: true } }
@@ -1001,7 +1003,8 @@ const drawBackdrop = async ($: any, arg: { id: string; glass: ReturnType<typeof 
     backdropNote = outcome.text
     return outcome
   } catch (err) {
-    backdropNote = `not drawn (the host refused the call: ${err instanceof Error ? err.message : String(err)})`
-    return { drawn: false }
+    const failed = backdropFailure(err)
+    backdropNote = failed.text
+    return { drawn: false, final: failed.final }
   }
 }

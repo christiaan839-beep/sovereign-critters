@@ -2440,3 +2440,47 @@ test('every sky, in every phase, season, weather and folder tint, has a ground, 
   expect(misses.slice(0, 6)).toEqual([]) // the first few that miss, named
   expect(misses.length).toBe(0)
 })
+
+import { withSky, paintSvg as paintSvgSky } from '../hooks/scene'
+
+test('a sky drawn behind a picture keeps its size, shows the ground and the ridges, and a night sky has a crescent moon', () => {
+  const art = paintSvgSky({ ...initial(), cols: 40 }, 5)
+  const day = skyForContrast({ phase: 'day', season: 'summer', weather: 'clear', festive: false })
+  const out = withSky(art, day)
+  expect(out.width).toBe(art.width)
+  expect(out.height).toBe(art.height)
+  expect(out.source.startsWith('<svg')).toBe(true)
+  expect(out.source).toContain(`stop-color="${day.ground}"`)
+  expect(out.source).toContain(`fill="${day.ridgeColour}"`)
+  expect(out.source).toContain(`fill="${day.ridgeFarColour}"`)
+  expect(out.source).toContain(`fill="${day.bodyColor}"`) // the sun
+  expect(out.source).not.toContain(`fill="${day.paper}"`) // no crescent by day
+  const night = skyForContrast({ phase: 'night', season: 'summer', weather: 'clear', festive: false })
+  expect(withSky(art, night).source).toContain(`fill="${night.paper}"`) // the bite out of the moon
+  expect(withSky(art, day).source).not.toBe(art.source) // and the art is still in there after the sky
+  expect(withSky(art, day).source.endsWith(art.source.slice(art.source.indexOf('>') + 1))).toBe(true)
+})
+
+test('where the app has no backdrop (this one has none, as the desktop app showed) the band carries the sky in its picture', async ($, on) => {
+  stub(on)
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  const band = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  const svg = (await band.find({ type: 'Svg' })) as { props?: { source?: string } } | undefined
+  expect(svg?.props?.source).toContain('<linearGradient') // the ground fades in behind the pair
+  expect(svg?.props?.source).toContain('<polygon') // and the ridges are there
+  await band.unmount()
+})
+
+import { backdropFailure } from '../hooks/scene'
+
+test('a backdrop call that is not there is named and never retried, and a refusal is told as the host said it and retried', () => {
+  const absent = backdropFailure(new TypeError('$.ui.backdrop is not a function. (In \'$.ui.backdrop(arg)\', \'$.ui.backdrop\' is undefined)'))
+  expect(absent.final).toBe(true)
+  expect(absent.text).toMatch(/this version of the app has no backdrop/)
+  const refused = backdropFailure(new Error('the window is not ready'))
+  expect(refused).toEqual({ final: false, text: 'not drawn (the host refused the call: the window is not ready)' })
+  expect(backdropFailure('boom').final).toBe(false)
+})

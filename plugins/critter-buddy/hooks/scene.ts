@@ -1,5 +1,5 @@
 import type { CatMode, CatVariant, Fx, Look, Scene } from '../types'
-import { propsFor } from './world'
+import { propsFor, RIDGE, RIDGE_FAR } from './world'
 import type { Prop } from './world'
 
 export type Run = { text: string; fg?: string; bg?: string }
@@ -1055,6 +1055,43 @@ export const cadence = (s: Scene): 1 | 4 => {
   return working || moving ? 1 : 4
 }
 
+// ---- the sky behind the pair, for an app with no backdrop -----------------------------------------
+/** The pieces of a sky that `withSky` draws: the colours and the places `skyFor` chose. */
+export type SkyDraw = { ground: string; ridgeColour: string; ridgeFarColour: string; body: string; bodyColor: string; bodyTop: number; bodyHidden: boolean; paper: string; cloudColour: string; clouds: { top: number; left: number }[]; wisps: { top: number; left: number }[]; rain: { top: number; left: number }[]; stars: { top: number; left: number; big: boolean }[] }
+
+/**
+ * A picture with a sky drawn behind it, in the same SVG so the two always line up: the ground with the near and far ridges,
+ * the sun or the moon, stars, cloud and rain. Where the app draws no backdrop of its own this is the sky; the ground fades in
+ * from the left so it has no hard edge where the picture ends. The picture's size is not changed.
+ */
+export const withSky = (art: Svgd, sky: SkyDraw): Svgd => {
+  const { width: w, height: h } = art
+  const groundTop = Math.round(h * 0.72)
+  const ridge = (text: string, base: number, colour: string, opacity: number) => {
+    const step = 10
+    const pts = [`0,${h}`]
+    for (let x = 0, i = 0; x <= w + step; x += step, i++) pts.push(`${x},${base - ('▁▂▃▄▅'.indexOf(text[i % text.length] ?? '▁') + 1) * 3}`)
+    pts.push(`${w},${h}`)
+    return `<polygon points="${pts.join(' ')}" fill="${colour}" fill-opacity="${opacity}"/>`
+  }
+  const at = (top: number, rows: number) => Math.round((top / rows) * groundTop)
+  const bits: string[] = []
+  bits.push(`<defs><linearGradient id="fade" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="${sky.ground}" stop-opacity="0"/><stop offset="0.3" stop-color="${sky.ground}" stop-opacity="1"/></linearGradient></defs>`)
+  for (const st of sky.stars) bits.push(`<rect x="${Math.round((st.left / 150) * w)}" y="${at(st.top, 34)}" width="${st.big ? 3 : 2}" height="${st.big ? 3 : 2}" fill="${st.big ? '#d4a548' : '#8f7cc4'}"/>`)
+  for (const c of [...sky.wisps, ...sky.clouds]) bits.push(`<ellipse cx="${Math.round(((c.left % 130) / 130) * w)}" cy="${at(c.top, 12)}" rx="${sky.clouds.includes(c) ? 26 : 18}" ry="${sky.clouds.includes(c) ? 7 : 4}" fill="${sky.cloudColour}"/>`)
+  for (const d of sky.rain) bits.push(`<line x1="${Math.round(((d.left % 150) / 150) * w)}" y1="${at(d.top, 30)}" x2="${Math.round(((d.left % 150) / 150) * w) - 3}" y2="${at(d.top, 30) + 8}" stroke="${sky.cloudColour}" stroke-width="1.5"/>`)
+  if (!sky.bodyHidden) {
+    const cx = w - 34, cy = Math.min(groundTop - 14, sky.bodyTop * 6 + 16)
+    bits.push(`<circle cx="${cx}" cy="${cy}" r="10" fill="${sky.bodyColor}"/>`)
+    if (sky.body === '☾') bits.push(`<circle cx="${cx + 5}" cy="${cy - 3}" r="9" fill="${sky.paper}"/>`) // the moon is a crescent: a second disc in the paper's colour bites it
+  }
+  bits.push(`<rect x="0" y="${groundTop}" width="${w}" height="${h - groundTop}" fill="url(#fade)"/>`)
+  bits.push(ridge(RIDGE_FAR, groundTop - 2, sky.ridgeFarColour, 0.9), ridge(RIDGE, groundTop, sky.ridgeColour, 0.9))
+  bits.push(`<rect x="0" y="${groundTop}" width="${w}" height="${h - groundTop}" fill="url(#fade)"/>`)
+  const source = art.source.replace(/(<svg[^>]*>)/, `$1<g shape-rendering="geometricPrecision">${bits.join('')}</g>`)
+  return { ...art, source }
+}
+
 // ---- what a beat costs -------------------------------------------------------------
 /** The clock's own books: how many beats ran, how many did nothing, and what the rest cost the engine. */
 export type Probe = { beats: number; hidden: number; waited: number; stepped: number; calls: number; ms: number; worst: number }
@@ -1097,6 +1134,14 @@ export const backdropOutcome = (answer: unknown): { drawn: boolean; text: string
     if (a.isDrawn === false) return { drawn: false, text: `not drawn (${typeof a.reason === 'string' && a.reason ? a.reason : 'the host gave no reason'})` }
   }
   return { drawn: false, text: 'not drawn (the host answered something unreadable)' }
+}
+
+/** What a failed `$.ui.backdrop` call means: the app has no backdrop at all (a call to something that is not there: never tried again), or it refused. */
+export const backdropFailure = (err: unknown): { text: string; final: boolean } => {
+  const absent = err instanceof TypeError && /not a function|undefined/.test(err.message)
+  return absent
+    ? { final: true, text: 'not drawn (this version of the app has no backdrop, so the sky is drawn behind the pair in the band; update the app for the full-window sky)' }
+    : { final: false, text: `not drawn (the host refused the call: ${err instanceof Error ? err.message : String(err)})` }
 }
 
 // ---- a store that cannot be trusted, and the doctor who reads the rest ----

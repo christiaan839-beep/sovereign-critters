@@ -1,6 +1,6 @@
 {
   "name": "critter-buddy",
-  "version": "0.26.3",
+  "version": "0.27.0",
   "description": "A wizard critter beside the thinking orb, a tabby cat on the bar above the prompt, faces on every tool row, a diary the model can read, and a Day and Night backdrop. They react to what Claude does and to the hour in Johannesburg; /critter opens the controls.",
   "author": {
     "name": "Sovereign Matrix"

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.27.0
+
+- **The sky is drawn in the band when the app has no backdrop.** Your doctor showed why the window behind the chat was empty: this version of the desktop app has no `$.ui.backdrop` at all, so no mod can draw behind the chat. The pair's band now carries the sky itself (the ground fading in from the left, two ridges, the sun or moon, stars, cloud and rain) in the same picture as the pair, so it lines up and stays crisp. It keeps the hour, season, weather and folder tint. When an app that does have a backdrop is used, the full-window sky is drawn as before and the band stays plain.
+- `/critter doctor` says it plainly: "this version of the app has no backdrop", and the mod stops asking every ten seconds.
+
 ## 0.26.3
 
 - **The sky can be seen.** By day the ground band differed from the paper by about 5 to 10 percent, the ridges and clouds by less, which on a desktop window reads as no sky at all. Every part now has a floor, kept in every hour, season, weather and folder tint: ground against paper 1.2 on the contrast scale (1 is identical), near ridge 1.12, far ridge 1.06, clouds 1.12, sun or moon 1.4. A colour already above its floor is left alone; one below it is moved the least distance that clears it, keeping its hue. Still quiet, not loud. If it is now too much, the floors are the `seen(...)` calls in `skyFor` (`hooks/world.ts`).
