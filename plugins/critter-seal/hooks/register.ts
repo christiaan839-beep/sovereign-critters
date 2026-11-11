@@ -657,12 +657,15 @@ const hostList = (options: { trustedHosts?: unknown } | undefined) =>
     .map(clean)
     .filter(Boolean)
 
+// A send whose host the guard could not read is put to the person with an ask: a false alarm then costs one click.
+export const unsure = (why: string) => /cannot read|too deep|could not read this line/.test(why)
+
 export const register: Register = (on, options) => {
   const hosts = hostList(options)
 
   on('tool.call', { tool: 'Bash' }, (_$, e, next) => {
     const why = typeof e.command === 'string' ? judge(e.command, hosts) : undefined
-    return why ? { deny: `seal: ${why}. ${TAIL}` } : next(e)
+    return why && !unsure(why) ? { deny: `seal: ${why}. ${TAIL}` } : next(e)
   })
     // Fails closed, but only for a line that names something that sends: any other command goes on as if the mod were not here.
     .catch(($, e, next) =>
@@ -670,6 +673,13 @@ export const register: Register = (on, options) => {
         ? { deny: `seal: could not read this line, so it waits. ${TAIL}` }
         : next(e),
     )
+
+  // The permission check asks about what the guard could not read.
+  on('tool.check', { tool: 'Bash' }, (_$, e, next) => {
+    const command = (e.input as { command?: unknown } | undefined)?.command
+    const why = typeof command === 'string' ? judge(command, hosts) : undefined
+    return why && unsure(why) ? { decision: 'ask' as const, reason: `seal: ${why}.` } : next(e)
+  }).catch(($, e, next) => next(e))
 
   on('tool.call', { tool: 'WebFetch' }, (_$, e, next) => {
     const why = typeof e.url === 'string' ? judgeUrl(e.url, hosts) : undefined

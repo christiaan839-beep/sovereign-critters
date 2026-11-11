@@ -29,4 +29,4 @@ It is best effort and no substitute for a backup or for version control.
 - It fails closed for a line that names `rm`, `git` or `xargs` and that it cannot read; any other command goes on as if the mod were not there.
 - It never reads file contents, keeps nothing and sends nothing.
 
-To run a stopped command anyway, run it yourself in a terminal.
+A command it stopped is refused. A command it could not read (a `$VAR` target, an `eval` of something unknown) is put to you as a question instead, so a false alarm costs one click. To run a refused command anyway, run it yourself in a terminal.

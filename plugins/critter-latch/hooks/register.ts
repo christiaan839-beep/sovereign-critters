@@ -690,14 +690,18 @@ export function judge(line: string, root: string | undefined, home: string | und
 
 const ASK = 'Ask the person to run it themselves if they meant it.'
 
+// A line the guard could not read ("cannot read", "so it waits") is put to the person with an ask: a false alarm then costs
+// one click. A line it read and stopped is refused outright.
+export const unsure = (why: string) => /cannot read|so it waits|too deep|could not tell which folder|could not read this line/.test(why)
+
 export const register: Register = on => {
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     const command = typeof e.command === 'string' ? e.command : ''
     if (command) {
       const root = await $.session.cwd().catch(() => undefined)
       const home = await $.env.get('HOME').catch(() => undefined)
-      const why = judge(command, root, home)
-      if (why) return { deny: `latch: ${why}. ${ASK}` }
+      const reason = judge(command, root, home)
+      if (reason && !unsure(reason)) return { deny: `latch: ${reason}. ${ASK}` }
     }
     return next(e)
   })
@@ -707,4 +711,16 @@ export const register: Register = on => {
         ? { deny: `latch: could not read this line, so it waits. ${ASK}` }
         : next(e),
     )
+
+  // The permission check asks about what the guard could not read.
+  on('tool.check', { tool: 'Bash' }, async ($, e, next) => {
+    const command = (e.input as { command?: unknown } | undefined)?.command
+    if (typeof command === 'string' && command) {
+      const root = await $.session.cwd().catch(() => undefined)
+      const home = await $.env.get('HOME').catch(() => undefined)
+      const reason = judge(command, root, home)
+      if (reason && unsure(reason)) return { decision: 'ask' as const, reason: `latch: ${reason}.` }
+    }
+    return next(e)
+  }).catch(($, e, next) => next(e))
 }

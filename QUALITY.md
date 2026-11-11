@@ -207,11 +207,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never heard or seen in the real app
 
-### critter-crab 0.3.0
+### critter-crab 0.3.1
 
 | | |
 | --- | --- |
-| Tests passing | 24 |
+| Tests passing | 26 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -401,7 +401,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 | | |
 | --- | --- |
-| Tests passing | 58 |
+| Tests passing | 62 |
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
@@ -432,7 +432,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 | | |
 | --- | --- |
-| Tests passing | 55 |
+| Tests passing | 59 |
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |

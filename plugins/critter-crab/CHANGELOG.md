@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- **The crab will not carry a key.** `/crab hold` refuses a note that looks like an access key, a token, a private key block or a `password: …` line, says so without repeating it, and stores nothing. A note is kept as plain text and drawn above the prompt.
+
 ## 0.3.0
 
 - **Renamed from `crab` to `critter-crab`**, so the whole family shares one name and none is a bare common word. The slash commands are unchanged. To move over: update the marketplace, install `critter-crab`, and remove the old plugin; anything it stored (a crab note, the diary's week) starts fresh under the new name.

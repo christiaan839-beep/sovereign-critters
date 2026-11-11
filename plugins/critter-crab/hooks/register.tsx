@@ -1,6 +1,6 @@
 import type { Register } from 'claude-code'
 
-import { CRAB_W, MAX_NOTE, bandLines, cleanNote, cleanNotes, crabRows, crabSvg, dropNote, holdNote, hashOf, labelFor } from './note'
+import { CRAB_W, MAX_NOTE, bandLines, cleanNote, cleanNotes, crabRows, crabSvg, dropNote, holdNote, hashOf, labelFor, looksSecret } from './note'
 import type { Note, Run } from './note'
 
 const USAGE = 'Usage: /crab [hold <text> | drop]. /crab alone shows the note; hold gives the crab one line of up to 120 characters to carry for this folder.'
@@ -55,6 +55,7 @@ export const register: Register = on => {
       if (sub === 'hold') {
         const text = cleanNote(rest)
         if (!text) return { text: USAGE.replace(/^Usage: \/crab \[hold <text> \| drop\]\./, 'Usage: /crab hold <text>.') }
+        if (looksSecret(rest)) return { text: 'The crab will not carry that: it looks like a key or a token. Leave the secret out and hold the rest.' }
         if (!key) return { text: 'The crab does not know this folder yet: start a new session in it first.' }
         try {
           const notes = holdNote(await saved($), key, text, await $.clock.now())
