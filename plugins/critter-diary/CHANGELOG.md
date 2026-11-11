@@ -3,6 +3,7 @@
 ## 0.6.0
 
 - **Renamed from `session-diary` to `critter-diary`**, so the whole family shares one name and none is a bare common word. The slash commands are unchanged. To move over: update the marketplace, install `critter-diary`, and remove the old plugin; anything it stored (a crab note, the diary's week) starts fresh under the new name.
+- **Fixed:** a tool named like an object property (`constructor`, `toString`, `__proto__`) is now counted as itself in the day, the week and the postcard; before, its count turned into text.
 
 ## 0.5.2
 

@@ -184,6 +184,14 @@
           "at": "147e77a",
           "kind": "code",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read in full",
+          "found": "the same property-name bug in the day counts and the postcard; fixed with a test that failed first",
+          "at": "508d932",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [],
@@ -229,6 +237,14 @@
           "at": "147e77a",
           "kind": "code",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read in full against the host's type declarations",
+          "found": "its three settings were never declared in the manifest, so they could not be set; declared, with tests that failed first",
+          "at": "508d932",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [],
@@ -262,6 +278,14 @@
           "what": "independent code review, three rounds of the fixes for the earlier open findings",
           "found": "a note whose first read failed can be seen and dropped once the store answers, and the band redraws; while the store is down it says so; the previous folder is forgotten before the next hashes; open: two folders writing at once can overwrite each other",
           "at": "147e77a",
+          "kind": "code",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read in full (a short review by the audit session)",
+          "found": "no bug found",
+          "at": "508d932",
           "kind": "code",
           "openHigh": 0
         }
@@ -299,6 +323,14 @@
           "at": "147e77a",
           "kind": "code",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read in full (a short review by the audit session)",
+          "found": "no bug found",
+          "at": "508d932",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [],
@@ -326,6 +358,14 @@
           "at": "3c843c2",
           "kind": "code",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read in full",
+          "found": "a tool named like an object property corrupted the tally; fixed with a test that failed first",
+          "at": "508d932",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [],
@@ -351,6 +391,14 @@
           "what": "independent code review (counting, inputs)",
           "found": "two found and fixed (a non-string input was counted as text, a very long text could overflow the stack in Node); the README now says what it returns",
           "at": "3c843c2",
+          "kind": "code",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read in full (a short review by the audit session)",
+          "found": "no bug found",
+          "at": "508d932",
           "kind": "code",
           "openHigh": 0
         }

@@ -3,6 +3,7 @@
 ## 0.2.0
 
 - **Renamed from `everywhere` to `critter-tally`**, so the whole family shares one name and none is a bare common word. The slash commands are unchanged. To move over: update the marketplace, install `critter-tally`, and remove the old plugin; anything it stored (a crab note, the diary's week) starts fresh under the new name.
+- **Fixed:** a tool named like an object property (`constructor`, `toString`, `__proto__`) is now counted as itself; before, the tally turned into text such as `function Object() { [native code] }1`.
 
 ## 0.1.2
 

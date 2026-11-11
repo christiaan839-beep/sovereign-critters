@@ -2,8 +2,8 @@
 
 ## 0.30.2
 
-
 - **Gentler voice, all the way down:** the greetings, the weekday lines and the warnings no longer scold, nag or watch you (for example "is not working, you are", "counting your keystrokes", "no undo"). A test now checks every line the pair can say.
+- **Changed:** the icon shows the critter large instead of small in a sea of paper, and the listing has a preview poster. No behaviour change.
 
 ## 0.30.1
 

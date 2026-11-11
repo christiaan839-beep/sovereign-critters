@@ -72,7 +72,7 @@ const touch = (list: readonly Day[], at: number, f: (d: Day) => Day): Day[] => {
 }
 /** Count one tool call into its day. Pure. */
 export const addTool = (list: readonly Day[], at: number, tool: string, ok: boolean): Day[] =>
-  touch(list, at, d => ({ ...d, tools: d.tools + 1, failed: d.failed + (ok ? 0 : 1), by: { ...d.by, [tool]: (d.by[tool] ?? 0) + 1 } }))
+  touch(list, at, d => ({ ...d, tools: d.tools + 1, failed: d.failed + (ok ? 0 : 1), by: { ...d.by, [tool]: (Object.hasOwn(d.by, tool) ? d.by[tool]! : 0) + 1 } }))
 /** Count one finished turn into its day. Pure. */
 export const addTurn = (list: readonly Day[], at: number, ms: number): Day[] => touch(list, at, d => ({ ...d, turns: d.turns + 1, ms: d.ms + ms }))
 
@@ -95,8 +95,8 @@ export const weekOf = (list: readonly Day[], now: number, md = false): string =>
     out.push(d.tools === 0 && d.turns === 0 ? `- ${name} ${d.day.slice(5)}  quiet` : `- ${name} ${d.day.slice(5)}  ${d.tools} tool call${d.tools === 1 ? '' : 's'}${d.failed ? `, ${d.failed} failed` : ''} · ${d.turns} turn${d.turns === 1 ? '' : 's'} · ${span(d.ms)}  ${barOf(d.tools, peak)}`.trimEnd())
   }
   const sum = (f: (d: Day) => number) => rows.reduce((n, d) => n + f(d), 0)
-  const by: Record<string, number> = {}
-  for (const d of rows) for (const [t, n] of Object.entries(d.by)) by[t] = (by[t] ?? 0) + n
+  const by: Record<string, number> = Object.create(null) // no prototype, so a tool named __proto__ is a key like the rest
+  for (const d of rows) for (const [t, n] of Object.entries(d.by)) by[t] = (Object.hasOwn(by, t) ? by[t]! : 0) + n
   const top = Object.entries(by).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, 3).map(([t, n]) => `${md ? mdName(t) : t} ${n}`)
   out.push('', `${sum(d => d.tools)} tool call${sum(d => d.tools) === 1 ? '' : 's'}, ${sum(d => d.failed)} failed, ${sum(d => d.turns)} turn${sum(d => d.turns) === 1 ? '' : 's'}, ${span(sum(d => d.ms))} of Claude working.`)
   if (top.length) out.push(`Busiest: ${top.join(', ')}.`)
@@ -125,8 +125,8 @@ export const postcardOf = (list: readonly Entry[], md = false): string => {
   for (const x of [...calls].sort((a, b) => a.at - b.at)) { const h = clock(x.at).slice(0, 2); hours.set(h, (hours.get(h) ?? 0) + 1) }
   let busy: [string, number] | undefined
   for (const [h, n] of hours) if (!busy || n > busy[1]) busy = [h, n]
-  const by: Record<string, number> = {}
-  for (const x of calls) by[x.tool] = (by[x.tool] ?? 0) + 1
+  const by: Record<string, number> = Object.create(null) // no prototype, so a tool named __proto__ is a key like the rest
+  for (const x of calls) by[x.tool] = (Object.hasOwn(by, x.tool) ? by[x.tool]! : 0) + 1
   const top = Object.entries(by).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, 3).map(([t, n]) => `${md ? mdName(t) : t} ${n}`)
   const out = ['# Session postcard', '', `- ${dur(end - start)}, ${clock(start)} to ${clock(end)}`]
   out.push(`- ${plural(turns.length, 'turn')}, Claude working ${dur(turns.reduce((n, x) => n + x.ms, 0))}`)

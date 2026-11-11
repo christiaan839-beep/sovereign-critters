@@ -160,6 +160,13 @@ test('the week lists seven days oldest first, marks quiet ones, and names the bu
   expect(w).not.toContain('11-01')
 })
 
+test('a tool named like an object property is counted as itself, in the day and on the postcard', () => {
+  const days = addTool(addTool([], AT, 'constructor', true), AT, 'constructor', false)
+  expect(days[0]!.by.constructor).toBe(2)
+  expect(Object.keys(days[0]!.by)).toEqual(['constructor'])
+  expect(postcardOf([tool({ tool: 'constructor' }), tool({ tool: 'constructor' }), tool({ tool: '__proto__' })])).toContain('Most used: __proto__ 1, constructor 2'.replace('__proto__ 1, constructor 2', 'constructor 2, __proto__ 1'))
+})
+
 test("a subagent's turn ending is not a turn of the person's day", async ($, on) => {
   stub(on); keepStore(on)
   on('clock.now', () => ({ value: AT }))

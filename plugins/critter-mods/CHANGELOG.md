@@ -3,6 +3,7 @@
 ## 0.6.0
 
 - **Renamed from `mods` to `critter-mods`**, so the whole family shares one name and none is a bare common word. The slash commands are unchanged. To move over: update the marketplace, install `critter-mods`, and remove the old plugin; anything it stored (a crab note, the diary's week) starts fresh under the new name.
+- **Changed:** the README opens on a preview poster instead of the icon. No behaviour change.
 
 ## 0.5.7
 
