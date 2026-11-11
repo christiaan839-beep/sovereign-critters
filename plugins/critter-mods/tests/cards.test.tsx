@@ -32,6 +32,15 @@ test('every mod has a plain one-liner and two or three short steps, and the step
   expect(new Set(MODS.map(m => m.line)).size).toBe(8)
 })
 
+test('every mod has its own steps, keyed by its id: only a mod with no entry gets the default two', () => {
+  for (const m of MODS) expect(STEPS[m.id], m.id).toBeDefined()
+  expect(Object.keys(STEPS).sort()).toEqual(MODS.map(m => m.id).sort())
+  expect(STEPS['critter-crab']!.join(' ')).toContain('/crab hold')
+  expect(STEPS['critter-stunt']!.join(' ')).toContain('/stunt')
+  expect(STEPS['critter-tally']!.join(' ')).toContain('/everywhere')
+  expect(STEPS['critter-measure']!.join(' ')).toContain('count a text')
+})
+
 test('the top entry of a changelog is its first heading and its first two bullets, cleaned and cut', () => {
   const md = '# Changelog\n\n## 0.23.0\n\n- **The sky answers you.** While Claude is `thinking`, the paper warms.\n- Second thing that changed.\n- A third that is left out.\n\n## 0.22.1\n\n- Older.\n'
   expect(parseTopEntry(md)).toEqual({ heading: '0.23.0', bullets: ['The sky answers you. While Claude is thinking, the paper warms.', 'Second thing that changed.'] })

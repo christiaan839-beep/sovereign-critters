@@ -39,7 +39,7 @@ When critter-buddy is on, the pane also holds its dials: feel (calm, warm, playf
 ## What it never does
 
 - It makes no network request of its own and sends no telemetry. It reads the first 4,000 bytes of each installed mod's own `CHANGELOG.md` for its cards (with `head`, no shell). It starts the `claude plugin` command on your own machine (`list`, `enable`, `disable`, and `install --scope user`, which downloads a mod through that command), and runs other mods' own slash commands for the `open` buttons, and only with a fixed command line built from its list of eight mods: nothing you type is ever passed to a command line, and a name that is not on the list is refused.
-- It cannot switch itself off (use `claude plugin disable mods` for that).
+- It cannot switch itself off (use `claude plugin disable critter-mods` for that).
 - It keeps nothing of its own across sessions: the plugin manager is the truth. Within a session it holds the last list it read and re-reads it when you press refresh, or switch a mod, or open the pane.
 - Where there is no plugin manager (a cloud or chat session without the CLI), it says so and draws nothing that could do nothing.
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.1
+
+- **Fixed: five cards showed the generic steps.** After the rename, the start-up steps for critter-ward, critter-stunt, critter-crab, critter-measure and critter-tally were still filed under the old names, so those cards said "Type / in the chat box" instead of their own lines (the crab card never mentioned `/crab hold`). Each card now shows its own steps, and a test fails if a mod has none.
+- Fixed the README's disable command (`claude plugin disable critter-mods`) and a missing type import. Found by an independent review.
+
 ## 0.6.0
 
 - **Renamed from `mods` to `critter-mods`**, so the whole family shares one name and none is a bare common word. The slash commands are unchanged. To move over: update the marketplace, install `critter-mods`, and remove the old plugin; anything it stored (a crab note, the diary's week) starts fresh under the new name.

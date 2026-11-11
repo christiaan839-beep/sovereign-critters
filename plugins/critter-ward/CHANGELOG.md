@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+- **Fixed: a push to main got past the guard when the branch name was stuck to the flag.** `git checkout -Bmain origin/x && git push origin HEAD`, `git switch -Cmain && git push`, `git checkout -bmain`, `--orphan=main`, `--create=main`, `--force-create=main` (and shortened or bundled forms like `-fbmain`) made main the branch checked out without the guard noticing. It now reads the name wherever git does. A branch move or copy with an attached name (`git branch -Mmain`, which git itself rejects) is read the same way. Found by an independent review; each case has a test that failed first.
+
 ## 0.2.0
 
 - **Renamed from `guard` to `critter-ward`**, so the whole family shares one name and none is a bare common word. The slash commands are unchanged. To move over: update the marketplace, install `critter-ward`, and remove the old plugin; anything it stored (a crab note, the diary's week) starts fresh under the new name.
