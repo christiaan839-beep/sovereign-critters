@@ -15,7 +15,7 @@ Eight gates. The lead mods (the first three) must meet all eight before release.
 | mods | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | guard | met | met | met | stale | stale | open | stale | open | Not ready: 5 of 8 open |
 | session-diary | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
-| build-bell | met | met | met | open | met | open | stale | open | Not ready: 4 of 8 open |
+| build-bell | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | crab | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | stunt | met | met | met | open | met | open | stale | open | Not ready: 4 of 8 open |
 | everywhere | met | met | met | open | met | open | stale | open | Not ready: 4 of 8 open |
@@ -63,11 +63,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - the corner and the stage have not been seen in the real app
 - the cat overlapping Pip when a side panel opens was seen once and not reproduced
 
-### mods 0.5.4
+### mods 0.5.5
 
 | | |
 | --- | --- |
-| Tests passing | 56 |
+| Tests passing | 59 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -174,7 +174,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | any surface that plays sound or shows toasts |
-| Verdict | Not ready: 4 of 8 open |
+| Verdict | Not ready: 5 of 8 open |
 
 **Independent reviews**
 
@@ -201,11 +201,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - its three settings cannot be set (no declared user configuration)
 - a long command rings twice
 
-### crab 0.2.3
+### crab 0.2.4
 
 | | |
 | --- | --- |
-| Tests passing | 21 |
+| Tests passing | 23 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -233,11 +233,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - never seen in the real app
 - /crab drop after a failed store read
 
-### stunt 0.1.3
+### stunt 0.1.4
 
 | | |
 | --- | --- |
-| Tests passing | 13 |
+| Tests passing | 14 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
