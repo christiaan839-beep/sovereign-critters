@@ -2462,8 +2462,8 @@ test('a sky drawn behind a picture keeps its size, shows the ground and the ridg
   expect(out.height).toBe(art.height)
   expect(out.source.startsWith('<svg')).toBe(true)
   expect(out.source).toContain(`stop-color="${day.ground}"`)
-  expect(out.source).toContain(`fill="${day.ridgeColour}"`)
-  expect(out.source).toContain(`fill="${day.ridgeFarColour}"`)
+  expect(out.source).toContain(`stop-color="${day.ridgeColour}"`) // each ridge fades in from the left, so it has no hard edge
+  expect(out.source).toContain(`stop-color="${day.ridgeFarColour}"`)
   expect(out.source).toContain(`fill="${day.bodyColor}"`) // the sun
   expect(out.source).not.toContain(`fill="${day.paper}"`) // no crescent by day
   const night = skyForContrast({ phase: 'night', season: 'summer', weather: 'clear', festive: false })
@@ -2533,4 +2533,22 @@ test('the stage and the corner know the window width even when the pair were hid
   await hidden.unmount()
   await run('stage')
   expect(asked[0]).toMatchObject({ id: 'stage', columns: 60 }) // not 36, which is what a window of 80 would get
+})
+
+test('the ridges and the ground all fade in from fully clear at the left edge of the picture', () => {
+  const art = { source: '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="120" viewBox="0 0 480 120"></svg>', width: 480, height: 120 }
+  const sky = skyForContrast({ phase: 'day', season: 'summer', weather: 'clear', festive: false })
+  const out = withSky(art, sky).source
+  for (const id of ['fade', 'ridge-near', 'ridge-far']) expect(new RegExp(`<linearGradient id="${id}"[^>]*><stop offset="0" stop-color="#[0-9a-f]{6}" stop-opacity="0"/>`).test(out), id).toBe(true)
+  expect(out).not.toMatch(/<polygon[^>]*fill="#/) // no ridge is drawn in a flat colour
+})
+
+test('no cloud, star or raindrop is drawn closer than 36 px to either side of the picture, so the edge never cuts one', () => {
+  const art = { source: '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="120" viewBox="0 0 480 120"></svg>', width: 480, height: 120 }
+  for (const weather of ['clear', 'cloud', 'rain', 'storm'] as const)
+    for (const phase of ['day', 'night'] as const) {
+      const out = withSky(art, skyForContrast({ phase, season: 'summer', weather, festive: false })).source
+      const xs = [...out.matchAll(/<(?:ellipse cx|rect x|line x1)="(\d+)"/g)].map(m => Number(m[1])).filter(v => v > 0 && v < 480)
+      for (const v of xs) { expect(v).toBeGreaterThanOrEqual(33); expect(v).toBeLessThanOrEqual(447) }
+    }
 })

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.28.3
+
+- **Fixed: the sky in the band had a hard edge.** Rendering it in a real browser showed the ridges starting abruptly at the left of the pair's picture, and clouds cut in half by the edge. The ridges now fade in from the left like the ground, and clouds, stars and rain keep 36 pixels in from each side.
+
 ## 0.28.2
 
 - **Fixed: the stage and the corner opened 36 columns wide when the pair were hidden at the start.** The window width is now noted before the band decides to draw nothing.
