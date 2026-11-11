@@ -247,3 +247,12 @@ test('a divider is a small strip of ruled paper that names its tier and counts i
   expect(d.alt).toBe('Awake: 6 mods')
   expect(new Set([dividerSvg('duty', 2).source, dividerSvg('awake', 2).source, dividerSvg('napping', 2).source, dividerSvg('leave', 2).source]).size).toBe(4)
 })
+
+test('a card asked for twice with the same facts is drawn once, and a changed fact is a new card', () => {
+  const a = cardSvg(base())
+  expect(cardSvg(base())).toBe(a)
+  expect(cardSvg(base({ version: '0.23.0' }))).not.toBe(a)
+  expect(cardSvg(base({ version: '0.23.0' })).source).not.toBe(a.source)
+  expect(dividerSvg('duty', 3)).toBe(dividerSvg('duty', 3))
+  expect(dividerSvg('duty', 4)).not.toBe(dividerSvg('duty', 3))
+})

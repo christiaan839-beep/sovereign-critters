@@ -35,7 +35,7 @@ type Row = { text: string; kind: 'body' | 'label' | 'note' | 'restart'; gap?: bo
 const ALT: Record<Tier, string> = { duty: 'on duty', awake: 'awake', napping: 'napping', leave: 'on leave' }
 
 /** The card as an SVG, plus the size it is shown at and a sentence for those who cannot see it. */
-export const cardSvg = (a: CardArgs): Card => {
+const cardSvgRaw = (a: CardArgs): Card => {
   const rows: Row[] = []
   for (const l of wrap(a.line, CHARS)) rows.push({ text: l, kind: 'body' })
   rows.push({ text: 'HOW TO USE', kind: 'label', gap: true })
@@ -96,7 +96,7 @@ export const cardSvg = (a: CardArgs): Card => {
 }
 
 /** A small strip of ruled paper between the tiers: the tier's name, and how many mods are in it. */
-export const dividerSvg = (tier: Tier, count: number): Card => {
+const dividerSvgRaw = (tier: Tier, count: number): Card => {
   const h = 44
   const word = STAMP_WORD[tier]
   const many = `${count} ${count === 1 ? 'mod' : 'mods'}`
@@ -114,3 +114,20 @@ export const dividerSvg = (tier: Tier, count: number): Card => {
 }
 
 export { titleOf }
+
+// The control room redraws every card on each open, but a card changes only when its mod does. Each painter remembers the
+// last 24 cards it drew (eight mods, a few states each), keyed by everything the card is made from.
+const remember = <A extends unknown[], R>(fn: (...a: A) => R, size = 24) => {
+  const seen = new Map<string, R>()
+  return (...a: A): R => {
+    const key = JSON.stringify(a)
+    const hit = seen.get(key)
+    if (hit !== undefined) return hit
+    const made = fn(...a)
+    seen.set(key, made)
+    if (seen.size > size) seen.delete(seen.keys().next().value as string)
+    return made
+  }
+}
+export const cardSvg: typeof cardSvgRaw = remember(cardSvgRaw)
+export const dividerSvg: typeof dividerSvgRaw = remember(dividerSvgRaw)
