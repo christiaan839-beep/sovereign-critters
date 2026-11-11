@@ -39,7 +39,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 | | |
 | --- | --- |
-| Tests passing | 176 |
+| Tests passing | 180 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -141,7 +141,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 | | |
 | --- | --- |
-| Tests passing | 31 |
+| Tests passing | 33 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -207,11 +207,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never heard or seen in the real app
 
-### critter-crab 0.3.1
+### critter-crab 0.3.2
 
 | | |
 | --- | --- |
-| Tests passing | 26 |
+| Tests passing | 27 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -240,11 +240,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app
 
-### critter-stunt 0.2.0
+### critter-stunt 0.2.1
 
 | | |
 | --- | --- |
-| Tests passing | 15 |
+| Tests passing | 18 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -273,11 +273,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app
 
-### critter-tally 0.2.0
+### critter-tally 0.2.1
 
 | | |
 | --- | --- |
-| Tests passing | 9 |
+| Tests passing | 11 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
