@@ -32,7 +32,7 @@ test('the markdown is empty when nothing happened, and counts what did', () => {
 const kept = new Map<string, { value: unknown; version: number }>()
 const stub = (on: any, timers = true) => {
   kept.clear()
-  if (timers) on('clock.after', () => ({ value: { cancel: () => undefined } })) // the five-second guard on store steps
+  if (timers) on('clock.after', () => new Promise<never>(() => undefined)) // the five-second guard on store steps: a dispatch resolves when the time is up, so one that never resolves never fires
   on('state.get', (_: unknown, e: { plugin: string; key: string }) => ({ value: kept.get(`${e.plugin}.${e.key}`) ?? { value: undefined, version: 0 } }))
   on('state.set', (_: unknown, e: { plugin: string; key: string; value: unknown; ifVersion?: number }) => {
     const id = `${e.plugin}.${e.key}`
@@ -102,8 +102,8 @@ test('/diary opens the pane, copies markdown, and clears', async ($, on) => {
   on('tool.call', () => { clock += 100; return { result: 'ok' } as never })
   on('command.register', () => ({ value: { command: 'diary' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
-  on('ui.copy', (_: unknown, e: { text: string }) => { copied.push(e.text); return { value: undefined } })
-  on('ui.open', (_: unknown, e: { id: string }) => { opened.push(e.id); return { value: undefined } })
+  on('ui.copy', (_: unknown, e: { text: string }) => { copied.push(e.text); return { value: { isCopied: true as const } } })
+  on('ui.open', (_: unknown, e: { id: string }) => { opened.push(e.id); return { value: { isPlaced: true as const } } })
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   await $.tool.call({ tool: 'Grep' } as never)
   const run = (args: string) => $.command.run({ command: 'diary', args, origin: { kind: 'composer' }, presentation: {} } as never)
@@ -201,7 +201,7 @@ test('every call and turn lands in its day, and /diary week says them and copies
   on('command.register', () => ({ value: { command: 'diary' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('turn.complete', () => ({ text: 'done' }))
-  on('ui.copy', (_: unknown, e: { text: string }) => { copied = e.text; return { value: undefined } })
+  on('ui.copy', (_: unknown, e: { text: string }) => { copied = e.text; return { value: { isCopied: true as const } } })
   on('tool.call', (_: unknown, e: { tool: string }) => (e.tool === 'Bash' ? { deny: 'no' } : { result: 'ok' }) as never)
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   await $.tool.call({ tool: 'Read' } as never)
@@ -298,7 +298,7 @@ test('/diary postcard says it, /diary postcard copy puts it on the clipboard, an
   on('command.register', () => ({ value: { command: 'diary' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('turn.complete', () => ({ text: 'done' }))
-  on('ui.copy', (_: unknown, e: { text: string }) => { copied = e.text; return { value: undefined } })
+  on('ui.copy', (_: unknown, e: { text: string }) => { copied = e.text; return { value: { isCopied: true as const } } })
   on('tool.call', () => ({ result: 'ok' }) as never)
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   await $.tool.call({ tool: 'Read' } as never)
@@ -464,7 +464,7 @@ test('a tool name is cut at 80 characters before it is kept', async ($, on) => {
 
 test('a state that never answers does not hold up a tool result', async ($, on) => {
   on('clock.now', () => ({ value: AT }))
-  on('clock.after', () => ({ value: { cancel: () => undefined } }))
+  on('clock.after', () => new Promise<never>(() => undefined)) // the timer never fires
   on('store.get', () => ({ value: undefined }))
   on('store.set', () => ({ value: undefined }))
   on('state.get', () => new Promise(() => undefined) as never)

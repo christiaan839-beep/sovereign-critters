@@ -54,7 +54,7 @@ const turn = async ($: any, on: any, ms: number) => {
   const bells: string[] = []
   let clock = 2_000_000
   on('clock.now', () => ({ value: clock }))
-  on('prompt.submit', (_: unknown, e: { text: string; inputText: string }) => ({ text: e.text, inputText: e.inputText }) as never)
+  on('prompt.submit', (_: unknown, e: { text: string }) => ({ text: e.text }))
   on('turn.complete', () => ({ text: 'done' }))
   on('ui.toast', (_: unknown, e: { text: string }) => { toasts.push(e.text); return { value: undefined } })
   on('audio.play', (_: unknown, e: { clip: { asset?: string } }) => { bells.push(e.clip.asset ?? ''); return { value: undefined } })
@@ -75,7 +75,7 @@ test("a subagent finishing does not ring the bell or end the turn's clock; the m
   const bells: string[] = []
   let clock = 2_000_000
   on('clock.now', () => ({ value: clock }))
-  on('prompt.submit', (_: unknown, e: { text: string; inputText: string }) => ({ text: e.text, inputText: e.inputText }) as never)
+  on('prompt.submit', (_: unknown, e: { text: string }) => ({ text: e.text }))
   on('turn.complete', () => ({ text: 'done' }))
   on('ui.toast', (_: unknown, e: { text: string }) => { toasts.push(e.text); return { value: undefined } })
   on('audio.play', (_: unknown, e: { clip: { asset?: string } }) => { bells.push(e.clip.asset ?? ''); return { value: undefined } })
@@ -151,7 +151,7 @@ test('a long command and the turn it ends rings once, not twice', async ($, on) 
   const bells: string[] = []
   let clock = 3_000_000
   on('clock.now', () => ({ value: clock }))
-  on('prompt.submit', (_: unknown, e: { text: string; inputText: string }) => ({ text: e.text, inputText: e.inputText }) as never)
+  on('prompt.submit', (_: unknown, e: { text: string }) => ({ text: e.text }))
   on('tool.call', () => { clock += 45_000; return { result: 'ok' } as never })
   on('turn.complete', () => ({ text: 'done' }))
   on('ui.toast', (_: unknown, e: { text: string }) => { toasts.push(e.text); return { value: undefined } })
@@ -172,7 +172,7 @@ test('a long command and the turn it ends rings once, not twice', async ($, on) 
 test('the bell is not awaited: a player that never answers does not hold up the command or the turn', async ($, on) => {
   let clock = 4_000_000
   on('clock.now', () => ({ value: clock }))
-  on('prompt.submit', (_: unknown, e: { text: string; inputText: string }) => ({ text: e.text, inputText: e.inputText }) as never)
+  on('prompt.submit', (_: unknown, e: { text: string }) => ({ text: e.text }))
   on('tool.call', () => { clock += 45_000; return { result: 'ok' } as never })
   on('turn.complete', () => ({ text: 'done' }))
   on('ui.toast', () => ({ value: undefined }))

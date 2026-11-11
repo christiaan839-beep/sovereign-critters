@@ -73,11 +73,11 @@ test('the critter wears what the work needs: a cap and a magnifier to read, a ch
   expect(count(solo({ look: 'done' }), 'YB')).toBeGreaterThan(10) // the coffee cup, steam above it
   expect(count(solo({ look: 'coder' }), 'YB')).toBe(0)
   // a cook stays at the stove: it does not walk off
-  let s = solo({ look: 'chef', cx: 10 }) && ({ ...initial(), cols: 100, look: 'chef' as const, cx: 10 })
+  let s: ReturnType<typeof step> = solo({ look: 'chef', cx: 10 }) && ({ ...initial(), cols: 100, look: 'chef' as const, cx: 10 })
   for (let i = 0; i < 40; i++) s = step(s)
   expect(s.cx).toBe(10)
   // a reader keeps walking, looking about
-  let r = { ...initial(), cols: 100, look: 'reader' as const, cx: 10 }
+  let r: ReturnType<typeof step> = { ...initial(), cols: 100, look: 'reader' as const, cx: 10 }
   for (let i = 0; i < 40; i++) r = step({ ...r, idle: 0 })
   expect(r.cx).not.toBe(10)
 })
@@ -115,7 +115,7 @@ test('the cat never sits on top of the critter or its laptop, whichever way the 
 
 test('a turn begins with the wizard on the bar, and the turn ends with the critter done', async ($, on) => {
   stub(on)
-  on('prompt.submit', (_, e: { text: string; inputText: string }) => ({ text: e.text, inputText: e.inputText }) as never)
+  on('prompt.submit', (_: unknown, e: { text: string }) => ({ text: e.text }))
   on('turn.complete', () => ({ text: 'done' }))
   on('ui.status', () => ({ value: undefined }))
   on('command.register', () => ({ value: { command: 'critter' } }))
@@ -131,7 +131,7 @@ test('a turn begins with the wizard on the bar, and the turn ends with the critt
 
 test("a subagent's turn ending is not the person's turn ending: the critter stays at the wizard's work until the main loop is done", async ($, on) => {
   stub(on)
-  on('prompt.submit', (_, e: { text: string; inputText: string }) => ({ text: e.text, inputText: e.inputText }) as never)
+  on('prompt.submit', (_: unknown, e: { text: string }) => ({ text: e.text }))
   on('turn.complete', () => ({ text: 'done' }))
   on('ui.status', () => ({ value: undefined }))
   on('command.register', () => ({ value: { command: 'critter' } }))
@@ -149,7 +149,7 @@ test("a subagent's turn ending is not the person's turn ending: the critter stay
 test('/critter stage opens a stage with the critter alone on it, on every surface', async ($, on) => {
   stub(on)
   const opened: string[] = []
-  on('ui.open', (_: unknown, e: { id: string }) => { opened.push(e.id); return { value: undefined } })
+  on('ui.open', (_: unknown, e: { id: string }) => { opened.push(e.id); return { value: { isPlaced: true as const } } })
   on('command.register', () => ({ value: { command: 'critter' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('store.get', () => ({ value: undefined }))
@@ -435,7 +435,7 @@ const SPINNER = {
 const BAND = {
   plugin: 'critter-buddy',
   component: 'AbovePrompt',
-  props: { hasSurvey: false, isWorking: false, maxRows: 14, bodyColumns: 70, scroll: { offset: 0, bodyRows: 14 }, view: {} },
+  props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 14, bodyColumns: 70, scroll: { offset: 0, bodyRows: 14 }, view: {} },
 } as const
 const PANE = {
   plugin: 'critter-buddy',
@@ -543,7 +543,7 @@ test('the cat looks up when you type, and the keystroke is never held up', async
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('store.get', () => ({ value: undefined }))
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
-  const out = await $.prompt.edit({ text: 'hel', inputText: 'hel', cursor: 3, start: 3, end: 3 } as never)
+  const out = await promptEdit($, { text: 'hel', inputText: 'hel', cursor: 3, start: 3, end: 3 } as never)
   expect(JSON.stringify(out)).toMatch(/hel/) // the draft passes through untouched
 })
 
@@ -584,8 +584,11 @@ test('on the desktop the band, the faces and the portrait are SVG, never block g
   await faced.unmount()
 })
 
+// prompt.edit is a hook event the test kit dispatches but a test's $ does not declare.
+const promptEdit = ($: unknown, input: unknown): Promise<unknown> => ($ as { prompt: { edit: (i: unknown) => Promise<unknown> } }).prompt.edit(input)
+
 const row = (component: string, props: Record<string, unknown>, requestId = 'r1') =>
-  ({ plugin: 'critter-buddy', component, requestId, props }) as never
+  ({ plugin: 'critter-buddy', component, requestId, props })
 
 test('every row of the transcript wears a face by what the call did, and lite takes them off', async ($, on) => {
   stub(on)
@@ -871,10 +874,10 @@ test('the prompt edit answer carries the paint, and a failing paint never holds 
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('store.get', () => ({ value: undefined }))
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
-  const out = (await $.prompt.edit({ text: '/critter pet', inputText: '/critter pet', cursor: 12, start: 12, end: 12 } as never)) as { text: string; decorations?: { color?: string }[] }
+  const out = (await promptEdit($, { text: '/critter pet', inputText: '/critter pet', cursor: 12, start: 12, end: 12 } as never)) as { text: string; decorations?: { color?: string }[] }
   expect(out.text).toBe('/critter pet')
   expect(out.decorations?.[0]?.color).toBe('#d97757')
-  const plain = (await $.prompt.edit({ text: 'fix the bug', inputText: 'fix the bug', cursor: 11, start: 11, end: 11 } as never)) as { decorations?: unknown[] }
+  const plain = (await promptEdit($, { text: 'fix the bug', inputText: 'fix the bug', cursor: 11, start: 11, end: 11 } as never)) as { decorations?: unknown[] }
   expect(plain.decorations ?? []).toEqual([]) // an ordinary prompt is not touched
 })
 
@@ -1263,7 +1266,7 @@ test('a turn that fills the glass says so in the band and toasts once; a streak 
 test('the stage opens wide, see-through and closable with Escape; the corner opens tall; the open button asks the same', async ($, on) => {
   stub(on)
   const asked: Record<string, unknown>[] = []
-  on('ui.open', (_: unknown, e: Record<string, unknown>) => { asked.push(e); return { value: undefined } })
+  on('ui.open', (_: unknown, e: Record<string, unknown>) => { asked.push(e); return { value: { isPlaced: true as const } } })
   on('command.register', () => ({ value: { command: 'critter' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('store.get', () => ({ value: undefined }))
@@ -1771,7 +1774,7 @@ test('the nudge is stamped when the person takes the line and sends it, not when
   on('ui.status', () => ({ value: undefined }))
   on('ui.toast', () => ({ value: undefined }))
   on('turn.complete', () => ({ text: 'done' }))
-  on('prompt.submit', (_, e: { text: string; inputText: string }) => ({ text: e.text, inputText: e.inputText }) as never)
+  on('prompt.submit', (_: unknown, e: { text: string }) => ({ text: e.text }))
   on('model.complete', () => ({ value: { isAnswered: false, text: '', usage: {} } }) as never)
   on('session.usage', () => ({ value: { startedAt: 1_000_000_000_000, context: { window: 1_000_000, percent: 10 }, rateLimits: [] } }) as never)
   on('prompt.suggest', (_: unknown, e: { text: string }) => { offered.push(e.text); return { isShown: true } as never })
@@ -1980,7 +1983,7 @@ test('/critter feel still says what it does, is as silent as calm, and the docto
   const spoken: string[] = []
   const played: string[] = []
   on('audio.speak', (_: unknown, e: { text: string }) => { spoken.push(e.text); return { value: { via: 'system' } } as never })
-  on('audio.play', (_: unknown, e: { asset: string }) => { played.push(e.asset); return { value: undefined } as never })
+  on('audio.play', (_: unknown, e: { clip: { asset?: string } }) => { played.push(e.clip.asset ?? ''); return { value: undefined } })
   on('command.register', () => ({ value: { command: 'critter' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('store.get', () => ({ value: undefined }))
@@ -2219,7 +2222,7 @@ test('only a wizard who is thinking makes the sky glow', () => {
 
 test('the drawn backdrop warms while a turn is under way and settles when it ends', async ($, on) => {
   stub(on)
-  on('prompt.submit', (_, e: { text: string; inputText: string }) => ({ text: e.text, inputText: e.inputText }) as never)
+  on('prompt.submit', (_: unknown, e: { text: string }) => ({ text: e.text }))
   on('turn.complete', () => ({ text: 'done' }))
   on('ui.status', () => ({ value: undefined }))
   on('ui.toast', () => ({ value: undefined }))
@@ -2556,7 +2559,7 @@ test('review fixes: an error from inside the app is not "no backdrop", a NaN day
 test('the stage and the corner know the window width even when the pair were hidden before the band ever drew', async ($, on) => {
   stub(on)
   const asked: Record<string, unknown>[] = []
-  on('ui.open', (_: unknown, e: Record<string, unknown>) => { asked.push(e); return { value: undefined } })
+  on('ui.open', (_: unknown, e: Record<string, unknown>) => { asked.push(e); return { value: { isPlaced: true as const } } })
   on('command.register', () => ({ value: { command: 'critter' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('store.get', () => ({ value: undefined }))
@@ -2734,7 +2737,7 @@ const hooksOf = () => {
     const entry: (typeof found)[number] = { name, match: rest.length > 1 ? rest[0] : undefined, fn }
     found.push(entry)
     return { catch: (f: any) => { entry.fallback = f; return entry } }
-  }) as never)
+  }) as never, {} as never) // register(on, options): this plugin reads no options
   return found
 }
 
@@ -2762,7 +2765,7 @@ const handlersOf = () => {
     const entry: (typeof found)[number] = { name, match: rest.length > 1 ? rest[0] : undefined, fn: rest[rest.length - 1] }
     found.push(entry)
     return { catch: (f: (...a: any[]) => any) => { entry.fallback = f } }
-  }) as never)
+  }) as never, {} as never) // register(on, options): this plugin reads no options
   const one = (name: string, tool?: string) => found.find(h => h.name === name && (tool === undefined || h.match?.tool === tool))!.fn
   return Object.assign(one, { all: found })
 }

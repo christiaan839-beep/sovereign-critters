@@ -78,15 +78,30 @@ else
   note 'skip  gitleaks (not installed, or not a git checkout)'
 fi
 
-# 5b. types, when TypeScript is installed (the repo itself takes no dependency; each plugin has its own tsconfig.json)
-if command -v tsc >/dev/null 2>&1; then
-  for d in plugins/*/; do
-    [ -f "$d/.claude-plugin/plugin.json" ] || continue
-    [ -f "$d/tsconfig.json" ] || continue
-    if tsc -p "$d" --noEmit >"$TMP/tsc" 2>&1; then ok "${d%/} typecheck"; else bad "${d%/} typecheck"; sed 's/^/      /' "$TMP/tsc" | head -10; fi
+# 5b. types: each plugin's tsconfig.json extends the types Claude Code writes into .claude-plugin/types when it loads
+# the folder with --plugin-dir in an interactive session (not committed; a `claude -p` run does not write them).
+# One plugin's copy serves all: they describe the engine, and none of ours declares dependencies. The MCP list is
+# never shared or checked: it holds whatever servers the writer had connected. TSC= and CRITTER_TYPES= override.
+tsc_bin=${TSC:-$(command -v tsc 2>/dev/null)}
+types_src=${CRITTER_TYPES:-}
+if [ -z "$types_src" ]; then
+  for d in plugins/*/ examples/*/; do
+    if [ -f "$d.claude-plugin/types/claude-code/index.d.ts" ]; then types_src="$d.claude-plugin/types"; break; fi
   done
-else
+fi
+if [ -z "$tsc_bin" ]; then
   note 'skip  typecheck (tsc not installed: npm i -g typescript to turn it on)'
+elif [ -z "$types_src" ] || [ ! -f "$types_src/claude-code/index.d.ts" ]; then
+  note 'skip  typecheck (no engine types here: run `claude --plugin-dir plugins/critter-clock` once in a terminal and Claude Code writes them)'
+else
+  for d in plugins/*/ examples/*/; do
+    [ -f "$d.claude-plugin/plugin.json" ] && [ -f "${d}tsconfig.json" ] || continue
+    t="$d.claude-plugin/types"
+    if [ ! -f "$t/claude-code/index.d.ts" ]; then
+      mkdir -p "$t" && cp -R "$types_src/claude-code" "$types_src/claude-code-tools" "$types_src/tsconfig.json" "$t/"
+    fi
+    if "$tsc_bin" -p "$d" --noEmit >"$TMP/tsc" 2>&1; then ok "${d%/} typecheck"; else bad "${d%/} typecheck"; sed 's/^/      /' "$TMP/tsc" | head -10; fi
+  done
 fi
 
 # 6. every plugin card has what a directory listing shows: a short description, a homepage, a repository, keywords

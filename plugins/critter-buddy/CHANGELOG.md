@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.30.5
+
+- Types: the plugin typechecks with no errors against Claude Code's own mod types (`tsconfig.json` now extends the ones Claude Code writes into `.claude-plugin/types`, leaving out the MCP list), and its tests follow the current test kit. No behaviour change.
+- Types: the saved feel now admits `still` (added in 0.21.0, missed in the store's type); the `/critter` reply's wizard hook drops a cast it no longer needs; the doctor reads a surface from the command only if the command carries one, which it never did, so it says the same as before. A test of `feel still` read a sound's name from the wrong field; it reads `clip.asset` like the others now. No behaviour change.
+
 ## 0.30.4
 
 - Docs: the early-access note is corrected from Claude Code's own documentation: mods are on by default from 2.1.286 (not only where function hooks are enabled), an organization can keep installed mods from running, and `--safe-mode` starts without them. No behaviour change.

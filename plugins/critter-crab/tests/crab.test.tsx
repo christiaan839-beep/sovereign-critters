@@ -4,7 +4,7 @@ import { CRAB_W, MAX_NOTES, MAX_NOTE, bandLines, cellsOf, cleanNote, cleanNotes,
 
 const BAND = {
   component: 'AbovePrompt',
-  props: { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 80, scroll: { offset: 0, bodyRows: 4 }, view: {} },
+  props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 4, bodyColumns: 80, scroll: { offset: 0, bodyRows: 4 }, view: {} },
 } as const
 const SURFACES = ['terminal', 'desktop'] as const
 const NOW = Date.UTC(2026, 10, 8, 12, 0, 0)

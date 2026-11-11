@@ -266,7 +266,7 @@ test('the list lines up in columns, and the hub, a stray word or an extra word n
   const text = await run($, 'list')
   const rows = text.split('\n').slice(1, 9)
   const col = (l: string) => l.search(/ (on|off|not installed)/)
-  expect(new Set(rows.filter(r => !r.startsWith('–')).map(col)).size).toBe(1) // the state words start in one column
+  expect(new Set(rows.filter((r: string) => !r.startsWith('–')).map(col)).size).toBe(1) // the state words start in one column
   const before = ran.length
   expect(await run($, 'off mods')).toMatch(/cannot switch itself off/i)
   expect(await run($, 'off crab now')).toMatch(/^Usage:/)
