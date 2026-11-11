@@ -1191,7 +1191,7 @@ export const doctorLines = (d: DoctorInput): string[] => {
   if (d.cols < MIN_COLS) out.push(`The window is ${d.cols} columns wide, so the stage opens ${paneColumns(d.cols, 60)} wide and the corner ${paneColumns(d.cols, 56)}; from ${MIN_COLS} they have their full size.`)
   if (d.feel === 'still') out.push(d.sound || d.voice ? 'Still: nothing moves, and the pair are silent, so sound and voice say nothing: /critter feel warm lets them speak.' : 'Still: nothing moves.')
   else if (d.feel === 'calm') out.push(d.sound || d.voice ? 'Calm keeps the pair silent, so sound and voice say nothing: /critter feel warm lets them speak.' : 'Calm: the pair only breathe, walk and sleep.')
-  out.push(d.sound ? 'Sound is on: a cast chime and a purr.' : 'Sound is off: /critter sound on.')
+  out.push(d.sound ? 'Sound is on: a cast chime and a purr. /critter sound off silences it.' : 'Sound is off: /critter sound on.')
   out.push(d.voice ? `The voice is on${d.voice === 'default' ? ', in the system voice' : `: voice ${d.voice}`}.` : 'The voice is off: /critter voice on.')
   out.push(d.talk ? 'The cat speaks after a turn (one small model call each).' : 'The cat does not speak after a turn: /critter talk on.')
   return out
@@ -1237,11 +1237,16 @@ export const wizardPoseFor = (raw: string, vector = true): 'asleep' | 'tipped' |
 }
 
 /** The one dim line a first-ever session carries under the greeting; anything in the store means it has been said. */
-export const welcomeLine = (said: unknown, names: { cat: string; pip: string }, hour?: number): string | undefined => {
+/**
+ * The one dim line under the logo the first time, in the pair's names. Sound is on by default, so when it will be heard (`sounds`) the
+ * line says how to turn it off: a stranger is never surprised by a purr.
+ */
+export const welcomeLine = (said: unknown, names: { cat: string; pip: string }, hour?: number, sounds = true): string | undefined => {
   if (said) return undefined
-  if (hour === undefined || (hour >= 5 && hour < 12)) return `Good morning. ${names.cat} and ${names.pip} are above your prompt; /critter has the controls.`
-  if (hour >= 12 && hour < 19) return `${names.cat} has looked the place over and approves. ${names.pip} would like it known the idea was his.`
-  return `All set. ${names.cat} is still deciding, but has stayed up for you.` // the small hours and the evening: kept company, not lectured
+  const off = sounds ? ' Sound is on; /critter sound off turns it off.' : ''
+  if (hour === undefined || (hour >= 5 && hour < 12)) return `Good morning. ${names.cat} and ${names.pip} are above your prompt; /critter has the controls.${off}`
+  if (hour >= 12 && hour < 19) return `${names.cat} has looked the place over and approves. ${names.pip} would like it known the idea was his.${off}`
+  return `All set. ${names.cat} is still deciding, but has stayed up for you.${off}` // the small hours and the evening: kept company, not lectured
 }
 
 // ---- habits: what the cat learns of you across sessions, kept as counts and hashes, never as paths or names ----

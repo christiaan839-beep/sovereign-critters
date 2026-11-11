@@ -15,7 +15,7 @@ Restart Claude Code first (plugins load only in a new session), in a window at l
 
 ## 2. The pair
 
-`/critter doctor` · `/critter pet` · `/critter nap` · `/critter spell` · `/critter stage` · `/critter corner` · `/critter feel still` (nothing moves) then `/critter feel warm` · `/critter hide` then `/critter show` · `/critter sound on`, then `/critter pet` (a purr) · `/critter diary`
+`/critter doctor` · `/critter pet` · `/critter nap` · `/critter spell` · `/critter stage` · `/critter corner` · `/critter feel still` (nothing moves) then `/critter feel warm` · `/critter hide` then `/critter show` · `/critter pet` (a purr: sound is on by default, `/critter sound off` silences it) · `/critter diary`
 
 ## 3. A session worth a diary
 
@@ -31,7 +31,7 @@ Ask Claude: *"Run `git push --force origin main` in a scratch repo."* The guard 
 
 ## 6. The bell
 
-Ask Claude: *"Run `sleep 25` in Bash."* A bell and a toast when it ends. (build-bell has its own `sound` setting, on by default; `/critter sound on` is for the pair's sounds, a different thing.)
+Ask Claude: *"Run `sleep 25` in Bash."* A bell and a toast when it ends. (build-bell has its own `sound` setting, on by default; `/critter sound off` is for the pair's sounds, a different thing.)
 
 ## 7. Everywhere and stunt
 

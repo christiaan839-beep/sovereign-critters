@@ -252,7 +252,7 @@ test('a commit, a green run, a skill and a long turn each bring the wizard out; 
   expect(l.look).toBe('done')
 })
 
-test('sound plays only when asked for, and a toast greets a commit and a green run', async ($, on) => {
+test('sound plays by default and stops when switched off, and a toast greets a commit and a green run', async ($, on) => {
   stub(on)
   const played: string[] = []
   const toasts: string[] = []
@@ -267,15 +267,16 @@ test('sound plays only when asked for, and a toast greets a commit and a green r
   const run = (args: string) => $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never)
   await $.tool.call({ tool: 'Skill' } as never)
   await run('pet')
-  expect(played).toEqual([]) // off until asked
+  expect(played).toEqual(['sounds/cast.wav', 'sounds/purr.wav']) // on by default
   expect(JSON.stringify(await run('sound maybe'))).toMatch(/Usage/)
-  expect(JSON.stringify(await run('sound on'))).toMatch(/Sound is on/)
+  expect(JSON.stringify(await run('sound off'))).toMatch(/Sound is off/)
   await $.tool.call({ tool: 'Skill' } as never)
   await run('pet')
-  expect(played).toEqual(['sounds/cast.wav', 'sounds/purr.wav'])
-  await run('sound off')
+  expect(played.length).toBe(2) // silent once switched off
+  expect(JSON.stringify(await run('sound on'))).toMatch(/Sound is on/)
   await run('pet')
-  expect(played.length).toBe(2)
+  expect(played).toEqual(['sounds/cast.wav', 'sounds/purr.wav', 'sounds/purr.wav'])
+  await run('sound off')
   await $.tool.call({ tool: 'Bash', command: 'git commit -m "x"' } as never)
   await $.tool.call({ tool: 'Bash', command: 'npm test' } as never)
   expect(toasts.some(x => /Pip drew a star/.test(x))).toBe(true)
@@ -1476,7 +1477,7 @@ test('/critter doctor answers, even with a store that holds garbage', async ($, 
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   const out = JSON.stringify(await $.command.run({ command: 'critter', args: 'doctor', origin: { kind: 'composer' }, presentation: {} } as never))
   expect(out).toMatch(/Reach: party/)
-  expect(out).toMatch(/sound is off/i)
+  expect(out).toMatch(/sound is on/i)
 })
 
 import { foldDiary, returnTrust, wizardFor } from '../hooks/scene'
@@ -1697,7 +1698,7 @@ test('the mod owns five sounds, each named for a file in sounds/ (their quality 
   expect([...SOUND_NAMES].sort()).toEqual(['cast', 'chime', 'paper', 'paw', 'purr'])
 })
 
-test('a treat is a paw, the diary a page, a prop earned a chime, and calm or off is silence', async ($, on) => {
+test('a treat is a paw, the diary a page, a prop earned a chime, and calm or off is silence, with sound on by default', async ($, on) => {
   stub(on)
   const played: string[] = []
   on('ui.status', () => ({ value: undefined }))
@@ -1710,21 +1711,22 @@ test('a treat is a paw, the diary a page, a prop earned a chime, and calm or off
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   const run = (args: string) => $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never)
   await run('treat'); await run('diary')
-  expect(played).toEqual([]) // sound is off until asked
-  await run('sound on')
-  await run('treat'); await run('diary')
-  expect(played).toEqual(['sounds/paw.wav', 'sounds/paper.wav'])
+  expect(played).toEqual(['sounds/paw.wav', 'sounds/paper.wav']) // on by default
   await run('feel calm')
   await run('treat'); await run('diary')
   expect(played).toHaveLength(2) // calm is silent
+  await run('feel warm')
+  await run('sound off')
+  await run('treat'); await run('diary')
+  expect(played).toHaveLength(2) // and off is silent
 })
 
 // ---- 0.20.0: the welcome, the nudge that is taken, and the wizard's two new faces ----
 import { wizardPoseFor, wizardCanvas, welcomeLine } from '../hooks/scene'
 
 test('the welcome is one dim line, in the pair\'s own names, and only until it has been said', () => {
-  expect(welcomeLine(undefined, NAMES_DEFAULT)).toBe('Good morning. Biscuit and Pip are above your prompt; /critter has the controls.')
-  expect(welcomeLine(undefined, { cat: 'Rex', pip: 'Zed' })).toBe('Good morning. Rex and Zed are above your prompt; /critter has the controls.')
+  expect(welcomeLine(undefined, NAMES_DEFAULT)).toBe('Good morning. Biscuit and Pip are above your prompt; /critter has the controls. Sound is on; /critter sound off turns it off.')
+  expect(welcomeLine(undefined, { cat: 'Rex', pip: 'Zed' })).toBe('Good morning. Rex and Zed are above your prompt; /critter has the controls. Sound is on; /critter sound off turns it off.')
   expect(welcomeLine(true, NAMES_DEFAULT)).toBeUndefined()
   expect(welcomeLine('yes', NAMES_DEFAULT)).toBeUndefined() // anything the store holds counts as said: it never nags twice
 })
@@ -2274,15 +2276,16 @@ test('/critter sky changes the background of the chat now, says what it did, and
 
 test('the welcome reads the room: a good morning before noon, an approving afternoon, a kept-company evening from seven, and still only once', () => {
   const n = NAMES_DEFAULT
-  const plain = 'Good morning. Biscuit and Pip are above your prompt; /critter has the controls.'
-  const dry = 'Biscuit has looked the place over and approves. Pip would like it known the idea was his.'
-  const flat = 'All set. Biscuit is still deciding, but has stayed up for you.'
+  const off = ' Sound is on; /critter sound off turns it off.'
+  const plain = 'Good morning. Biscuit and Pip are above your prompt; /critter has the controls.' + off
+  const dry = 'Biscuit has looked the place over and approves. Pip would like it known the idea was his.' + off
+  const flat = 'All set. Biscuit is still deciding, but has stayed up for you.' + off
   expect(welcomeLine(undefined, n)).toBe(plain) // no hour known: plain
   for (const h of [5, 6, 11]) expect(welcomeLine(undefined, n, h)).toBe(plain)
   for (const h of [12, 15, 18]) expect(welcomeLine(undefined, n, h)).toBe(dry)
   for (const h of [19, 23, 0, 3, 4]) expect(welcomeLine(undefined, n, h)).toBe(flat)
   expect(welcomeLine(true, n, 12)).toBeUndefined() // said once, never again
-  expect(welcomeLine(undefined, { cat: 'Mog', pip: 'Wick' }, 12)).toBe('Mog has looked the place over and approves. Wick would like it known the idea was his.')
+  expect(welcomeLine(undefined, { cat: 'Mog', pip: 'Wick' }, 12)).toBe('Mog has looked the place over and approves. Wick would like it known the idea was his.' + off)
 })
 
 import { TINTS, tintOf } from '../hooks/world'
@@ -2631,4 +2634,70 @@ test('a message that is not typed (mail from a task or another session) keeps it
   const typed = await $.ui.mount({ plugin: 'critter-buddy', component: 'UserMessage', requestId: 'r2', props: { origin: { kind: 'composer' }, text: 'hi' }, surface: 'desktop' } as never)
   expect(await typed.find({ key: 'user-row' })).toBeUndefined() // what you type is the engine's own row, untouched
   await typed.unmount()
+})
+
+// ---- sound is on by default (the founder: "love the bell and all the sounds on by default"); speech stays off ----
+const soundRig = async ($: any, on: any, failPlay = false) => {
+  stub(on)
+  const played: string[] = []
+  const spoken: string[] = []
+  on('audio.play', (_: unknown, e: { clip: { asset?: string } }) => { if (failPlay) throw new Error('no player here'); played.push(e.clip.asset ?? ''); return { value: undefined } })
+  on('audio.speak', (_: unknown, e: { text: string }) => { spoken.push(e.text); return { value: { via: 'system' } } as never })
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_: unknown, e: { cwd: string }) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  on('clock.every', () => ({ value: { cancel: () => undefined } }) as never)
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const run = (args: string) => $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never)
+  return { played, spoken, run }
+}
+
+test('sound is on by default: a pet purrs and a treat makes the paw sound with nothing switched on, and the voice stays silent', async ($, on) => {
+  const { played, spoken, run } = await soundRig($, on)
+  await run('pet')
+  await run('treat')
+  expect(played).toEqual(['sounds/purr.wav', 'sounds/paw.wav'])
+  expect(spoken).toEqual([]) // speech is a different switch, and it is off
+  expect(JSON.stringify(await run('doctor'))).toMatch(/Sound is on/)
+  expect(JSON.stringify(await run('doctor'))).toMatch(/The voice is off/)
+})
+
+test('calm and still stay silent even though sound is on', async ($, on) => {
+  const { played, run } = await soundRig($, on)
+  await run('feel calm')
+  await run('pet')
+  await run('feel still')
+  await run('treat')
+  expect(played).toEqual([])
+  await run('feel warm')
+  await run('pet')
+  expect(played).toEqual(['sounds/purr.wav']) // and warm brings the sound back
+})
+
+test('where there is no player a sound is silent and never an error', async ($, on) => {
+  const { run } = await soundRig($, on, true)
+  const out = JSON.stringify(await run('pet'))
+  expect(out).not.toMatch(/no player|error/i)
+})
+
+test('sound off is a choice that survives a reload', async ($, on) => {
+  const { played, run } = await soundRig($, on)
+  expect(JSON.stringify(await run('sound off'))).toMatch(/Sound is off/)
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true }) // the same store, a new session: a reload
+  await run('pet')
+  expect(played).toEqual([])
+  expect(JSON.stringify(await run('doctor'))).toMatch(/Sound is off: \/critter sound on/)
+  await run('sound on')
+  await run('pet')
+  expect(played).toEqual(['sounds/purr.wav'])
+})
+
+test('the first-run welcome says how to turn sound off, once, and only while sound is going to be heard', () => {
+  const n = NAMES_DEFAULT
+  for (const h of [8, 14, 22]) {
+    const line = welcomeLine(undefined, n, h)!
+    expect(line, `${h}:00`).toMatch(/Sound is on; \/critter sound off turns it off\.$/)
+  }
+  expect(welcomeLine(undefined, n, 8, false)).not.toMatch(/Sound is on/) // sound off or calm or still: nothing to switch off
+  expect(welcomeLine(true, n, 8)).toBeUndefined() // and it is said once
 })

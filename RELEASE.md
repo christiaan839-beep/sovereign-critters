@@ -16,7 +16,7 @@ Then start a new session. Look at:
 - The bar above the prompt on the desktop app: the critter and the cat clear of each other, the label row clear of the picture.
 - `/critter stage`, `/critter corner` and `/diary`.
 - The sky (four phases by the hour in Johannesburg: night 19:00 to 04:59 with stars, dawn to 06:59, day to 16:59, dusk to 18:59). The app version we tested has no window backdrop, so look for it in the band behind the pair; `/critter doctor` says where it is drawn.
-- `/critter sound on`, then a Skill and a pet. `build-bell` after a command of 20 seconds or more.
+- A Skill and a pet (the sounds are on by default; `/critter sound off` turns them off). `build-bell` after a command of 20 seconds or more.
 - Resting: both asleep should steady the bar to one redraw a second.
 
 Write down anything that looks wrong. Fix it before step 2.
@@ -70,7 +70,7 @@ Two outside testers follow this on a machine that has never seen the mods. It ne
 - Above the prompt, a small orange cat and a wizard critter, drawn in pixels. On the desktop app a status line and up to six buttons (five in a narrow window) sit under them. In a terminal shorter than about 50 rows the buttons may be hidden behind a "more" line: that is known, not your fault.
 - `/critter doctor` answers in a few plain lines, beginning `critter-buddy: Reach: party. Feel: warm. Surface: terminal, 130 columns.` (your own surface and width), then what is off and the command that turns it on: sound, the voice, the spoken line after a turn. It must not say "narrow" at 110 columns or more.
 - `/critter pet` makes the cat answer in a line. `/critter hide` and `/critter show` make the pair go and come back.
-- Nothing makes a sound until you type `/critter sound on`.
+- Sounds are on by default and play only when you or Claude does something: a purr for a pet, a paw for a treat, a chime for a Skill, a page for the diary. The welcome line says `/critter sound off` turns them off. Where the app has no audio player nothing sounds and nothing errors. Speech stays off until you type `/critter voice on`.
 
 **Optional, in the same session:** `/plugin install session-diary@sovereign-critters`, restart, do a few things with Claude, then `/diary` and `/diary postcard`.
 

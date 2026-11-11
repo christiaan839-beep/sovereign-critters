@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.30.0
+
+- **Changed: sounds are on by default.** The purr for a pet, the paw for a treat, the cast chime for a Skill, the page for the diary and the brass chime for a prop earned all sound unless you switch them off with `/critter sound off`; the choice is kept across restarts, and a choice you made before is kept as it was. They stay silent in `calm` and `still`, and where the app has no audio player they stay silent without an error. Speech (`/critter voice`) is a separate switch and stays off until you ask. The first-run welcome now ends with "Sound is on; /critter sound off turns it off." when the sounds will be heard, and `/critter doctor` says how to silence them.
+
 ## 0.29.2
 
 - **Fixed (needs a look in the app): a message that is not typed could show as a very narrow bubble.** Your screenshot had `/mods` split as "mo / ds". The row that puts the happy face beside such a message now spans the width, and the bubble beside the face holds a floor of 12 columns, so a short message is never split inside a word and a long one still wraps. The test pins that structure; whether it cures the wrap in the real window is for your next screenshot to say. What you type yourself is the engine's own row and is left alone.

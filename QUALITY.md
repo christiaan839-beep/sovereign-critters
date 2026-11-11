@@ -30,11 +30,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The lead mods
 
-### critter-buddy 0.29.2
+### critter-buddy 0.30.0
 
 | | |
 | --- | --- |
-| Tests passing | 170 |
+| Tests passing | 175 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |

@@ -31,7 +31,7 @@ const usage = atom({ plugin: 'critter-buddy', key: 'usage' } as const, '', { sha
 const sky = atom({ plugin: 'critter-buddy', key: 'sky' } as const, 'auto' as SkyChoice, { shape: 'sky-1' })
 const tint = atom({ plugin: 'critter-buddy', key: 'tint' } as const, true as boolean, { shape: 'tint-1' })
 const voice = atom({ plugin: 'critter-buddy', key: 'voice' } as const, '', { shape: 'voice-1' })
-const sound = atom({ plugin: 'critter-buddy', key: 'sound' } as const, false as boolean, { shape: 'sound-1' })
+const sound = atom({ plugin: 'critter-buddy', key: 'sound' } as const, true as boolean, { shape: 'sound-1' }) // on by default; a stored choice, on or off, is kept as it was
 
 const PANE = 'cat-corner'
 const STAGE = 'stage'
@@ -116,7 +116,7 @@ const kit = (els: any, surface: string) => {
   return { Box, Text, Button, vector, svg, face }
 }
 
-/** A short sound, only when the person has turned sound on; a player that is missing never matters. */
+/** A short sound, on unless the person has turned it off, and never in calm or still; a player that is missing never matters. */
 const ring = async ($: any, which: SoundName) => {
   try {
     if (!isQuiet(await read($, feel)) && (await read($, sound))) await $.audio.play({ asset: `sounds/${which}.wav` }, { gain: 0.5 })
@@ -501,7 +501,7 @@ export const register: Register = on => {
       return { text: form === 'auto' ? 'The wizard follows the hour.' : form === 'gold' ? 'The wizard wears the gold star, day and night.' : 'The wizard wears the violet bolt, day and night.' }
     }
     if (sub === 'sound') {
-      if (arg !== 'on' && arg !== 'off') return { text: 'Usage: /critter sound on | off. A cast chime for a Skill and a purr for a pet; off until you say.' }
+      if (arg !== 'on' && arg !== 'off') return { text: 'Usage: /critter sound on | off. A cast chime for a Skill, a purr for a pet, a paw for a treat, a page for the diary and a brass chime for a prop. On by default; silent in calm and still.' }
       await update($, sound, () => arg === 'on')
       return { text: arg === 'on' ? 'Sound is on: a cast chime and a purr.' : 'Sound is off.' }
     }
@@ -779,7 +779,7 @@ export const register: Register = on => {
     const { Box, Text, face, vector, svg } = kit($.ui.resolve(e), e.surface)
     let welcome: string | undefined
     try {
-      welcome = welcomeLine(await $.store.get('welcomed'), await read($, names), hourSast(await $.clock.now()))
+      welcome = welcomeLine(await $.store.get('welcomed'), await read($, names), hourSast(await $.clock.now()), (await read($, sound)) && !isQuiet(await read($, feel)))
       if (welcome) await $.store.set('welcomed', true) // said once, and never again
     } catch {
       // a welcome that cannot be remembered is shown rather than lost

@@ -9,7 +9,7 @@ The Sovereign Matrix critter, a wizard version of it, and a tabby cat, living in
 - It makes no network request and sends no telemetry. State (the scene, the diary, the streak, the habits, your settings) stays in the plugin's own store on this machine.
 - It learns your habits as counts and hashes: the hours you work, and a short hash of each folder, never a path or a name. At most 50 hashes are kept.
 - **One thing does cost tokens:** after each turn the cat may say a line through one small model call (`/critter talk on`; it is off until you turn it on). The call carries only numbers (the seconds the turn took and the counts of tools, errors and commits), never a command, a path, a file or a prompt. `/critter talk off` stops it and spends nothing.
-- Sound and speech are off until you ask (`/critter sound on`, `/critter voice on`).
+- Sound is on by default, silent in calm and still and wherever the app has no player; `/critter sound off` turns it off and the choice is kept. Speech is off until you ask (`/critter voice on`).
 - `biscuit-looks`, its one agent, can read and search but never edit, and it runs only when you ask it.
 
 ## Install
@@ -56,7 +56,7 @@ The cat keeps its trust in you across sessions in `$.store`; it falls by 8 for e
 | `/critter perf` | The clock's own books: beats run, engine calls and milliseconds per beat. |
 | `/critter sky auto`, `dawn`, `day`, `dusk`, `night` | The sky follows the hour, or holds one phase. |
 | `/critter tint on`, `off` | Each folder leans its own quiet colour in the sky (one of six, from a hash of the folder's path). |
-| `/critter sound on`, `off` | A cast chime for a Skill and a purr for a pet. Off until you ask. |
+| `/critter sound on`, `off` | A cast chime for a Skill, a purr for a pet, a paw for a treat, a page for the diary and a brass chime for a prop earned. On by default; `off` turns it off and the choice is kept. Silent in calm and still. |
 | `/critter voice on`, `off`, `<name>` | The cat says the big moments aloud (a prop earned, the glass nearly full) in the system voice, or in an installed voice you name. Off until you ask; calm stays silent. |
 | `/critter hide`, `show` | `hide` always hides and `show` always shows; bare `/critter` toggles. |
 
@@ -66,7 +66,7 @@ It draws above other mods' rows in the same place and registers `/critter` and o
 
 - **Nothing moves** with `/critter feel still`: no walking, hopping, sparks, blinking or breathing, the thinking orb and the wizard hold one frame, and sound and speech are off. `/critter feel warm` brings them back.
 - **Colour never carries a meaning alone.** A tool row's face says what the call did in its eyes (`×` failed, `^` done, `-` resting, `▪` working); the band, the doctor and the diary say it in words; a word `/critter` does not know is underlined as well as gold.
-- Sound and speech are off until you ask, and silent in calm and still.
+- Sound is on by default and silent in calm and still; speech is off until you ask.
 - **Pending:** a high-contrast mode for the sky and the characters. Since 0.26.3 every part of the sky has a contrast floor against its paper; a stronger mode is not guessed, it waits for screenshots of the real window.
 
 ## Check
