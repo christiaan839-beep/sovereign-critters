@@ -56,7 +56,7 @@ export const register: Register = on => {
   })
 
   on('tool.call', async ($, e, next) => {
-    await update($, tally, t => ({ ...t, [e.tool]: (t[e.tool] ?? 0) + 1 }))
+    await update($, tally, t => ({ ...t, [e.tool]: (Object.hasOwn(t, e.tool) ? t[e.tool]! : 0) + 1 }))
     return next(e)
   }).catch(($, e, next) => next(e))
 

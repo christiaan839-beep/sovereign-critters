@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.6
+
+- **Fixed:** a tool named like an object property (`constructor`, `toString`, `__proto__`) is now counted as itself in the day, the week and the postcard; before, its count turned into text.
+
 ## 0.4.5
 
 - **Fixed:** a subagent finishing is no longer counted as a turn in your day or your week.

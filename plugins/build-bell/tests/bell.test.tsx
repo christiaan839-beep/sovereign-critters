@@ -89,6 +89,22 @@ test("a subagent finishing does not ring the bell or end the turn's clock; the m
   expect(toasts).toEqual(['Claude finished after 1 min 30 s']) // timed from the person's prompt, not from the subagent
 })
 
+test('minSeconds, set where the manifest declares it, lets a 10 s turn ring', { options: { minSeconds: 5 } }, async ($, on) => {
+  const { toasts, bells } = await turn($, on, 10_000)
+  expect(toasts).toEqual(['Claude finished after 10 s'])
+  expect(bells).toEqual(['sounds/bell.wav'])
+})
+
+test('sound off keeps the toast and silences the bell', { options: { sound: false } }, async ($, on) => {
+  const { toasts, bells } = await turn($, on, 90_000)
+  expect(toasts).toEqual(['Claude finished after 1 min 30 s'])
+  expect(bells).toEqual([])
+})
+
+test('shortTurns off silences the tick of a short turn', { options: { shortTurns: false } }, async ($, on) => {
+  expect((await turn($, on, 8_000)).bells).toEqual([])
+})
+
 test('a turn under five seconds stays quiet', async ($, on) => {
   expect((await turn($, on, 1_000)).bells).toEqual([])
 })

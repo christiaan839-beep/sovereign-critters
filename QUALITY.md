@@ -16,10 +16,10 @@ Eight gates. The lead mods (the first three) must meet all eight before release.
 | guard | met | met | met | stale | stale | open | stale | open | Not ready: 5 of 8 open |
 | session-diary | met | met | met | open | met | open | stale | open | Not ready: 4 of 8 open |
 | build-bell | met | met | met | open | met | open | stale | open | Not ready: 4 of 8 open |
-| crab | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
+| crab | met | met | met | open | met | open | stale | open | Not ready: 4 of 8 open |
 | stunt | met | met | met | open | met | open | stale | open | Not ready: 4 of 8 open |
 | everywhere | met | met | met | open | met | open | stale | open | Not ready: 4 of 8 open |
-| forge | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
+| forge | met | met | met | open | met | open | stale | open | Not ready: 4 of 8 open |
 
 met: done, and nothing has changed since. stale: done, but the plugin has changed since, so it needs another look. open: not done yet.
 
@@ -132,11 +132,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The others
 
-### session-diary 0.4.5
+### session-diary 0.4.6
 
 | | |
 | --- | --- |
-| Tests passing | 20 |
+| Tests passing | 21 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -147,6 +147,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - 2026-11-11 (at 5a3a16d): documentation audit against the code. Found: no claims needed correcting.
 - 2026-11-11 (at 10f284e): read against the official mods guide and the host's own type declarations. Found: a subagent's turn.complete was counted as the person's turn; fixed with a test that failed first.
 - 2026-11-11 (at 3c843c2): independent code review (timing, storage, privacy, claims). Found: nothing high; open and not fixed: the week is held in session-scoped state so the README promise of 14 days does not hold after a restart, "/diary clear" leaves the week counts, a duration can print "1 min 60 s" or "1 ms", an MCP tool name goes unescaped into the postcard. Privacy confirmed: names and times only.
+- 2026-11-11 (at 6eaa7af): read in full. Found: the same property-name bug in the day counts and the postcard; fixed with a test that failed first.
 
 **New tests watched failing first**
 
@@ -166,11 +167,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - the 14-day week does not survive a restart (session-scoped state)
 - /diary clear does not clear the week
 
-### build-bell 0.4.5
+### build-bell 0.5.0
 
 | | |
 | --- | --- |
-| Tests passing | 14 |
+| Tests passing | 17 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | any surface that plays sound or shows toasts |
@@ -181,6 +182,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - 2026-11-11 (at 5a3a16d): documentation audit against the code. Found: failure toast, playback and tick wording corrected.
 - 2026-11-11 (at 10f284e): read against the official mods guide and the host's own type declarations. Found: a subagent's turn.complete was counted as the person's turn; fixed with a test that failed first.
 - 2026-11-11 (at 3c843c2): independent code review (timing, failure modes, claims). Found: nothing high; open and not fixed: its three settings (minSeconds, sound, shortTurns) have no declared way to be set, a long command rings twice (command and turn), the bell is awaited before the tool result returns, the time may include the permission dialog.
+- 2026-11-11 (at 6eaa7af): read in full against the host's type declarations. Found: its three settings were never declared in the manifest, so they could not be set; declared, with tests that failed first.
 
 **New tests watched failing first**
 
@@ -209,12 +211,13 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
-| Verdict | Not ready: 5 of 8 open |
+| Verdict | Not ready: 4 of 8 open |
 
 **Independent reviews**
 
 - 2026-11-11 (at 5a3a16d): documentation audit against the code. Found: the root README line described an older version.
 - 2026-11-11 (at 3c843c2): independent code review (note storage, unicode, folder key). Found: one small finding fixed (direction controls could reverse a note); open and not fixed: /crab drop does nothing if the store could not be read at start, two folders writing at once can overwrite each other, the folder key is the raw path as given.
+- 2026-11-11 (at 6eaa7af): read in full (a short review by the audit session). Found: no bug found.
 
 **New tests watched failing first**
 
@@ -247,6 +250,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - 2026-11-11 (at 5a3a16d): documentation audit against the code. Found: no claims needed correcting.
 - 2026-11-11 (at 3c843c2): independent code review (timers, cards). Found: nothing high; open and not fixed: the 160 ms follow-up timer is not cancelled when the pane closes. Cards show tool names only.
+- 2026-11-11 (at 6eaa7af): read in full (a short review by the audit session). Found: no bug found.
 
 **New tests watched failing first**
 
@@ -265,11 +269,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - never seen in the real app
 - the follow-up timer outlives the pane for up to 160 ms
 
-### everywhere 0.1.2
+### everywhere 0.1.3
 
 | | |
 | --- | --- |
-| Tests passing | 8 |
+| Tests passing | 9 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -279,6 +283,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - 2026-11-11 (at 5a3a16d): documentation audit against the code. Found: no claims needed correcting.
 - 2026-11-11 (at 3c843c2): independent code review (counts, raster). Found: nothing high; the raster encoding is right for zero to three tools. Open: ties in the top three go to the tool called first (undocumented).
+- 2026-11-11 (at 6eaa7af): read in full. Found: a tool named like an object property corrupted the tally; fixed with a test that failed first.
 
 **New tests watched failing first**
 
@@ -304,12 +309,13 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | any surface (it is a tool the model calls) |
-| Verdict | Not ready: 5 of 8 open |
+| Verdict | Not ready: 4 of 8 open |
 
 **Independent reviews**
 
 - 2026-11-11 (at 5a3a16d): documentation audit against the code. Found: no claims needed correcting.
 - 2026-11-11 (at 3c843c2): independent code review (counting, inputs). Found: two found and fixed (a non-string input was counted as text, a very long text could overflow the stack in Node); the README now says what it returns.
+- 2026-11-11 (at 6eaa7af): read in full (a short review by the audit session). Found: no bug found.
 
 **New tests watched failing first**
 

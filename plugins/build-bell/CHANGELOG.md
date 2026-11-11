@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0
+
+- **Fixed: `minSeconds`, `sound` and `shortTurns` could not be set.** The README promised them, but the manifest never declared them, so Claude Code handed the mod nothing and only the defaults ever applied. They are now declared (ring after 20 seconds, bell on, tick on): change them in `/config`, or with `claude plugin configure build-bell`.
+
 ## 0.4.5
 
 - **Fixed:** the bell no longer rings, and the turn clock no longer stops, when a subagent finishes: only the end of your own turn counts.

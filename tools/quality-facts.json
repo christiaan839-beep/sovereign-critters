@@ -162,6 +162,14 @@
           "at": "3c843c2",
           "kind": "code",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read in full",
+          "found": "the same property-name bug in the day counts and the postcard; fixed with a test that failed first",
+          "at": "6eaa7af",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [],
@@ -199,6 +207,14 @@
           "at": "3c843c2",
           "kind": "code",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read in full against the host's type declarations",
+          "found": "its three settings were never declared in the manifest, so they could not be set; declared, with tests that failed first",
+          "at": "6eaa7af",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [],
@@ -229,6 +245,14 @@
           "at": "3c843c2",
           "kind": "code",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read in full (a short review by the audit session)",
+          "found": "no bug found",
+          "at": "6eaa7af",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [],
@@ -255,6 +279,14 @@
           "what": "independent code review (timers, cards)",
           "found": "nothing high; open and not fixed: the 160 ms follow-up timer is not cancelled when the pane closes. Cards show tool names only",
           "at": "3c843c2",
+          "kind": "code",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read in full (a short review by the audit session)",
+          "found": "no bug found",
+          "at": "6eaa7af",
           "kind": "code",
           "openHigh": 0
         }
@@ -285,6 +317,14 @@
           "at": "3c843c2",
           "kind": "code",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read in full",
+          "found": "a tool named like an object property corrupted the tally; fixed with a test that failed first",
+          "at": "6eaa7af",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [],
@@ -310,6 +350,14 @@
           "what": "independent code review (counting, inputs)",
           "found": "two found and fixed (a non-string input was counted as text, a very long text could overflow the stack in Node); the README now says what it returns",
           "at": "3c843c2",
+          "kind": "code",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read in full (a short review by the audit session)",
+          "found": "no bug found",
+          "at": "6eaa7af",
           "kind": "code",
           "openHigh": 0
         }

@@ -96,6 +96,14 @@ test('the bars draw the three tools the words name, in the same order', async ($
   await ui.unmount()
 })
 
+test('a tool named like an object property is counted like any other', async ($, on) => {
+  on('tool.call', () => ({ result: 'ok' }))
+  for (const tool of ['constructor', 'constructor', '__proto__', 'toString']) await $.tool.call({ tool } as never)
+  const ui = await $.ui.mount({ plugin: 'everywhere', surface: 'desktop', ...PANE })
+  expect(await ui.find({ type: 'Text', text: 'constructor 2 · __proto__ 1 · toString 1' })).toBeDefined()
+  await ui.unmount()
+})
+
 test('the summary names the three most called tools', () => {
   expect(summary({})).toBe('no tool calls yet')
   expect(summary({ Grep: 1, Read: 9, Edit: 3, Bash: 5 })).toBe('Read 9 · Bash 5 · Edit 3')
