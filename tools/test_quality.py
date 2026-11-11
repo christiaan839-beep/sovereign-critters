@@ -45,7 +45,7 @@ class Render(unittest.TestCase):
         self.assertEqual(quality.render(MEASURED), quality.render(MEASURED))
 
     def test_every_plugin_in_the_repo_has_a_row_and_every_row_a_plugin(self):
-        folders = sorted(d for d in os.listdir(os.path.join(quality.ROOT, 'plugins')) if os.path.isdir(os.path.join(quality.ROOT, 'plugins', d)))
+        folders = sorted(d for d in os.listdir(os.path.join(quality.ROOT, 'plugins')) if not d.startswith('.') and os.path.isdir(os.path.join(quality.ROOT, 'plugins', d)))
         self.assertEqual(sorted(quality.FACTS['order']), folders)
         self.assertEqual(sorted(quality.FACTS['plugins']), folders)
 
