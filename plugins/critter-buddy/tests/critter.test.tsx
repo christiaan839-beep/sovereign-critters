@@ -446,17 +446,22 @@ const PANE = {
 
 // An in-memory $.state, so an update reads what the last one wrote.
 const kept = new Map<string, { value: unknown; version: number }>()
+let clockAt = 1_000_000_000_000 // the stub clock reads this; a test moves it to let time pass
+let stateBroken = false // while true the stub cannot save state
 const stub = (on: any) => {
   kept.clear()
+  clockAt = 1_000_000_000_000
+  stateBroken = false
   on('state.get', (_: unknown, e: { plugin: string; key: string }) => ({ value: kept.get(`${e.plugin}.${e.key}`) ?? { value: undefined, version: 0 } }))
   on('state.set', (_: unknown, e: { plugin: string; key: string; value: unknown; ifVersion?: number }) => {
     const id = `${e.plugin}.${e.key}`
+    if (stateBroken) throw new Error('the store is gone')
     const now = kept.get(id)?.version ?? 0
     if (e.ifVersion !== undefined && e.ifVersion !== now) return { value: { isSet: false, version: now } }
     kept.set(id, { value: e.value, version: now + 1 })
     return { value: { isSet: true, version: now + 1 } }
   })
-  on('clock.now', () => ({ value: 1_000_000_000_000 }))
+  on('clock.now', () => ({ value: clockAt }))
   on('ui.render', ($: any, e: any) => {
     const { Text } = $.ui.resolve(e)
     return <Text>engine</Text>
@@ -2717,4 +2722,109 @@ test('the greetings, the weekday lines, the risk lines and the step and usage li
   const said: string[] = [...MORNING, ...DAY, ...EVENING, ...NIGHT, ...WEEKDAY.flat(), ...risky.map(([t, i]) => riskLine(t, i)), stepLine(20), stepLine(40), stepLine(80), usageLine(95, 90), usageLine(80, undefined), usageLine(60, undefined)]
   expect(said.length).toBeGreaterThan(65)
   for (const line of said) expect(line, line).not.toMatch(unkind)
+})
+
+import { register } from '../hooks/register'
+
+// The hooks module's own handlers, collected by hand so a test can call them with a $ of its own: the beat of the clock is a function the harness cannot pass out.
+const hooksOf = () => {
+  const found: { name: string; match: any; fn: (...a: any[]) => any; fallback?: (...a: any[]) => any }[] = []
+  register(((name: string, ...rest: any[]) => {
+    const fn = rest[rest.length - 1]
+    const entry: (typeof found)[number] = { name, match: rest.length > 1 ? rest[0] : undefined, fn }
+    found.push(entry)
+    return { catch: (f: any) => { entry.fallback = f; return entry } }
+  }) as never)
+  return found
+}
+
+// A $ of the test's own, for what the harness cannot pass out: the clock's beat. State is kept in memory; anything else is a call that does nothing.
+const ownHost = () => {
+  const st = new Map<string, { value: unknown; version: number }>()
+  let beat: (() => Promise<void>) | undefined
+  const nothing = (): any => new Proxy(function () {}, { get: (_t, k) => (k === 'then' ? undefined : nothing()), apply: () => Promise.resolve(undefined) })
+  const $: any = new Proxy({}, {
+    get: (_t, k) =>
+      k === 'clock' ? { now: async () => clockAt, every: (_ms: number, f: () => Promise<void>) => { beat = f; return { cancel: () => undefined } } }
+      : k === 'state' ? {
+        get: async (e: { key: string }) => st.get(e.key) ?? { value: undefined, version: 0 },
+        set: async (e: { key: string }, value: unknown) => { const version = (st.get(e.key)?.version ?? 0) + 1; st.set(e.key, { value, version }); return { isSet: true, version } },
+      }
+      : nothing(),
+  })
+  const diaryText = () => JSON.stringify((st.get('diary')?.value as { value?: unknown } | undefined)?.value ?? [])
+  return { $, beat: () => beat!(), diaryText }
+}
+
+const handlersOf = () => {
+  const found: { name: string; match: any; fn: (...a: any[]) => any; fallback?: (...a: any[]) => any }[] = []
+  register(((name: string, ...rest: any[]) => {
+    const entry: (typeof found)[number] = { name, match: rest.length > 1 ? rest[0] : undefined, fn: rest[rest.length - 1] }
+    found.push(entry)
+    return { catch: (f: (...a: any[]) => any) => { entry.fallback = f } }
+  }) as never)
+  const one = (name: string, tool?: string) => found.find(h => h.name === name && (tool === undefined || h.match?.tool === tool))!.fn
+  return Object.assign(one, { all: found })
+}
+
+test('a decorative mod never stands in the way: when the cat cannot save its state, the tool still runs and answers', async ($, on) => {
+  stub(on)
+  on('ui.status', () => ({ value: undefined }))
+  on('tool.call', () => ({ result: 'ran anyway' }) as never)
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  stateBroken = true
+  for (const tool of ['Read', 'Bash', 'Skill']) expect(await $.tool.call({ tool, command: 'ls' } as never)).toEqual({ result: 'ran anyway' })
+})
+
+test('every hook on a tool call has a fallback that lets the call through untouched', () => {
+  const calls = handlersOf().all.filter(h => /^tool\.(call|check)$/.test(h.name))
+  expect(calls.length).toBeGreaterThanOrEqual(3)
+  for (const h of calls) {
+    expect(typeof h.fallback).toBe('function')
+    const event = { tool: 'Bash', command: 'ls' }
+    expect(h.fallback!({}, event, (e: unknown) => ({ passed: e }))).toEqual({ passed: event }) // the hook's own failure hands the very event on
+  }
+})
+
+test('a tool the person refused makes the cat swat and counts a denial; one that ran does not', async ($, on) => {
+  stub(on)
+  let refuse = true
+  on('ui.status', () => ({ value: undefined }))
+  on('tool.call', () => (refuse ? { deny: 'not that one' } : { result: 'ok' }) as never)
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const denials = () => /"denials":(\d+)/.exec(JSON.stringify(kept.get('critter-buddy.scene')))?.[1]
+  await $.tool.call({ tool: 'Bash', command: 'rm -rf x' } as never)
+  expect(denials()).toBe('1')
+  expect(JSON.stringify(kept.get('critter-buddy.scene'))).toMatch(/"mode":"swat"/)
+  refuse = false
+  await $.tool.call({ tool: 'Read' } as never)
+  expect(denials()).toBe('1')
+})
+
+test('a call that is over, even one that threw, no longer counts as in flight: the cat does not go to the window for it', async () => {
+  const handler = handlersOf()('tool.call', 'Bash')
+  const mine = (host: ReturnType<typeof ownHost>) => host.$
+  // a call that is still running 60 s later sends the cat to the window (the control: the route to the beat works)
+  clockAt = 1_000_000_000_000
+  const running = ownHost()
+  await handlersOf()('session.start')(running.$, { cwd: '/' }, async (e: unknown) => e)
+  void handler(mine(running), { tool: 'Bash', command: 'sleep 99' }, () => new Promise(() => undefined))
+  await new Promise(r => setTimeout(r, 20))
+  clockAt += 60_000
+  await running.beat(); await running.beat() // the reaction is written on one beat and moved to the diary on the next
+  expect(running.diaryText()).toMatch(/window/)
+  // a call that threw is over: a minute later nothing is waiting
+  const gone = ownHost()
+  await handlersOf()('session.start')(gone.$, { cwd: '/' }, async (e: unknown) => e)
+  clockAt = 2_000_000_000_000
+  await handler(mine(gone), { tool: 'Bash', command: 'false' }, () => Promise.reject(new Error('the tool blew up'))).catch(() => undefined)
+  clockAt += 60_000
+  await gone.beat(); await gone.beat()
+  expect(gone.diaryText()).not.toMatch(/window/)
 })
