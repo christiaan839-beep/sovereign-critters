@@ -1,39 +1,220 @@
 {
-  "_about": "What only people can establish: reviews and live sightings, each with a date. Tests, versions and validation are measured by tools/quality.py and never written here. Add a row when it happens; never raise a claim above its evidence.",
-  "order": ["critter-buddy", "mods", "guard", "session-diary", "build-bell", "crab", "stunt", "everywhere", "forge"],
+  "_about": "What only people can establish, each with the date and the commit it was about (`at`): reviews (kind code, security or docs, and openHigh, the count of open high findings), sightings in the real app, a cold install by someone who is not the founder, and new tests watched failing first. Tests, versions and validation are measured by tools/quality.py and never written here. A fact is fresh only while the plugin has not changed since `at`. Never raise a claim above its evidence.",
+  "order": [
+    "critter-buddy",
+    "mods",
+    "guard",
+    "session-diary",
+    "build-bell",
+    "crab",
+    "stunt",
+    "everywhere",
+    "forge"
+  ],
   "plugins": {
     "critter-buddy": {
       "surfaces": "Claude desktop app, terminal",
       "reviews": [
-        { "date": "2026-11-11", "what": "independent code review of the clock, the painter cache, the band sky, trust and pane width", "found": "2 confirmed bugs and 5 smaller; all fixed with a test that failed first" },
-        { "date": "2026-11-11", "what": "documentation audit against the code", "found": "14 claims corrected across the repo" }
+        {
+          "date": "2026-11-11",
+          "what": "independent code review of the clock, the painter cache, the band sky, trust and pane width",
+          "found": "2 confirmed bugs and 5 smaller; all fixed with a test that failed first",
+          "at": "5a3a16d",
+          "kind": "code",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "documentation audit against the code",
+          "found": "14 claims corrected across the repo",
+          "at": "5a3a16d",
+          "kind": "docs",
+          "openHigh": 0
+        }
       ],
       "seen": [
-        { "date": "2026-11-11", "surface": "Claude desktop app", "what": "the band and its buttons, the sky in the band, /critter doctor, /critter perf, the prompt box colouring" }
+        {
+          "date": "2026-11-11",
+          "surface": "Claude desktop app",
+          "what": "the band and its buttons, the sky in the band, /critter doctor, /critter perf, the prompt box colouring",
+          "at": "7bb227d"
+        }
       ],
-      "gaps": ["the corner and the stage have not been seen in the real app", "the cat overlapping Pip when a side panel opens was seen once and not reproduced"]
+      "gaps": [
+        "the corner and the stage have not been seen in the real app",
+        "the cat overlapping Pip when a side panel opens was seen once and not reproduced"
+      ],
+      "failFirst": {
+        "date": "2026-11-11",
+        "at": "0729a52",
+        "what": "every test added that day (the clock, the painters, the sky, trust, pane width, the prompt box words) was watched failing on the old code, then passing"
+      },
+      "coldInstall": []
     },
     "mods": {
       "surfaces": "Claude desktop app, terminal",
       "reviews": [
-        { "date": "2026-11-11", "what": "documentation audit against the code", "found": "stamp words, line counts and what /mods needs corrected" }
+        {
+          "date": "2026-11-11",
+          "what": "documentation audit against the code",
+          "found": "stamp words, line counts and what /mods needs corrected",
+          "at": "5a3a16d",
+          "kind": "docs",
+          "openHigh": 0
+        }
       ],
       "seen": [],
-      "gaps": ["the index cards have not been photographed in the real app", "no independent code review yet"]
+      "gaps": [
+        "the index cards have not been photographed in the real app",
+        "no independent code review yet"
+      ],
+      "failFirst": null,
+      "coldInstall": []
     },
     "guard": {
       "surfaces": "any surface that runs hooks (it draws nothing)",
       "reviews": [
-        { "date": "2026-11-11", "what": "independent red-team for ways past it", "found": "5 bypasses (piped scripts, an alias made on the line, xargs -I%, hidden command names), all fixed with a test that failed first; 2 gaps documented" }
+        {
+          "date": "2026-11-11",
+          "what": "independent red-team for ways past it",
+          "found": "5 bypasses (piped scripts, an alias made on the line, xargs -I%, hidden command names), all fixed with a test that failed first; 2 gaps documented",
+          "at": "5a3a16d",
+          "kind": "security",
+          "openHigh": 0
+        }
       ],
       "seen": [],
-      "gaps": ["never seen stopping a push in the real app", "a program that changes main or .git/HEAD earlier on the line is not tracked (documented)"]
+      "gaps": [
+        "never seen stopping a push in the real app",
+        "a program that changes main or .git/HEAD earlier on the line is not tracked (documented)"
+      ],
+      "failFirst": {
+        "date": "2026-11-11",
+        "at": "cf08b68",
+        "what": "the nine lines that used to get past it, each with a test that failed on the old code, then passed"
+      },
+      "coldInstall": []
     },
-    "session-diary": { "surfaces": "Claude desktop app, terminal", "reviews": [{ "date": "2026-11-11", "what": "documentation audit against the code", "found": "no claims needed correcting" }], "seen": [], "gaps": ["never seen in the real app", "no independent code review yet"] },
-    "build-bell": { "surfaces": "any surface that plays sound or shows toasts", "reviews": [{ "date": "2026-11-11", "what": "documentation audit against the code", "found": "failure toast, playback and tick wording corrected" }], "seen": [], "gaps": ["never heard or seen in the real app", "where its three settings are set is not documented", "no independent code review yet"] },
-    "crab": { "surfaces": "Claude desktop app, terminal", "reviews": [{ "date": "2026-11-11", "what": "documentation audit against the code", "found": "the root README line described an older version" }], "seen": [], "gaps": ["never seen in the real app", "no independent code review yet"] },
-    "stunt": { "surfaces": "Claude desktop app, terminal", "reviews": [{ "date": "2026-11-11", "what": "documentation audit against the code", "found": "no claims needed correcting" }], "seen": [], "gaps": ["never seen in the real app", "no independent code review yet"] },
-    "everywhere": { "surfaces": "Claude desktop app, terminal", "reviews": [{ "date": "2026-11-11", "what": "documentation audit against the code", "found": "no claims needed correcting" }], "seen": [], "gaps": ["never seen in the real app", "no independent code review yet"] },
-    "forge": { "surfaces": "any surface (it is a tool the model calls)", "reviews": [{ "date": "2026-11-11", "what": "documentation audit against the code", "found": "no claims needed correcting" }], "seen": [], "gaps": ["never called by the model in the real app", "no independent code review yet"] }
+    "session-diary": {
+      "surfaces": "Claude desktop app, terminal",
+      "reviews": [
+        {
+          "date": "2026-11-11",
+          "what": "documentation audit against the code",
+          "found": "no claims needed correcting",
+          "at": "5a3a16d",
+          "kind": "docs",
+          "openHigh": 0
+        }
+      ],
+      "seen": [],
+      "gaps": [
+        "never seen in the real app",
+        "no independent code review yet"
+      ],
+      "failFirst": null,
+      "coldInstall": []
+    },
+    "build-bell": {
+      "surfaces": "any surface that plays sound or shows toasts",
+      "reviews": [
+        {
+          "date": "2026-11-11",
+          "what": "documentation audit against the code",
+          "found": "failure toast, playback and tick wording corrected",
+          "at": "5a3a16d",
+          "kind": "docs",
+          "openHigh": 0
+        }
+      ],
+      "seen": [],
+      "gaps": [
+        "never heard or seen in the real app",
+        "where its three settings are set is not documented",
+        "no independent code review yet"
+      ],
+      "failFirst": null,
+      "coldInstall": []
+    },
+    "crab": {
+      "surfaces": "Claude desktop app, terminal",
+      "reviews": [
+        {
+          "date": "2026-11-11",
+          "what": "documentation audit against the code",
+          "found": "the root README line described an older version",
+          "at": "5a3a16d",
+          "kind": "docs",
+          "openHigh": 0
+        }
+      ],
+      "seen": [],
+      "gaps": [
+        "never seen in the real app",
+        "no independent code review yet"
+      ],
+      "failFirst": null,
+      "coldInstall": []
+    },
+    "stunt": {
+      "surfaces": "Claude desktop app, terminal",
+      "reviews": [
+        {
+          "date": "2026-11-11",
+          "what": "documentation audit against the code",
+          "found": "no claims needed correcting",
+          "at": "5a3a16d",
+          "kind": "docs",
+          "openHigh": 0
+        }
+      ],
+      "seen": [],
+      "gaps": [
+        "never seen in the real app",
+        "no independent code review yet"
+      ],
+      "failFirst": null,
+      "coldInstall": []
+    },
+    "everywhere": {
+      "surfaces": "Claude desktop app, terminal",
+      "reviews": [
+        {
+          "date": "2026-11-11",
+          "what": "documentation audit against the code",
+          "found": "no claims needed correcting",
+          "at": "5a3a16d",
+          "kind": "docs",
+          "openHigh": 0
+        }
+      ],
+      "seen": [],
+      "gaps": [
+        "never seen in the real app",
+        "no independent code review yet"
+      ],
+      "failFirst": null,
+      "coldInstall": []
+    },
+    "forge": {
+      "surfaces": "any surface (it is a tool the model calls)",
+      "reviews": [
+        {
+          "date": "2026-11-11",
+          "what": "documentation audit against the code",
+          "found": "no claims needed correcting",
+          "at": "5a3a16d",
+          "kind": "docs",
+          "openHigh": 0
+        }
+      ],
+      "seen": [],
+      "gaps": [
+        "never called by the model in the real app",
+        "no independent code review yet"
+      ],
+      "failFirst": null,
+      "coldInstall": []
+    }
   }
 }
