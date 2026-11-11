@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.4
+
+- The listing card now carries a homepage, a repository link and keywords. No behaviour change.
+
 ## 0.4.3
 
 - Every hook on the tool path now fails open: if it throws, the tool or prompt goes on as if the mod were not there.

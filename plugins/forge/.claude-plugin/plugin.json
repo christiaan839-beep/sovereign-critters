@@ -1,10 +1,19 @@
 {
   "name": "forge",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license": "Apache-2.0",
   "icon": "./.claude-plugin/icon.png",
   "description": "Gives Claude a tool that counts a text exactly: characters as Unicode code points (some emoji count as more than one), words, lines and UTF-8 bytes.",
   "author": {
     "name": "Sovereign Matrix"
-  }
+  },
+  "homepage": "https://github.com/christiaan839-beep/sovereign-critters/tree/main/plugins/forge",
+  "repository": "https://github.com/christiaan839-beep/sovereign-critters",
+  "keywords": [
+    "count",
+    "characters",
+    "bytes",
+    "utf-8",
+    "tool"
+  ]
 }

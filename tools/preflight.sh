@@ -64,5 +64,18 @@ else
   note 'skip  gitleaks (not installed, or not a git checkout)'
 fi
 
+# 6. every plugin card has what a directory listing shows: a short description, a homepage, a repository, keywords
+listing=$(python3 - <<'PY'
+import glob, json
+for f in sorted(glob.glob('plugins/*/.claude-plugin/plugin.json')):
+    j = json.load(open(f))
+    miss = [k for k in ('homepage', 'repository') if not j.get(k)]
+    if len(j.get('keywords', [])) < 3: miss.append('keywords (3 or more)')
+    if len(j.get('description', '')) > 300: miss.append('description over 300 characters')
+    if miss: print(f"{j.get('name', f)}: {', '.join(miss)}")
+PY
+)
+if [ -n "$listing" ]; then bad 'listing: plugin.json is thin'; printf '%s\n' "$listing" | sed 's/^/      /'; else ok 'listing: every plugin.json has homepage, repository, keywords, a short description'; fi
+
 note
 if [ "$fails" -eq 0 ]; then note 'preflight: all clear'; exit 0; else note "preflight: $fails failure(s)"; exit 1; fi

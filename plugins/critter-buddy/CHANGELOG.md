@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.28.5
+
+- The listing card now carries a homepage, a repository link and keywords. No behaviour change.
+
 ## 0.28.4
 
 - **Fixed: the prompt box marked `doctor` as a stray word.** Your photo showed `/critter doctor` with `doctor` underlined in gold, the mark for a word the mod does not know. `doctor`, `perf`, `sky` and `tint` were missing from the table the prompt box reads, so they were also missing from the typeahead and had no hint after them. All four are known now, and `sky` offers its five phases and `tint` offers `on` and `off`.

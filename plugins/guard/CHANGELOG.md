@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- The listing card now carries a homepage, a repository link and keywords, and a description short enough to read in full. No behaviour change.
+
 ## 0.1.2
 
 - **Fixed: five ways a push could slip past the guard.** `echo git push -f origin main | bash` (and `| sh -s`, `bash <(echo ...)`, a heredoc into a shell) was read as three separate scripts; an alias the line made itself (`git config alias.p "push -f"; git p`) was never judged; `xargs -I% git % ...` slid a push past; and `G=git; P=push; $G $P -f`, `git${IFS}pu${x}sh` and `caffeinate $GIT push -f` hid it behind an expansion. All are now stopped or read as the command they are. Found by an independent review; each has a test that failed first.
