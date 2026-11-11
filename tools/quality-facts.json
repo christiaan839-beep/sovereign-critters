@@ -1,0 +1,39 @@
+{
+  "_about": "What only people can establish: reviews and live sightings, each with a date. Tests, versions and validation are measured by tools/quality.py and never written here. Add a row when it happens; never raise a claim above its evidence.",
+  "order": ["critter-buddy", "mods", "guard", "session-diary", "build-bell", "crab", "stunt", "everywhere", "forge"],
+  "plugins": {
+    "critter-buddy": {
+      "surfaces": "Claude desktop app, terminal",
+      "reviews": [
+        { "date": "2026-11-11", "what": "independent code review of the clock, the painter cache, the band sky, trust and pane width", "found": "2 confirmed bugs and 5 smaller; all fixed with a test that failed first" },
+        { "date": "2026-11-11", "what": "documentation audit against the code", "found": "14 claims corrected across the repo" }
+      ],
+      "seen": [
+        { "date": "2026-11-11", "surface": "Claude desktop app", "what": "the band and its buttons, the sky in the band, /critter doctor, /critter perf, the prompt box colouring" }
+      ],
+      "gaps": ["the corner and the stage have not been seen in the real app", "the cat overlapping Pip when a side panel opens was seen once and not reproduced"]
+    },
+    "mods": {
+      "surfaces": "Claude desktop app, terminal",
+      "reviews": [
+        { "date": "2026-11-11", "what": "documentation audit against the code", "found": "stamp words, line counts and what /mods needs corrected" }
+      ],
+      "seen": [],
+      "gaps": ["the index cards have not been photographed in the real app", "no independent code review yet"]
+    },
+    "guard": {
+      "surfaces": "any surface that runs hooks (it draws nothing)",
+      "reviews": [
+        { "date": "2026-11-11", "what": "independent red-team for ways past it", "found": "5 bypasses (piped scripts, an alias made on the line, xargs -I%, hidden command names), all fixed with a test that failed first; 2 gaps documented" }
+      ],
+      "seen": [],
+      "gaps": ["never seen stopping a push in the real app", "a program that changes main or .git/HEAD earlier on the line is not tracked (documented)"]
+    },
+    "session-diary": { "surfaces": "Claude desktop app, terminal", "reviews": [{ "date": "2026-11-11", "what": "documentation audit against the code", "found": "no claims needed correcting" }], "seen": [], "gaps": ["never seen in the real app", "no independent code review yet"] },
+    "build-bell": { "surfaces": "any surface that plays sound or shows toasts", "reviews": [{ "date": "2026-11-11", "what": "documentation audit against the code", "found": "failure toast, playback and tick wording corrected" }], "seen": [], "gaps": ["never heard or seen in the real app", "where its three settings are set is not documented", "no independent code review yet"] },
+    "crab": { "surfaces": "Claude desktop app, terminal", "reviews": [{ "date": "2026-11-11", "what": "documentation audit against the code", "found": "the root README line described an older version" }], "seen": [], "gaps": ["never seen in the real app", "no independent code review yet"] },
+    "stunt": { "surfaces": "Claude desktop app, terminal", "reviews": [{ "date": "2026-11-11", "what": "documentation audit against the code", "found": "no claims needed correcting" }], "seen": [], "gaps": ["never seen in the real app", "no independent code review yet"] },
+    "everywhere": { "surfaces": "Claude desktop app, terminal", "reviews": [{ "date": "2026-11-11", "what": "documentation audit against the code", "found": "no claims needed correcting" }], "seen": [], "gaps": ["never seen in the real app", "no independent code review yet"] },
+    "forge": { "surfaces": "any surface (it is a tool the model calls)", "reviews": [{ "date": "2026-11-11", "what": "documentation audit against the code", "found": "no claims needed correcting" }], "seen": [], "gaps": ["never called by the model in the real app", "no independent code review yet"] }
+  }
+}

@@ -10,3 +10,5 @@
 - `media.sh` draws `demo.gif` and `preview.png` from `scene.ts` and `world.ts` themselves.
 
 `out/` is scratch: do not commit it.
+
+- `quality.py` writes `QUALITY.md` from what the plugins measure (version, tests, validation, hooks) and what people witnessed (`quality-facts.json`: reviews and sightings with dates). `python3 tools/quality.py --write` after a change; preflight warns when the file is out of date. `test_quality.py` tests it.
