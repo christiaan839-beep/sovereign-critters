@@ -482,6 +482,12 @@
           "surface": "Claude desktop app (an agent session; read from its transcript, not watched by a person)",
           "what": "git reset --hard was refused before it ran. The same sighting found cd <a temp folder> && rm -rf dist running where it should have been stopped (0.1.1); fixed in 0.1.2, and the fix has not been seen live",
           "at": "1dadf72"
+        },
+        {
+          "date": "2026-11-11",
+          "surface": "Claude desktop app (an agent session; read from its transcript, not watched by a person)",
+          "what": "the 0.1.2 fix seen live: cd /tmp && rm -rf x was refused before it ran (\"rm -r reaches outside the folder you opened\")",
+          "at": "cd7cc21"
         }
       ],
       "gaps": [

@@ -1,6 +1,6 @@
 {
   "name": "critter-measure",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "license": "Apache-2.0",
   "icon": "./.claude-plugin/icon.png",
   "description": "Gives Claude a tool that counts a text exactly: characters as Unicode code points (some emoji count as more than one), words, lines and UTF-8 bytes.",

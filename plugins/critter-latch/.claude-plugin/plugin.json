@@ -1,6 +1,6 @@
 {
   "name": "critter-latch",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "license": "Apache-2.0",
   "icon": "./.claude-plugin/icon.png",
   "description": "Opt-in guard against deletes you cannot take back: a recursive delete outside the folder you opened, git reset --hard, git clean -f, and git checkout . or git restore . over uncommitted work. It reads how a command is spelled; best effort.",

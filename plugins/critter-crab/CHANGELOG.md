@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1
+
+- Docs: the early-access note is corrected from Claude Code's own documentation: mods are on by default from 2.1.286 (not only where function hooks are enabled), an organization can keep installed mods from running, and `--safe-mode` starts without them. No behaviour change.
+
 ## 0.4.0
 
 - **A note says how old it is.** From an earlier session the band reads "you left this yesterday:" or "you left this 3 days ago:", so a note from last month is not taken for this morning's. Under a day it still says "you left this:". Nothing new is stored: the age comes from when the note was held.

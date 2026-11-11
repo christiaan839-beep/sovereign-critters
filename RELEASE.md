@@ -61,6 +61,8 @@ Two outside testers follow this on a machine that has never seen the mods. It ne
    /plugin install critter-buddy@sovereign-critters
    ```
 
+   Installing critter-bell, critter-clock or critter-seal prints that some options are "not yet set". That is a notice, not a failure: every option has a default, and `/plugin configure` changes one if you want to.
+
 3. Quit Claude Code completely and start it again. Plugins load only in a new session.
 4. In the new session, run `/critter doctor`.
 

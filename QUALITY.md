@@ -22,7 +22,7 @@ Eight gates. The lead mods (the first three) must meet all eight before release.
 | critter-measure | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | critter-clock | met | met | met | open | open | met | open | open | Not ready: 4 of 8 open |
 | critter-ledger | met | met | met | open | open | met | open | open | Not ready: 4 of 8 open |
-| critter-latch | met | met | met | met | stale | stale | open | open | Not ready: 4 of 8 open |
+| critter-latch | met | met | met | met | stale | met | open | open | Not ready: 3 of 8 open |
 | critter-seal | met | met | met | stale | stale | met | open | open | Not ready: 4 of 8 open |
 
 met: done, and nothing has changed since. stale: done, but the plugin has changed since, so it needs another look. open: not done yet.
@@ -35,7 +35,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The lead mods
 
-### critter-buddy 0.30.3
+### critter-buddy 0.30.4
 
 | | |
 | --- | --- |
@@ -69,7 +69,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - the corner and the stage have not been seen in the real app
 - the cat overlapping Pip when a side panel opens was seen once and not reproduced
 
-### critter-mods 0.7.1
+### critter-mods 0.7.2
 
 | | |
 | --- | --- |
@@ -101,7 +101,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the index cards have not been photographed in the real app
 
-### critter-ward 0.3.2
+### critter-ward 0.3.3
 
 | | |
 | --- | --- |
@@ -137,7 +137,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The others
 
-### critter-diary 0.6.2
+### critter-diary 0.6.3
 
 | | |
 | --- | --- |
@@ -173,7 +173,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - /diary clear does not clear the week
 - never seen in the real app
 
-### critter-bell 0.6.2
+### critter-bell 0.6.3
 
 | | |
 | --- | --- |
@@ -207,7 +207,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never heard or seen in the real app
 
-### critter-crab 0.4.0
+### critter-crab 0.4.1
 
 | | |
 | --- | --- |
@@ -240,7 +240,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app
 
-### critter-stunt 0.2.2
+### critter-stunt 0.2.3
 
 | | |
 | --- | --- |
@@ -273,7 +273,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app
 
-### critter-tally 0.2.2
+### critter-tally 0.2.3
 
 | | |
 | --- | --- |
@@ -305,7 +305,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app
 
-### critter-measure 0.2.2
+### critter-measure 0.2.3
 
 | | |
 | --- | --- |
@@ -337,7 +337,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never called by the model in the real app
 
-### critter-clock 0.1.2
+### critter-clock 0.1.3
 
 | | |
 | --- | --- |
@@ -367,7 +367,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the hourly toast has not been seen in the real app
 
-### critter-ledger 0.1.2
+### critter-ledger 0.1.3
 
 | | |
 | --- | --- |
@@ -398,7 +398,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - never seen in the real app; token counts come from the engine's per-turn usage, not checked against a bill
 - the toast for passing a limit has not been seen in the real app
 
-### critter-latch 0.1.3
+### critter-latch 0.1.4
 
 | | |
 | --- | --- |
@@ -406,7 +406,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
-| Verdict | Not ready: 4 of 8 open |
+| Verdict | Not ready: 3 of 8 open |
 
 **Independent reviews**
 
@@ -420,6 +420,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 **Seen working in the real app**
 
 - 2026-11-11 (at 1dadf72), Claude desktop app (an agent session; read from its transcript, not watched by a person): git reset --hard was refused before it ran. The same sighting found cd <a temp folder> && rm -rf dist running where it should have been stopped (0.1.1); fixed in 0.1.2, and the fix has not been seen live.
+- 2026-11-11 (at cd7cc21), Claude desktop app (an agent session; read from its transcript, not watched by a person): the 0.1.2 fix seen live: cd /tmp && rm -rf x was refused before it ran ("rm -r reaches outside the folder you opened").
 
 **Cold install by someone who is not the founder**
 
@@ -429,7 +430,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the fixes after the review have not been reviewed again
 
-### critter-seal 0.1.3
+### critter-seal 0.1.4
 
 | | |
 | --- | --- |
