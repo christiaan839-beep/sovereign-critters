@@ -11,9 +11,9 @@ Eight gates. The lead mods (the first three) must meet all eight before release.
 
 | Mod | Tests pass | Strict validation | Hooks fail open | New tests failed first | Independent code review | Seen in the desktop app | Docs audited | Cold install by someone else | Verdict |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| critter-buddy | met | met | met | stale | met | stale | stale | open | Not ready: 4 of 8 open |
+| critter-buddy | met | met | met | stale | stale | stale | stale | open | Not ready: 5 of 8 open |
 | mods | met | met | met | open | open | open | stale | open | Not ready: 5 of 8 open |
-| guard | met | met | met | stale | met | open | stale | open | Not ready: 4 of 8 open |
+| guard | met | met | met | stale | stale | open | stale | open | Not ready: 5 of 8 open |
 | session-diary | met | met | met | open | met | open | stale | open | Not ready: 4 of 8 open |
 | build-bell | met | met | met | open | met | open | stale | open | Not ready: 4 of 8 open |
 | crab | met | met | met | open | open | open | stale | open | Not ready: 5 of 8 open |
@@ -38,7 +38,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
-| Verdict | Not ready: 4 of 8 open |
+| Verdict | Not ready: 5 of 8 open |
 
 **Independent reviews**
 
@@ -102,7 +102,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell where a push goes, the push waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
-| Verdict | Not ready: 4 of 8 open |
+| Verdict | Not ready: 5 of 8 open |
 
 **Independent reviews**
 
