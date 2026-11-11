@@ -1,5 +1,5 @@
 import type { CatMode, CatVariant, Fx, Look, Scene } from '../types'
-import { propsFor } from './world'
+import { propsFor, RIDGE, RIDGE_FAR } from './world'
 import type { Prop } from './world'
 
 export type Run = { text: string; fg?: string; bg?: string }
@@ -52,7 +52,7 @@ export const isAsleep = (s: Scene) => s.look === 'idle' && s.idle > 100
 // ---- the critter: the site's own sprite, ported ----------------------------------
 // This is `founderCritter` from the studio site (src/js/crit.js) drawn on a grid of palette keys instead of a canvas: 22 x 14 cells,
 // three tones of clay lit from the upper left, eyes with a glint, and frames for breathing, blinking, walking, joy and casting.
-// By day it is the wizard of Christiaan's form (a dark purple hat with a gold star, a staff whose orb throws lightning); by night
+// By day it is the wizard form (a dark purple hat with a gold star, a staff whose orb throws lightning); by night
 // it is the antennae critter whose hat carries a violet bolt. The hat builds up from the brim over `morph` 0 to 1.
 export type CritterPose = { aura: number; kit: 'wizard' | 'sherlock' | 'chef' | 'none'; walk: -1 | 0 | 1; arms: 0 | 1; cast: boolean; blink: boolean; happy: boolean; breath: boolean; morph: number; night: boolean; bolt: 0 | 1 | 2; tip?: boolean }
 const ghash = (x: number, y: number) => { const v = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return v - Math.floor(v) }
@@ -606,7 +606,7 @@ export const colourOf = (s: Scene) => {
   return (k: string) => BASE[k] ?? coat[k] ?? (k === 'd' ? shade(coat.o ?? '#d97757') : k === 'w' ? coat.x : undefined) ?? '#d97757'
 }
 
-export const paint = (s: Scene): Run[][] => {
+const paintRaw = (s: Scene): Run[][] => {
   const cols = Math.max(24, s.cols)
   return runsOf(canvasOf(s, cols), colourOf(s))
 }
@@ -626,7 +626,7 @@ export const wizardCanvas = (s: Scene, pose?: WizardPose): string[][] =>
     },
     WIZARD_COLS,
   )
-export const paintWizard = (s: Scene, pose?: WizardPose): Run[][] => runsOf(wizardCanvas(s, pose), colourOf(s))
+const paintWizardRaw = (s: Scene, pose?: WizardPose): Run[][] => runsOf(wizardCanvas(s, pose), colourOf(s))
 
 // ---- vector art -------------------------------------------------------------
 // The desktop draws text art as a smear (its cells are not two pixels tall), but it draws SVG crisply. The same canvas
@@ -655,9 +655,9 @@ export const svgOf = (canvas: string[][], colour: (k: string) => string, px: num
   const source = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" shape-rendering="crispEdges">${rects.join('')}</svg>`
   return { source, width, height }
 }
-export const paintSvg = (s: Scene, px = 5): Svgd => svgOf(canvasOf(s, Math.max(24, s.cols)), colourOf(s), px)
-export const paintWizardSvg = (s: Scene, px = 5, pose?: WizardPose): Svgd => svgOf(wizardCanvas(s, pose), colourOf(s), px)
-export const paintBigSvg = (s: Scene, px = 8): Svgd => svgOf(portraitCanvas(s), colourOf(s), px)
+const paintSvgRaw = (s: Scene, px = 5): Svgd => svgOf(canvasOf(s, Math.max(24, s.cols)), colourOf(s), px)
+const paintWizardSvgRaw = (s: Scene, px = 5, pose?: WizardPose): Svgd => svgOf(wizardCanvas(s, pose), colourOf(s), px)
+const paintBigSvgRaw = (s: Scene, px = 8): Svgd => svgOf(portraitCanvas(s), colourOf(s), px)
 /** The five-cell face as nine by five pixels: eyes by what the call did. */
 export const faceSvg = (kind: FaceKind, tick: number, px = 4): Svgd => {
   const eyes: Record<FaceKind, string[]> = {
@@ -686,14 +686,14 @@ export const faceRuns = (kind: FaceKind, tick: number): Run[] => {
 /** The Sovereign Matrix mark: a glossy clay orb, its shine breathing. Nine cells wide, eight pixel rows. */
 export const ORB = ['..XXXXX..', '.XCHWCDX.', 'XCHWCCDDX', 'XCHCCCDDX', 'XCCCCDDDX', 'XCCDDDDDX', '.XDDDDDX.', '..XXXXX..']
 export const ORB_COLS = 9
-export const paintOrb = (tick: number): Run[][] => {
+const paintOrbRaw = (tick: number): Run[][] => {
   const shine = tick % 6 < 3 ? 'W' : 'H' // lit from the top left; the shine breathes
   const canvas = ORB.map(r => [...r].map(c => (c === 'W' ? shine : c)))
   return runsOf(canvas, k => BASE[k] ?? '#d97757')
 }
 
 /** The same orb, unchanged, as vector art for the desktop. */
-export const paintOrbSvg = (tick: number, px = 5): Svgd =>
+const paintOrbSvgRaw = (tick: number, px = 5): Svgd =>
   svgOf(ORB.map(r => [...r].map(c => (c === 'W' && tick % 6 >= 3 ? 'H' : c))), k => BASE[k] ?? '#d97757', px)
 
 const runsOf = (canvas: string[][], colour: (k: string) => string): Run[][] => {
@@ -725,7 +725,7 @@ export const portraitCanvas = (s: Scene): string[][] =>
   canvasOf({ ...s, cols: PORTRAIT_W, cx: 4, cdir: 1, kx: PORTRAIT_W - CAT_W - 1, kdir: -1, mode: s.mode === 'walk' || s.mode === 'follow' ? 'loaf' : s.mode }, PORTRAIT_W)
 
 /** The portrait: each pixel two cells wide when the pane has room for that, else one, so the cat is never cut off. */
-export const paintBig = (s: Scene): Run[][] => {
+const paintBigRaw = (s: Scene): Run[][] => {
   const canvas = portraitCanvas(s)
   if (s.cols < PORTRAIT_W * 2) return runsOf(canvas, colourOf(s))
   const colour = colourOf(s)
@@ -762,48 +762,49 @@ const pickBy = (pool: readonly string[], s: Scene): string => pool[(s.stats.turn
 /** The greeting's pick: one line a day, a new one tomorrow (a pool of two or more never repeats on consecutive days), the same on every reopen that day. */
 export const pickByDay = (pool: readonly string[], ms: number): string => pool[Math.floor((ms + 7_200_000) / 86_400_000) % pool.length]!
 
-const TURN_FAST = ['{cat} did not look up', 'quick. {cat} is unimpressed', 'gone before {cat} blinked']
-const TURN_MID = ['{pip} approves', '{pip} nodded once', 'a clean cast, says {pip}']
-const TURN_LONG = ['{pip} dozed off', '{cat} has moved house since', 'long enough for two naps']
-const TURN_ROUGH = ['{cat} saw that error first', '{pip} blames {cat}', 'bumpy. {pip} is calm about it']
-const MORNING = [
+/** The line after a turn, by how long it took and whether it was rough: the pair are on your side. */
+export const TURN_FAST = ['quick one: {cat} barely had time to stretch', 'that was quick, and {cat} noticed', 'done before {cat} finished a yawn']
+export const TURN_MID = ['{pip} approves, warmly', '{pip} nodded, and meant it', 'a clean cast, says {pip}, proudly']
+export const TURN_LONG = ['a long one. {pip} kept you company, then dozed', 'that took a while. {pip} stayed up as long as he could', 'a long stretch: {cat} napped, and {pip} watched over you']
+export const TURN_ROUGH = ['bumpy one. {cat} saw it first and stayed with you', 'a rough patch. {pip} is calm about it, and so are you', 'that one fought back. {cat} stayed close']
+export const MORNING = [
   'good morning. {pip} is up first',
   'morning. {cat} has not decided yet',
   'morning. the kettle is {pip}\'s department',
   'morning. {cat} warmed the chair for you',
   'early morning. {pip} approves of the quiet',
 ]
-const DAY = [
+export const DAY = [
   '{pip} is at the orb',
   'daylight. {cat} took the warm spot',
   'afternoon. {pip} is pretending not to nap',
   '{cat} has found the one patch of sun',
   'midday. {pip} checked the orb twice',
 ]
-const EVENING = [
+export const EVENING = [
   'evening. {pip} lit the lamp',
   '{cat} is awake now, as promised',
   'evening. {pip} is counting what got done',
   'evening. {cat} woke up for the second shift',
   'evening. the lamp is lit and nobody is rushing',
 ]
-const NIGHT = [
+export const NIGHT = [
   'night shift. antennae out',
   'the glass is dark. {pip} keeps the orb lit',
   'night. {cat} watches the cursor so you can blink',
-  'late. the glass is quiet and {pip} is not',
-  'night. {cat} is counting your keystrokes, kindly',
+  'late. the glass is quiet and {pip} is humming',
+  'night. {cat} is keeping your seat warm',
 ]
 
 // The weekday only colours a daylight greeting; the night keeps its own lines. 0 is Sunday.
-const WEEKDAY: readonly (readonly string[])[] = [
-  ['sunday. {pip} keeps the orb low', 'sunday. {cat} is not working, you are', 'sunday. {pip} put the list face down', 'sunday. {cat} allows one email, no more', 'sunday. the slow light suits {cat}'],
-  ['monday. {cat} has not agreed to it yet', 'monday. {pip} brought a list', 'monday. {cat} is easing in, loudly', 'monday. {pip} polished the orb for the occasion', 'monday. the week starts when {cat} says'],
+export const WEEKDAY: readonly (readonly string[])[] = [
+  ['sunday. {pip} keeps the orb low', 'sunday. {cat} kept the warm end of the sofa for you', 'sunday. {pip} put the list face down', 'sunday. {cat} says one email is plenty, and so is resting', 'sunday. the slow light suits {cat}'],
+  ['monday. {cat} says begin with the small thing', 'monday. {pip} brought a list', 'monday. {cat} is easing in, loudly', 'monday. {pip} polished the orb for the occasion', 'monday. the week starts when {cat} says'],
   ['tuesday. {cat} is settled in', 'tuesday. {pip} polished the orb', 'tuesday. the quiet day, says {pip}', 'tuesday. {cat} found a rhythm and sat on it', 'tuesday. {pip} has the good pen out'],
   ['wednesday. the middle, says {pip}', 'wednesday. {cat} checked the clock twice', 'wednesday. half done, {pip} insists', 'wednesday. {cat} is pacing the hump', 'wednesday. {pip} measured the week and it holds'],
   ['thursday. {pip} can smell friday', 'thursday. {cat} is pacing themself', 'thursday. nearly, says {pip}', 'thursday. {cat} is pretending it is friday', 'thursday. {pip} sorted what can wait'],
   ['friday. {pip} suspects the weekend', 'friday. {cat} has one eye on the door', 'friday. {pip} is wrapping things up neatly', 'friday. {cat} will believe it at five', 'friday. one good push, says {pip}'],
-  ['saturday. {cat} is not working, you are', 'saturday. {pip} lit the orb anyway', 'saturday. {cat} took the sofa and kept the peace', 'saturday. {pip} says the braai can wait an hour', 'saturday. a gentle one, says {pip}'],
+  ['saturday. {cat} kept the good cushion for you', 'saturday. {pip} lit the orb anyway', 'saturday. {cat} took the sofa and kept the peace', 'saturday. {pip} says the braai can wait an hour', 'saturday. a gentle one, says {pip}'],
 ]
 /** The weekday in Africa/Johannesburg (UTC+2, no daylight saving), 0 for Sunday, from epoch milliseconds. */
 export const weekdayOf = (ms: number): number => (((Math.floor((ms + 7_200_000) / 86_400_000) + 4) % 7) + 7) % 7
@@ -837,12 +838,12 @@ export const riskLine = (tool: string, input: unknown): string => {
   const i = (input ?? {}) as { command?: unknown; file_path?: unknown }
   if (tool === 'Bash' && typeof i.command === 'string') {
     const c = i.command
-    if (/\b(curl|wget)\b[^|;&]*\|\s*(sudo\s+)?(ba|z|da)?sh\b/.test(c)) return '{cat} does not pipe strangers into a shell'
+    if (/\b(curl|wget)\b[^|;&]*\|\s*(sudo\s+)?(ba|z|da)?sh\b/.test(c)) return '{cat} would like a look at what that script does first'
     if (/\bgit\s+push\b[^;&|]*(--force(?!-with-lease)\b|\s-f\b)/.test(c)) return '{cat} says force is a strong word for a shared branch'
-    if (/\bgit\s+(reset\s+--hard|clean\s+-[a-z]*f|checkout\s+--\s+\.)/.test(c)) return 'that one has no undo. {cat} checked'
+    if (/\bgit\s+(reset\s+--hard|clean\s+-[a-z]*f|checkout\s+--\s+\.)/.test(c)) return '{cat} checked, and that one cannot be taken back. just so you know'
     if (/\brm\b[^;&|]*\s(-[a-zA-Z]*[rRf][a-zA-Z]*|--recursive|--force)(\s|$)/.test(c)) return '{cat} would read the path twice'
     if (/(^|[;&|]\s*)sudo\b/.test(c)) return '{cat} notes this one holds the keys to everything'
-    if (/--no-verify\b/.test(c)) return '{pip} points out the hook was there for a reason'
+    if (/--no-verify\b/.test(c)) return '{pip} wonders gently what the hook was catching'
     if (/\bdrop\s+(table|database)\b/i.test(c)) return '{cat} hopes there is a backup'
     if (/\bchmod\s+(-R\s+)?777\b/.test(c)) return '777 is everyone. {cat} noticed'
     return ''
@@ -903,9 +904,9 @@ const WORDS = (n: Names): Record<string, string> => ({
   pet: `${n.cat} allows it`, treat: `${n.pip} is sure it is his`, cast: `${n.pip} casts something`, spell: `${n.pip} casts something`, nap: 'both of them sleep',
   stage: 'the critter alone on a stage', corner: `${n.cat}'s corner`, diary: `what ${n.cat} wrote`, hide: 'out of sight', show: 'back again',
   lite: 'the bar, the wizard, the orb', full: 'and the rows of the transcript', party: 'and every message',
-  cat: 'choose a coat', wizard: 'choose the wizard', name: 'rename them', sound: 'chime and purr', voice: 'speak the big moments aloud', talk: `let ${n.cat} speak`, feel: 'calm, warm or playful',
+  cat: 'choose a coat', wizard: 'choose the wizard', name: 'rename them', sound: 'chime and purr', voice: 'speak the big moments aloud', talk: `let ${n.cat} speak`, feel: 'calm, warm or playful', doctor: 'what is on and why', perf: "the clock's own books", sky: 'the window behind the chat', tint: "this folder's colour in the sky",
 })
-const ARGS: Record<string, string[]> = { cat: COATS_LIST, wizard: ['auto', 'gold', 'bolt'], sound: ['on', 'off'], voice: ['on', 'off'], talk: ['on', 'off'], name: ['cat', 'pip'], feel: ['calm', 'warm', 'playful'] }
+const ARGS: Record<string, string[]> = { cat: COATS_LIST, wizard: ['auto', 'gold', 'bolt'], sound: ['on', 'off'], voice: ['on', 'off'], talk: ['on', 'off'], name: ['cat', 'pip'], feel: ['calm', 'warm', 'playful'], sky: ['auto', 'dawn', 'day', 'dusk', 'night'], tint: ['on', 'off'] }
 const FAMILY: Record<string, { ghost: string; subs?: Record<string, string> }> = {
   diary: { ghost: 'what Claude did, in order', subs: { copy: 'the whole session, as markdown', clear: 'empty it', week: 'the last seven days, a bar a day' } },
   stunt: { ghost: 'the critter in a pane, a card per call' },
@@ -982,7 +983,7 @@ export const diaryMarkdown = (lines: string[], n: Names = NAMES_DEFAULT): string
 export type Controls = { pet: string; feed: string; cast: string; nap: string; corner: string; mods?: string }
 /** The label of each button on the bar. A cat that is sulking is made up with, not petted; a wizard mid-cast is not asked to cast. */
 export const controlLabels = (s: Scene, mood: string, n: Names = NAMES_DEFAULT): Controls => ({
-  pet: mood === 'sulking' ? `make up with ${n.cat}` : `pet ${n.cat}`,
+  pet: mood === 'sulking' ? `say sorry to ${n.cat}` : `pet ${n.cat}`,
   feed: `feed ${n.cat}`,
   cast: s.look === 'wizard' ? `${n.pip} is casting` : `${n.pip} casts`,
   nap: 'nap',
@@ -1055,6 +1056,103 @@ export const cadence = (s: Scene): 1 | 4 => {
   return working || moving ? 1 : 4
 }
 
+// ---- the sky behind the pair, for an app with no backdrop -----------------------------------------
+/** The pieces of a sky that `withSky` draws: the colours and the places `skyFor` chose. */
+export type SkyDraw = { ground: string; ridgeColour: string; ridgeFarColour: string; body: string; bodyColor: string; bodyTop: number; bodyHidden: boolean; paper: string; cloudColour: string; band?: { top: string; low: string; ground: string; near: string; far: string; cloud: string; body: string }; clouds: { top: number; left: number }[]; wisps: { top: number; left: number }[]; rain: { top: number; left: number }[]; stars: { top: number; left: number; big: boolean }[] }
+
+/**
+ * A picture with a sky drawn behind it, in the same SVG so the two always line up: the ground with the near and far ridges,
+ * the sun or the moon, stars, cloud and rain. Where the app draws no backdrop of its own this is the sky; the sky and the ground run in colour to both edges of the band, and the pair keep their place against the right edge.
+ */
+export const withSky = (art: Svgd, sky: SkyDraw, wide = art.width): Svgd => {
+  const { height: h } = art
+  const w = Math.max(wide, art.width) // the sky spans the band: the picture is never narrower than the pair's own
+  const slide = w - art.width // the pair keep their place against the right edge
+  const c = sky.band ?? { top: sky.paper, low: sky.paper, ground: sky.ground, near: sky.ridgeColour, far: sky.ridgeFarColour, cloud: sky.cloudColour, body: sky.bodyColor }
+  // The ground is a fixed thickness from the bottom, not a share of the height: the picture's height changes whenever the pair hop (empty rows above are trimmed), and the horizon must not jump with it.
+  const groundTop = Math.max(Math.round(h * 0.4), h - 46)
+  const ridge = (text: string, base: number, fill: string) => {
+    const step = 10
+    const pts = [`0,${h}`]
+    for (let x = 0, i = 0; x <= w + step; x += step, i++) pts.push(`${x},${base - ('▁▂▃▄▅'.indexOf(text[i % text.length] ?? '▁') + 1) * 3}`)
+    pts.push(`${w},${h}`)
+    return `<polygon points="${pts.join(' ')}" fill="${fill}"/>`
+  }
+  const across = (frac: number) => Math.round(36 + frac * (w - 72)) // kept 36 px in from each side, so no cloud is cut by the picture's edge
+  const at = (top: number, rows: number) => Math.min(groundTop - 6, Math.round((top / rows) * 110)) // a fixed scale from the top, never past the ground
+  const bits: string[] = []
+  // The sky is a gradient over the whole width, top to horizon, and the ground and ridges are opaque to both edges: nothing fades to clear.
+  bits.push(`<defs><linearGradient id="sky" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${c.top}"/><stop offset="1" stop-color="${c.low}"/></linearGradient></defs>`)
+  bits.push(`<rect width="${w}" height="${h}" fill="url(#sky)"/>`)
+  for (const st of sky.stars) bits.push(`<rect x="${across(st.left / 150)}" y="${at(st.top, 34)}" width="${st.big ? 3 : 2}" height="${st.big ? 3 : 2}" fill="${st.big ? '#d4a548' : '#8f7cc4'}"/>`)
+  for (const cl of [...sky.wisps, ...sky.clouds]) bits.push(`<ellipse cx="${across((cl.left % 130) / 130)}" cy="${at(cl.top, 12)}" rx="${sky.clouds.includes(cl) ? 26 : 18}" ry="${sky.clouds.includes(cl) ? 7 : 4}" fill="${c.cloud}"/>`)
+  for (const d of sky.rain) bits.push(`<line x1="${across((d.left % 150) / 150)}" y1="${at(d.top, 30)}" x2="${across((d.left % 150) / 150) - 3}" y2="${at(d.top, 30) + 8}" stroke="${c.cloud}" stroke-width="1.5"/>`)
+  if (!sky.bodyHidden) {
+    const cx = Math.round(w * 0.2), cy = Math.min(groundTop - 14, sky.bodyTop * 6 + 16)
+    bits.push(`<circle cx="${cx}" cy="${cy}" r="10" fill="${c.body}"/>`)
+    if (sky.body === '☾') bits.push(`<circle cx="${cx + 5}" cy="${cy - 3}" r="9" fill="${sky.band?.top ?? sky.paper}"/>`) // the moon is a crescent: a second disc in the sky's colour bites it
+  }
+  bits.push(ridge(RIDGE_FAR, groundTop - 2, c.far), ridge(RIDGE, groundTop, c.near))
+  bits.push(`<rect y="${groundTop}" width="${w}" height="${h - groundTop}" fill="${c.ground}"/>`)
+  const m = /^(<svg[^>]*>)([\s\S]*)<\/svg>\s*$/.exec(art.source)
+  if (!m) return art
+  const root = slide ? m[1]!.replace(/width="\d+"/, `width="${w}"`).replace(/viewBox="[^"]*"/, `viewBox="0 0 ${w} ${h}"`) : m[1]!
+  const pair = slide ? `<g transform="translate(${slide},0)">${m[2]}</g>` : m[2]!
+  return { source: `${root}<g shape-rendering="geometricPrecision">${bits.join('')}</g>${pair}</svg>`, width: w, height: h }
+}
+
+// ---- what a beat costs -------------------------------------------------------------
+/** The clock's own books: how many beats ran, how many did nothing, and what the rest cost the engine. */
+export type Probe = { beats: number; hidden: number; waited: number; stepped: number; calls: number; ms: number; worst: number }
+export const newProbe = (): Probe => ({ beats: 0, hidden: 0, waited: 0, stepped: 0, calls: 0, ms: 0, worst: 0 })
+
+/** One beat, entered in the books: `calls` engine calls and `ms` milliseconds; `stepped` says whether the scene moved. */
+export const noteBeat = (p: Probe, kind: 'hidden' | 'waited' | 'stepped', calls: number, ms: number): Probe => ({
+  ...p,
+  beats: p.beats + 1,
+  hidden: p.hidden + (kind === 'hidden' ? 1 : 0),
+  waited: p.waited + (kind === 'waited' ? 1 : 0),
+  stepped: p.stepped + (kind === 'stepped' ? 1 : 0),
+  calls: p.calls + calls,
+  ms: p.ms + ms,
+  worst: Math.max(p.worst, ms),
+})
+
+/** The books as words, for /critter perf. */
+export const perfLines = (p: Probe): string[] => {
+  if (!p.beats) return ['No beat has run yet.']
+  const live = p.beats - p.hidden
+  const per = (n: number, d: number) => (d ? (n / d).toFixed(2) : '0.00')
+  return [
+    `${p.beats} beats: ${p.stepped} stepped the scene, ${p.waited} looked and waited, ${p.hidden} did nothing (hidden).`,
+    `Engine calls: ${p.calls} in all, ${per(p.calls, live)} a beat that ran (a beat used to take 6 to 8 while anything moved).`,
+    `Time: ${per(p.ms, live)} ms a beat that ran, the slowest ${p.worst} ms (the clock beats every 250).`,
+  ]
+}
+
+// ---- which surface this really is ----------------------------------------------
+/** The surface the doctor names: the desktop if the desktop is attached, else the first surface drawing, else what the event said. */
+export const surfaceOf = (attached: readonly string[], said?: string): string => (attached.includes('desktop') ? 'desktop' : attached[0] ?? said ?? 'terminal')
+
+// ---- what the host said about the backdrop ------------------------------------
+/** The host's answer to `$.ui.backdrop`, as one line for the doctor: drawn, or not drawn and the reason it gave. */
+export const backdropOutcome = (answer: unknown): { drawn: boolean; text: string } => {
+  if (typeof answer === 'object' && answer !== null && 'isDrawn' in answer) {
+    const a = answer as { isDrawn: unknown; reason?: unknown }
+    if (a.isDrawn === true) return { drawn: true, text: 'drawn' }
+    if (a.isDrawn === false) return { drawn: false, text: `not drawn (${typeof a.reason === 'string' && a.reason ? a.reason : 'the host gave no reason'})` }
+  }
+  return { drawn: false, text: 'not drawn (the host answered something unreadable)' }
+}
+
+/** What a failed `$.ui.backdrop` call means: the app has no backdrop at all (a call to something that is not there: never tried again), or it refused. */
+export const backdropFailure = (err: unknown): { text: string; final: boolean } => {
+  const absent = err instanceof TypeError && /backdrop\b.*(is not a function|is undefined)/.test(err.message) // our own call to something that is not there, not any TypeError from inside the app
+  return absent
+    ? { final: true, text: 'not drawn (this version of the app has no backdrop, so the sky is drawn behind the pair in the band; update the app for the full-window sky)' }
+    : { final: false, text: `not drawn (the host refused the call: ${err instanceof Error ? err.message : String(err)})` }
+}
+
 // ---- a store that cannot be trusted, and the doctor who reads the rest ----
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 const whole = (v: unknown, lo: number, hi: number, fallback: number): number =>
@@ -1074,29 +1172,40 @@ export const cleanStreak = (raw: unknown): { days: number; last: string } | unde
 }
 
 export const MIN_COLS = 110
+/**
+ * How wide a pane asks to be in a window of this width: what it wants, but never more than the window leaves after the chat's
+ * 50 columns, and never under 36 (the narrowest the portrait and the diary read at). In a 98-column window the stage asks for 48
+ * and the corner for 48; at 110 and over they have their full size.
+ */
+export const paneColumns = (windowCols: number, want: number): number => Math.max(36, Math.min(want, windowCols - 50))
 export type DoctorInput = {
-  detail: string; feel: string; sound: boolean; voice: string; talk: boolean; hidden: boolean; cols: number; surface: string; sky?: string; tint?: string
+  detail: string; feel: string; sound: boolean; voice: string; talk: boolean; hidden: boolean; cols: number; surface: string; sky?: string; tint?: string; backdrop?: string
 }
 /** /critter doctor: what is on, what is off and the one command that changes it. */
 export const doctorLines = (d: DoctorInput): string[] => {
   const out = [`Reach: ${d.detail}. Feel: ${d.feel}. Surface: ${d.surface}, ${d.cols} columns.`]
   if (d.tint !== undefined) out.push(d.tint ? `Tint: the sky leans ${d.tint} here. /critter tint off keeps it plain.` : 'Tint: off. /critter tint on lets this folder lean its own colour.')
   if (d.sky) out.push(d.sky === 'auto' ? 'Sky: auto, it follows the hour. /critter sky night holds a phase.' : `Sky: held at ${d.sky}. /critter sky auto lets the hour decide.`)
+  if (d.backdrop !== undefined) out.push(d.surface === 'desktop' ? `Backdrop: ${d.backdrop}.` : 'Backdrop: only the desktop app draws one.')
   if (d.hidden) out.push('The pair are hidden: /critter show brings them back.')
-  if (d.cols < MIN_COLS) out.push(`The window is narrow (${d.cols} columns); the stage and the corner want ${MIN_COLS}.`)
+  if (d.cols < MIN_COLS) out.push(`The window is ${d.cols} columns wide, so the stage opens ${paneColumns(d.cols, 60)} wide and the corner ${paneColumns(d.cols, 56)}; from ${MIN_COLS} they have their full size.`)
   if (d.feel === 'still') out.push(d.sound || d.voice ? 'Still: nothing moves, and the pair are silent, so sound and voice say nothing: /critter feel warm lets them speak.' : 'Still: nothing moves.')
   else if (d.feel === 'calm') out.push(d.sound || d.voice ? 'Calm keeps the pair silent, so sound and voice say nothing: /critter feel warm lets them speak.' : 'Calm: the pair only breathe, walk and sleep.')
-  out.push(d.sound ? 'Sound is on: a cast chime and a purr.' : 'Sound is off: /critter sound on.')
+  out.push(d.sound ? 'Sound is on: a cast chime and a purr. /critter sound off silences it.' : 'Sound is off: /critter sound on.')
   out.push(d.voice ? `The voice is on${d.voice === 'default' ? ', in the system voice' : `: voice ${d.voice}`}.` : 'The voice is off: /critter voice on.')
   out.push(d.talk ? 'The cat speaks after a turn (one small model call each).' : 'The cat does not speak after a turn: /critter talk on.')
   return out
 }
 
-/** A cat comes back at 25 at the least: wary, not sulking. Sulking (under 30) is earned in a session, never by the calendar. */
-export const returnTrust = (trust: number, days: number): number => Math.max(25, trust - days * 8)
+/**
+ * How much the cat trusts you when a session starts: never below 40, so a new session never opens on a sulking cat (a sulk is under
+ * 30, and is earned inside a session, never by the calendar or carried into the next one). After a day or more away it also drops
+ * 8 a day from where it was, down to that floor.
+ */
+export const returnTrust = (trust: number, days: number): number => Math.max(40, trust - (days >= 1 ? days : 0) * 8)
 
 /** The line a sulking cat says when work lifts it out of the sulk (30 and over); nothing for a cat that was not sulking. */
-const forgives = (s: Scene, gain: number): string[] => (s.trust < 30 && s.trust + gain >= 30 ? ['{cat} has decided to forgive you. Do not make it a habit.'] : [])
+const forgives = (s: Scene, gain: number): string[] => (s.trust < 30 && s.trust + gain >= 30 ? ['{cat} has forgiven you, and is not quite done being dramatic.'] : [])
 
 const COUNT = / \(×(\d+)\)$/
 /** Lines are appended to the diary; the same line twice in a row is one line with a count, keeping the first time. */
@@ -1128,11 +1237,16 @@ export const wizardPoseFor = (raw: string, vector = true): 'asleep' | 'tipped' |
 }
 
 /** The one dim line a first-ever session carries under the greeting; anything in the store means it has been said. */
-export const welcomeLine = (said: unknown, names: { cat: string; pip: string }, hour?: number): string | undefined => {
+/**
+ * The one dim line under the logo the first time, in the pair's names. Sound is on by default, so when it will be heard (`sounds`) the
+ * line says how to turn it off: a stranger is never surprised by a purr.
+ */
+export const welcomeLine = (said: unknown, names: { cat: string; pip: string }, hour?: number, sounds = true): string | undefined => {
   if (said) return undefined
-  if (hour === undefined || (hour >= 5 && hour < 12)) return `${names.cat} and ${names.pip} are here. /critter for the controls`
-  if (hour >= 12 && hour < 19) return `${names.cat} has inspected the premises. ${names.pip} says the idea was his.`
-  return 'Installed. ' + `${names.cat} remains unconvinced.` // the small hours and the evening: she is not impressed
+  const off = sounds ? ' Sound is on; /critter sound off turns it off.' : ''
+  if (hour === undefined || (hour >= 5 && hour < 12)) return `Good morning. ${names.cat} and ${names.pip} are above your prompt; /critter has the controls.${off}`
+  if (hour >= 12 && hour < 19) return `${names.cat} has looked the place over and approves. ${names.pip} would like it known the idea was his.${off}`
+  return `All set. ${names.cat} is still deciding, but has stayed up for you.${off}` // the small hours and the evening: kept company, not lectured
 }
 
 // ---- habits: what the cat learns of you across sessions, kept as counts and hashes, never as paths or names ----
@@ -1213,3 +1327,38 @@ export type SoundName = (typeof SOUND_NAMES)[number]
 
 /** The whole window's width in cells: the wider of the body and the viewport (an open pane narrows the body, not the window); 80 when neither is known. */
 export const windowWidth = (body?: number, viewport?: number): number => Math.max(body ?? 0, viewport ?? 0) || 80
+
+// ---- a picture drawn once ------------------------------------------------------
+/**
+ * The painters, each remembering its last few pictures. The scene is plain data, so the arguments say everything the picture
+ * depends on: a beat that moved nothing (a breath between two blinks, a redraw the host asked for) gets the same picture back
+ * without building the canvas and the vector art again.
+ */
+const memo = <A extends unknown[], R>(fn: (...a: A) => R, size = 6) => {
+  const seen = new Map<string, R>()
+  return (...a: A): R => {
+    const key = JSON.stringify(a)
+    const hit = seen.get(key)
+    if (hit !== undefined) return hit
+    const made = fn(...a)
+    seen.set(key, made)
+    if (seen.size > size) seen.delete(seen.keys().next().value as string)
+    return made
+  }
+}
+export const paint: typeof paintRaw = memo(paintRaw)
+export const paintWizard: typeof paintWizardRaw = memo(paintWizardRaw)
+export const paintOrb: typeof paintOrbRaw = memo(paintOrbRaw)
+export const paintOrbSvg: typeof paintOrbSvgRaw = memo(paintOrbSvgRaw)
+export const paintBig: typeof paintBigRaw = memo(paintBigRaw)
+export const paintSvg: typeof paintSvgRaw = memo(paintSvgRaw)
+export const paintWizardSvg: typeof paintWizardSvgRaw = memo(paintWizardSvgRaw)
+export const paintBigSvg: typeof paintBigSvgRaw = memo(paintBigSvgRaw)
+
+/** What the pair say when a command fails: never at your expense. */
+export const ERR_LINES = [
+  '{cat} was not surprised, and is still on your side.',
+  '{pip} says that was on purpose. It was a good try.',
+  '{cat} knocked it over first, so you are in good company.',
+  'Nothing was harmed. Mostly. Try again.',
+]

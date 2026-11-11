@@ -1,0 +1,20 @@
+{
+  "name": "critter-diary",
+  "version": "0.6.0",
+  "description": "/diary opens a pane that keeps what Claude did this session: every tool call with how long it took and whether it failed, a line for each turn, and a button that copies it all as markdown. It stores tool names and times only, never the commands or the files.",
+  "author": {
+    "name": "Sovereign Matrix"
+  },
+  "types": "./types/index.d.ts",
+  "license": "Apache-2.0",
+  "icon": "./.claude-plugin/icon.png",
+  "homepage": "https://github.com/christiaan839-beep/sovereign-critters/tree/main/plugins/critter-diary",
+  "repository": "https://github.com/christiaan839-beep/sovereign-critters",
+  "keywords": [
+    "diary",
+    "tool-calls",
+    "timeline",
+    "markdown",
+    "postcard"
+  ]
+}

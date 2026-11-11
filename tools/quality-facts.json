@@ -1,0 +1,434 @@
+{
+  "_about": "What only people can establish, each with the date and the commit it was about (`at`): reviews (kind code, security or docs, and openHigh, the count of open high findings), sightings in the real app, a cold install by someone who is not the founder, and new tests watched failing first. Tests, versions and validation are measured by tools/quality.py and never written here. A fact is fresh only while the plugin has not changed since `at`. Never raise a claim above its evidence.",
+  "order": [
+    "critter-buddy",
+    "critter-mods",
+    "critter-ward",
+    "critter-diary",
+    "critter-bell",
+    "critter-crab",
+    "critter-stunt",
+    "critter-tally",
+    "critter-measure"
+  ],
+  "plugins": {
+    "critter-buddy": {
+      "surfaces": "Claude desktop app, terminal",
+      "reviews": [
+        {
+          "date": "2026-11-11",
+          "what": "independent code review of the clock, the painter cache, the band sky, trust and pane width",
+          "found": "2 confirmed bugs and 5 smaller; all fixed with a test that failed first",
+          "at": "5a3a16d",
+          "kind": "code",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "documentation audit against the code",
+          "found": "14 claims corrected across the repo",
+          "at": "5a3a16d",
+          "kind": "docs",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read against the official mods guide and the host's own type declarations",
+          "found": "a subagent's turn.complete was counted as the person's turn; fixed with a test that failed first",
+          "at": "10f284e",
+          "kind": "code",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "the whole voice read for scolding, nagging and watching",
+          "found": "greetings, weekday lines and warnings softened, and a test now covers every line the pair can say",
+          "at": "147e77a",
+          "kind": "code",
+          "openHigh": 0
+        }
+      ],
+      "seen": [
+        {
+          "date": "2026-11-11",
+          "surface": "Claude desktop app",
+          "what": "the band and its buttons, the sky in the band, /critter doctor, /critter perf, the prompt box colouring",
+          "at": "7bb227d"
+        }
+      ],
+      "gaps": [
+        "the corner and the stage have not been seen in the real app",
+        "the cat overlapping Pip when a side panel opens was seen once and not reproduced"
+      ],
+      "failFirst": {
+        "date": "2026-11-11",
+        "at": "0729a52",
+        "what": "every test added that day (the clock, the painters, the sky, trust, pane width, the prompt box words) was watched failing on the old code, then passing"
+      },
+      "coldInstall": []
+    },
+    "critter-mods": {
+      "surfaces": "Claude desktop app, terminal",
+      "reviews": [
+        {
+          "date": "2026-11-11",
+          "what": "documentation audit against the code",
+          "found": "stamp words, line counts and what /mods needs corrected",
+          "at": "5a3a16d",
+          "kind": "docs",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review (injection, state, card painter, README claims)",
+          "found": "one high finding (an unreadable plugin list looked like \"nothing installed\") and four smaller ones fixed with tests; open and not fixed: the pane is not re-read after a failed or timed-out switch, \"install all\" hides which installs failed, session start waits up to 20 s on the plugin manager, a double press runs the CLI twice",
+          "at": "3c843c2",
+          "kind": "code",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review, three rounds of the fixes for the earlier open findings",
+          "found": "the pane is re-read after a failed or timed-out switch, install all names each failure and why, a session never waits on the plugin manager, what a session loaded is seeded by the first good read, a flaky read keeps the last good list and says so, and a missing import was found and fixed; the old short names still work as aliases",
+          "at": "147e77a",
+          "kind": "code",
+          "openHigh": 0
+        }
+      ],
+      "seen": [],
+      "gaps": [
+        "the index cards have not been photographed in the real app"
+      ],
+      "failFirst": null,
+      "coldInstall": []
+    },
+    "critter-ward": {
+      "surfaces": "any surface that runs hooks (it draws nothing)",
+      "reviews": [
+        {
+          "date": "2026-11-11",
+          "what": "independent red-team for ways past it",
+          "found": "5 bypasses (piped scripts, an alias made on the line, xargs -I%, hidden command names), all fixed with a test that failed first; 2 gaps documented",
+          "at": "5a3a16d",
+          "kind": "security",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "second independent red-team round, run by the audit session (about 280 spellings of pushes to main and of force pushes)",
+          "found": "no bypass",
+          "at": "1fbc7d5",
+          "kind": "security",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "documentation audit against the code",
+          "found": "the claim of no network and nothing read outside the session was corrected to say that guard runs git locally",
+          "at": "5a3a16d",
+          "kind": "docs",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "closing the alias gap the second red-team round left open",
+          "found": "a git alias in a config file ran unjudged; now read from git config and judged, with a test that failed first",
+          "at": "d2ecd7d",
+          "kind": "security",
+          "openHigh": 0
+        }
+      ],
+      "seen": [],
+      "gaps": [
+        "never seen stopping a push in the real app",
+        "a program that changes main or .git/HEAD earlier on the line is not tracked (documented)"
+      ],
+      "failFirst": {
+        "date": "2026-11-11",
+        "at": "cf08b68",
+        "what": "the nine lines that used to get past it, each with a test that failed on the old code, then passed"
+      },
+      "coldInstall": []
+    },
+    "critter-diary": {
+      "surfaces": "Claude desktop app, terminal",
+      "reviews": [
+        {
+          "date": "2026-11-11",
+          "what": "documentation audit against the code",
+          "found": "no claims needed correcting",
+          "at": "5a3a16d",
+          "kind": "docs",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read against the official mods guide and the host's own type declarations",
+          "found": "a subagent's turn.complete was counted as the person's turn; fixed with a test that failed first",
+          "at": "10f284e",
+          "kind": "code",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review (timing, storage, privacy, claims)",
+          "found": "nothing high; open and not fixed: the week is held in session-scoped state so the README promise of 14 days does not hold after a restart, \"/diary clear\" leaves the week counts, a duration can print \"1 min 60 s\" or \"1 ms\", an MCP tool name goes unescaped into the postcard. Privacy confirmed: names and times only",
+          "at": "3c843c2",
+          "kind": "code",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review, three rounds of the fixes for the earlier open findings",
+          "found": "the week now lives in the store and survives a restart, /diary clear empties it, spans and the markdown are escaped; the rounds found and fixed a hung store holding up tools, clear racing a write, a missing import, a leaked timer, autolinks and bidi controls in tool names; open: two sessions at once can undercount, and a store step that times out is not cancelled",
+          "at": "147e77a",
+          "kind": "code",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read in full",
+          "found": "the same property-name bug in the day counts and the postcard; fixed with a test that failed first",
+          "at": "508d932",
+          "kind": "code",
+          "openHigh": 0
+        }
+      ],
+      "seen": [],
+      "gaps": [
+        "the 14-day week does not survive a restart (session-scoped state)",
+        "/diary clear does not clear the week",
+        "never seen in the real app"
+      ],
+      "failFirst": null,
+      "coldInstall": []
+    },
+    "critter-bell": {
+      "surfaces": "any surface that plays sound or shows toasts",
+      "reviews": [
+        {
+          "date": "2026-11-11",
+          "what": "documentation audit against the code",
+          "found": "failure toast, playback and tick wording corrected",
+          "at": "5a3a16d",
+          "kind": "docs",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read against the official mods guide and the host's own type declarations",
+          "found": "a subagent's turn.complete was counted as the person's turn; fixed with a test that failed first",
+          "at": "10f284e",
+          "kind": "code",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review (timing, failure modes, claims)",
+          "found": "nothing high; open and not fixed: its three settings (minSeconds, sound, shortTurns) have no declared way to be set, a long command rings twice (command and turn), the bell is awaited before the tool result returns, the time may include the permission dialog",
+          "at": "3c843c2",
+          "kind": "code",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review, three rounds of the fixes for the earlier open findings",
+          "found": "the three settings are declared and can be set, a command and its turn ring once, the sound and toast are not awaited; a failing toast no longer disturbs the turn; open: the time may include the permission dialog",
+          "at": "147e77a",
+          "kind": "code",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read in full against the host's type declarations",
+          "found": "its three settings were never declared in the manifest, so they could not be set; declared, with tests that failed first",
+          "at": "508d932",
+          "kind": "code",
+          "openHigh": 0
+        }
+      ],
+      "seen": [],
+      "gaps": [
+        "never heard or seen in the real app"
+      ],
+      "failFirst": null,
+      "coldInstall": []
+    },
+    "critter-crab": {
+      "surfaces": "Claude desktop app, terminal",
+      "reviews": [
+        {
+          "date": "2026-11-11",
+          "what": "documentation audit against the code",
+          "found": "the root README line described an older version",
+          "at": "5a3a16d",
+          "kind": "docs",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review (note storage, unicode, folder key)",
+          "found": "one small finding fixed (direction controls could reverse a note); open and not fixed: /crab drop does nothing if the store could not be read at start, two folders writing at once can overwrite each other, the folder key is the raw path as given",
+          "at": "3c843c2",
+          "kind": "code",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review, three rounds of the fixes for the earlier open findings",
+          "found": "a note whose first read failed can be seen and dropped once the store answers, and the band redraws; while the store is down it says so; the previous folder is forgotten before the next hashes; open: two folders writing at once can overwrite each other",
+          "at": "147e77a",
+          "kind": "code",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read in full (a short review by the audit session)",
+          "found": "no bug found",
+          "at": "508d932",
+          "kind": "code",
+          "openHigh": 0
+        }
+      ],
+      "seen": [],
+      "gaps": [
+        "never seen in the real app"
+      ],
+      "failFirst": null,
+      "coldInstall": []
+    },
+    "critter-stunt": {
+      "surfaces": "Claude desktop app, terminal",
+      "reviews": [
+        {
+          "date": "2026-11-11",
+          "what": "documentation audit against the code",
+          "found": "no claims needed correcting",
+          "at": "5a3a16d",
+          "kind": "docs",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review (timers, cards)",
+          "found": "nothing high; open and not fixed: the 160 ms follow-up timer is not cancelled when the pane closes. Cards show tool names only",
+          "at": "3c843c2",
+          "kind": "code",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review, three rounds of the fixes for the earlier open findings",
+          "found": "the blink's follow-up timer is cancelled with the pane and cannot re-arm or raise; a pane lookup that fails is contained",
+          "at": "147e77a",
+          "kind": "code",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read in full (a short review by the audit session)",
+          "found": "no bug found",
+          "at": "508d932",
+          "kind": "code",
+          "openHigh": 0
+        }
+      ],
+      "seen": [],
+      "gaps": [
+        "never seen in the real app"
+      ],
+      "failFirst": null,
+      "coldInstall": []
+    },
+    "critter-tally": {
+      "surfaces": "Claude desktop app, terminal",
+      "reviews": [
+        {
+          "date": "2026-11-11",
+          "what": "documentation audit against the code",
+          "found": "no claims needed correcting",
+          "at": "5a3a16d",
+          "kind": "docs",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review (counts, raster)",
+          "found": "nothing high; the raster encoding is right for zero to three tools. Open: ties in the top three go to the tool called first (undocumented)",
+          "at": "3c843c2",
+          "kind": "code",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read in full",
+          "found": "a tool named like an object property corrupted the tally; fixed with a test that failed first",
+          "at": "508d932",
+          "kind": "code",
+          "openHigh": 0
+        }
+      ],
+      "seen": [],
+      "gaps": [
+        "never seen in the real app"
+      ],
+      "failFirst": null,
+      "coldInstall": []
+    },
+    "critter-measure": {
+      "surfaces": "any surface (it is a tool the model calls)",
+      "reviews": [
+        {
+          "date": "2026-11-11",
+          "what": "documentation audit against the code",
+          "found": "no claims needed correcting",
+          "at": "5a3a16d",
+          "kind": "docs",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review (counting, inputs)",
+          "found": "two found and fixed (a non-string input was counted as text, a very long text could overflow the stack in Node); the README now says what it returns",
+          "at": "3c843c2",
+          "kind": "code",
+          "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "read in full (a short review by the audit session)",
+          "found": "no bug found",
+          "at": "508d932",
+          "kind": "code",
+          "openHigh": 0
+        }
+      ],
+      "seen": [],
+      "gaps": [
+        "never called by the model in the real app"
+      ],
+      "failFirst": null,
+      "coldInstall": []
+    }
+  },
+  "repo": [
+    {
+      "date": "2026-11-11",
+      "at": "1fbc7d5",
+      "what": "gitleaks over the full git history",
+      "found": "no leaks (re-run on 107 commits the same day)"
+    },
+    {
+      "date": "2026-11-11",
+      "at": "d6bd248",
+      "what": "a cold clone installs and passes preflight",
+      "found": "it does (checked in the audit session; this is a reproducibility check, not the cold install by someone else that the bar asks for)"
+    },
+    {
+      "date": "2026-11-11",
+      "at": "6c84daa",
+      "what": "renamed the eight bare-word plugins into one critter-* family, with a preflight gate against old ids",
+      "found": "slash commands unchanged; the plugin store of each renamed plugin starts fresh"
+    }
+  ]
+}

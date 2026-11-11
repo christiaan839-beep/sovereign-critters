@@ -1,0 +1,20 @@
+{
+  "name": "critter-tally",
+  "version": "0.2.0",
+  "license": "Apache-2.0",
+  "icon": "./.claude-plugin/icon.png",
+  "description": "/everywhere opens a pane of the three tools the session called most, drawn by each app its own way (natively on the Desktop app), with a Hide button. Where no app draws it, the answer comes in words.",
+  "author": {
+    "name": "Sovereign Matrix"
+  },
+  "types": "./types/index.d.ts",
+  "homepage": "https://github.com/christiaan839-beep/sovereign-critters/tree/main/plugins/critter-tally",
+  "repository": "https://github.com/christiaan839-beep/sovereign-critters",
+  "keywords": [
+    "tools",
+    "pane",
+    "usage",
+    "desktop",
+    "terminal"
+  ]
+}

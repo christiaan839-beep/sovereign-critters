@@ -1,5 +1,89 @@
 # Changelog
 
+## 0.30.2
+
+- **Gentler voice, all the way down:** the greetings, the weekday lines and the warnings no longer scold, nag or watch you (for example "is not working, you are", "counting your keystrokes", "no undo"). A test now checks every line the pair can say.
+- **Changed:** the icon shows the critter large instead of small in a sea of paper, and the listing has a preview poster. No behaviour change.
+
+## 0.30.1
+
+- **Fixed: the sky now reaches the left edge of the band.** A photo of the desktop app showed a strip of pale colour on the left (about 5% of the width) and another under the picture. The picture is now drawn 8.5 px a column, measured from that photo, and the row under it takes the ground's colour.
+
+## 0.30.0
+
+- **Changed: sounds are on by default.** The purr for a pet, the paw for a treat, the cast chime for a Skill, the page for the diary and the brass chime for a prop earned all sound unless you switch them off with `/critter sound off`; the choice is kept across restarts, and a choice you made before is kept as it was. They stay silent in `calm` and `still`, and where the app has no audio player they stay silent without an error. Speech (`/critter voice`) is a separate switch and stays off until you ask. The first-run welcome now ends with "Sound is on; /critter sound off turns it off." when the sounds will be heard, and `/critter doctor` says how to silence them.
+
+## 0.29.2
+
+- **Fixed (needs a look in the app): a message that is not typed could show as a very narrow bubble.** Your screenshot had `/mods` split as "mo / ds". The row that puts the happy face beside such a message now spans the width, and the bubble beside the face holds a floor of 12 columns, so a short message is never split inside a word and a long one still wraps. The test pins that structure; whether it cures the wrap in the real window is for your next screenshot to say. What you type yourself is the engine's own row and is left alone.
+
+## 0.29.1
+
+- **Fixed:** the critter no longer goes to "done", counts a turn or speaks when a subagent finishes: only the end of your own turn does.
+
+## 0.29.0
+
+- **Changed: a warmer voice, the first minute first.** The pair are still themselves (Biscuit proud, Pip a little grand) but they are plainly on your side. The welcome now says "Good morning. Biscuit and Pip are above your prompt", "Biscuit has looked the place over and approves. Pip would like it known the idea was his", or, late, "All set. Biscuit is still deciding, but has stayed up for you". Coming back: "Biscuit missed you and will deny it" after days away, "Biscuit kept your seat warm" the same day. A failed command gets "Biscuit was not surprised, and is still on your side" or "Nothing was harmed. Mostly. Try again." The button when Biscuit sulks says "say sorry to Biscuit", and a sulk lifts with "Biscuit has forgiven you, and is not quite done being dramatic". The lines after a turn follow the same rules: say what happened, never at your expense, never a guilt trip.
+- A test now reads every one of those lines and fails if one turns cold ("unimpressed", "I am fine", "blames"). The rest of the pair's lines are still in their older, drier voice and are next.
+
+## 0.28.6
+
+- **Changed: the band is a sky from edge to edge.** On the desktop app the picture now spans the whole band in colour (blue by day, rose at dawn, violet at dusk, indigo at night, greyed by weather) with opaque ground and ridges; the white at the left, where the ground faded to clear, is gone. The sun or moon moved to the left so the cat never covers it. The width is estimated at 8 px a column, so a window that measures differently may show a thin strip of the horizon colour on the left.
+
+## 0.28.5
+
+- The listing card now carries a homepage, a repository link and keywords. No behaviour change.
+
+## 0.28.4
+
+- **Fixed: the prompt box marked `doctor` as a stray word.** Your photo showed `/critter doctor` with `doctor` underlined in gold, the mark for a word the mod does not know. `doctor`, `perf`, `sky` and `tint` were missing from the table the prompt box reads, so they were also missing from the typeahead and had no hint after them. All four are known now, and `sky` offers its five phases and `tint` offers `on` and `off`.
+- **Fixed: a new session could still open on a sulking cat.** The cat kept a sulk from the last session until a day had passed. A new session now always opens at 40 or above (unbothered), and a sulk is earned only inside a session.
+
+## 0.28.3
+
+- **Fixed: the sky in the band had a hard edge.** Rendering it in a real browser showed the ridges starting abruptly at the left of the pair's picture, and clouds cut in half by the edge. The ridges now fade in from the left like the ground, and clouds, stars and rain keep 36 pixels in from each side.
+
+## 0.28.2
+
+- **Fixed: the stage and the corner opened 36 columns wide when the pair were hidden at the start.** The window width is now noted before the band decides to draw nothing.
+- **Fixed: a hidden critter could stay hidden** if something other than `/critter show` un-hid it; the clock now re-checks while hidden too.
+- **Fixed: the sky in the band no longer jumps** when the pair hop: the ground keeps a fixed thickness from the bottom.
+- A TypeError from inside the app is no longer taken for \"this app has no backdrop\" (and so no longer given up on); a NaN day count changes no trust.
+- Every hook on the tool path now fails open.
+
+## 0.28.1
+
+- **The stage and the corner fit a narrow window.** They used to want 110 columns and the doctor just said so. Now each opens as wide as the window leaves after the chat (48 columns in a 98-column window, never under 36), and at 110 columns and over they have their full size. `/critter doctor` says how wide they will open.
+- **Fixed: a returning cat came back sulking.** The code floor was 25 while a sulk starts under 30, so a few days away sulked the cat, against its own comment. A cat now comes back at 40 at the least after any day away, and a night's sleep forgives a sulk carried over; the same day nothing changes.
+
+## 0.28.0
+
+- **Changed: the cat no longer speaks until you ask.** `/critter talk` is off by default (it was on). The line after a turn costs one small model call, so a mod now spends nothing on your account until you run `/critter talk on`. If you liked the speech, run that once. `/critter doctor` says which it is.
+
+## 0.27.0
+
+- **The sky is drawn in the band when the app has no backdrop.** Your doctor showed why the window behind the chat was empty: this version of the desktop app has no `$.ui.backdrop` at all, so no mod can draw behind the chat. The pair's band now carries the sky itself (the ground fading in from the left, two ridges, the sun or moon, stars, cloud and rain) in the same picture as the pair, so it lines up and stays crisp. It keeps the hour, season, weather and folder tint. When an app that does have a backdrop is used, the full-window sky is drawn as before and the band stays plain.
+- `/critter doctor` says it plainly: "this version of the app has no backdrop", and the mod stops asking every ten seconds.
+
+## 0.26.3
+
+- **The sky can be seen.** By day the ground band differed from the paper by about 5 to 10 percent, the ridges and clouds by less, which on a desktop window reads as no sky at all. Every part now has a floor, kept in every hour, season, weather and folder tint: ground against paper 1.2 on the contrast scale (1 is identical), near ridge 1.12, far ridge 1.06, clouds 1.12, sun or moon 1.4. A colour already above its floor is left alone; one below it is moved the least distance that clears it, keeping its hue. Still quiet, not loud. If it is now too much, the floors are the `seen(...)` calls in `skyFor` (`hooks/world.ts`).
+
+## 0.26.2
+
+- **`/critter doctor` names the right surface.** On the desktop app it used to say "Surface: terminal" (the command event carries no surface), and so told you only the desktop draws a backdrop. It now asks which surfaces are attached.
+
+## 0.26.1
+
+- **`/critter doctor` says whether the sky is drawn.** On the desktop it adds a `Backdrop:` line: `drawn`, or `not drawn` with the reason the desktop gave. Until now a refusal was thrown away, so an empty window gave no clue why.
+- **A refused backdrop is tried again.** If the desktop could not draw the sky when the session started (for example, the window was not ready), the mod asks again every ten seconds, and when the hour or weather changes, instead of giving up for good.
+
+## 0.26.0
+
+- The clock beat is lighter: it keeps what it needs (hidden, the names, the feel, day or night) instead of asking the engine on every beat, so a beat while anything moves makes about two engine calls instead of six to eight, a still beat makes one, and a hidden beat makes none. These are checked against the engine every ten seconds.
+- The pictures are drawn once: the cat, the wizard, the orb and the portrait each remember their last few pictures, so a redraw of an unchanged scene costs nothing.
+- `/critter perf` shows the clock's own books: beats run, engine calls and milliseconds per beat.
+
 ## 0.25.1
 
 - The folder tints are tuned from a contact sheet of the real sky colours: by day violet and slate read as the same grey and teal and sage as the same mint, so sage is now rose and slate is ocean (a stronger blue), and the ground leans a little harder (13%). Folders you already had on sage or slate move to rose or ocean.

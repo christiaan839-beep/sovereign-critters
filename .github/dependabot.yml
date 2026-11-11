@@ -1,0 +1,8 @@
+version: 2
+updates:
+  # The workflow pins each action by commit SHA; this keeps those pins current, one reviewable pull request at a time.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3

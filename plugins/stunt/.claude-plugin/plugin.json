@@ -1,9 +1,0 @@
-{
-  "name": "stunt",
-  "version": "0.1.0",
-  "license": "Apache-2.0",
-  "icon": "./.claude-plugin/icon.png",
-  "description": "A card stunt in the terminal: the critter painted cell by cell in a pane, blinking while it is up, a card for each of the last 40 tool calls beneath him, and the count of every call in words, which is what /stunt answers where no app draws the pane.",
-  "author": { "name": "Sovereign Matrix" },
-  "types": "./types/index.d.ts"
-}

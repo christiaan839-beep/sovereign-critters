@@ -11,43 +11,43 @@
       "description": "The wizard, the cat, a stage, names, a cast chime and a purr, a diary the model can read, and a Day and Night backdrop."
     },
     {
-      "name": "mods",
-      "source": "./plugins/mods",
+      "name": "critter-mods",
+      "source": "./plugins/critter-mods",
       "description": "/mods: the control room. One pane lists every mod, switches each on or off, installs the missing ones, and opens each mod's own panes."
     },
     {
-      "name": "build-bell",
-      "source": "./plugins/build-bell",
+      "name": "critter-bell",
+      "source": "./plugins/critter-bell",
       "description": "A counter-bell strike and a toast when a long command or a long turn finishes."
     },
     {
-      "name": "session-diary",
-      "source": "./plugins/session-diary",
+      "name": "critter-diary",
+      "source": "./plugins/critter-diary",
       "description": "/diary: every tool call with its time, a line for each turn, and a copy-as-markdown button. Names and times only."
     },
     {
-      "name": "forge",
-      "source": "./plugins/forge",
+      "name": "critter-measure",
+      "source": "./plugins/critter-measure",
       "description": "A tool that counts text exactly: characters, words, lines and UTF-8 bytes."
     },
     {
-      "name": "stunt",
-      "source": "./plugins/stunt",
+      "name": "critter-stunt",
+      "source": "./plugins/critter-stunt",
       "description": "/stunt: the critter painted in a pane, with a card for each of the last 40 tool calls."
     },
     {
-      "name": "crab",
-      "source": "./plugins/crab",
+      "name": "critter-crab",
+      "source": "./plugins/critter-crab",
       "description": "/crab hold <text>: a small crab carries a note for this folder, and has it for you when you come back."
     },
     {
-      "name": "guard",
-      "source": "./plugins/guard",
+      "name": "critter-ward",
+      "source": "./plugins/critter-ward",
       "description": "Stops a git push that forces or writes main or master, before Bash runs it. Best effort."
     },
     {
-      "name": "everywhere",
-      "source": "./plugins/everywhere",
+      "name": "critter-tally",
+      "source": "./plugins/critter-tally",
       "description": "/everywhere: a pane of your three most-used tools, drawn by each app its own way."
     }
   ]

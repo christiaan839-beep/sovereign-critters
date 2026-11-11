@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { windowWidth, fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, wizardPoseFor, isQuiet, motionTick, welcomeLine, cleanMemory, cleanStreak, doctorLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import { windowWidth, fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, wizardPoseFor, isQuiet, motionTick, welcomeLine, ERR_LINES, cleanMemory, cleanStreak, doctorLines, paneColumns, withSky, backdropFailure, backdropOutcome, surfaceOf, newProbe, noteBeat, perfLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
 import { TINTS, tintOf, tintFor, SKY_CHOICES, hourSast, dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, RIDGE_FAR, thinkingOf, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
 import type { Flight, SkyChoice, Streak } from './world'
 import type { SoundName, Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
@@ -23,7 +23,7 @@ const detail = atom({ plugin: 'critter-buddy', key: 'detail' } as const, 'party'
 const world = atom({ plugin: 'critter-buddy', key: 'world' } as const, 'day' as 'day' | 'night', { shape: 'world-1' })
 
 // off by default: the cat speaks after a turn through one small model call, which costs tokens each time
-const talk = atom({ plugin: 'critter-buddy', key: 'talk' } as const, true as boolean, { shape: 'talk-1' })
+const talk = atom({ plugin: 'critter-buddy', key: 'talk' } as const, false as boolean, { shape: 'talk-1' })
 
 const names = atom({ plugin: 'critter-buddy', key: 'names' } as const, NAMES_DEFAULT as Names, { shape: 'names-1' })
 const feel = atom({ plugin: 'critter-buddy', key: 'feel' } as const, 'warm' as Feel, { shape: 'feel-1' })
@@ -31,7 +31,7 @@ const usage = atom({ plugin: 'critter-buddy', key: 'usage' } as const, '', { sha
 const sky = atom({ plugin: 'critter-buddy', key: 'sky' } as const, 'auto' as SkyChoice, { shape: 'sky-1' })
 const tint = atom({ plugin: 'critter-buddy', key: 'tint' } as const, true as boolean, { shape: 'tint-1' })
 const voice = atom({ plugin: 'critter-buddy', key: 'voice' } as const, '', { shape: 'voice-1' })
-const sound = atom({ plugin: 'critter-buddy', key: 'sound' } as const, false as boolean, { shape: 'sound-1' })
+const sound = atom({ plugin: 'critter-buddy', key: 'sound' } as const, true as boolean, { shape: 'sound-1' }) // on by default; a stored choice, on or off, is kept as it was
 
 const PANE = 'cat-corner'
 const STAGE = 'stage'
@@ -48,21 +48,23 @@ const BUILD = /\b(build|compile|install|docker|make|cargo|gradle|mvn|webpack|tsc
 const TEST = /\b(pytest|vitest|jest|mocha)\b|\b(npm|pnpm|yarn|bun|cargo|go)\s+(run\s+)?test\b|plugin test/
 const COMMIT = /\bgit\s+commit\b/
 const DAY = 86_400_000
-const ERR_LINES = [
-  '{cat} was not surprised.',
-  '{pip} says that was on purpose.',
-  '{cat} knocked it over first.',
-  'Nothing was harmed. Mostly.',
-]
 
 let liveCols = 80
 let windowCols = 80 // the whole window, uncapped: the doctor reports this, the band is drawn at liveCols
+let skyDrawn = false // whether the host drew the last backdrop we set; a refusal is tried again, not forgotten
+let skyRetryAt = 0 // when a refused backdrop is tried again
+let backdropNote = 'not asked yet' // what the host said, for /critter doctor
 let lastSky = '' // the key of the backdrop last drawn: it is redrawn only when the hour, the season, the weather or the lights change
 const flights = new Map<number, Flight>() // the tool calls in flight, each with its own clock: past 20 s the cat goes to the window
 let flightId = 0
 let streak: Streak | undefined
 let turnStartedAt = 0
 let ticker: { cancel: () => void } | undefined
+// What the clock needs on every beat, kept here so a beat does not ask the engine for it. Only this plugin writes these
+// (the /critter command, and session.start); the clock re-reads them from the engine every 40 beats in case something else did.
+const live = { hidden: false, names: NAMES_DEFAULT as Names, feel: 'warm' as Feel, world: 'day' as 'day' | 'night' }
+let lastCadence: 1 | 4 = 1 // 1: the scene was moving at the last step, so the next beat steps it without looking first
+let probe = newProbe()
 let postcardOffered = false // the postcard is offered once a session
 let offeredNudge: string | undefined // the line sitting dim in the box, until it is sent or replaced
 let greeted: string | undefined // the first notice under the logo carries the greeting; a redraw of it keeps it
@@ -104,6 +106,8 @@ const faceOf = (Text: any, kind: FaceKind) => (
 
 // What a surface draws with: the terminal paints half-block text, every other surface takes the same pixels as vector art
 // (the desktop smears block glyphs; it draws SVG crisply). One call gives a hook the right face and sprite for where it runs.
+/** About how wide one text cell is on the desktop, in px, measured from a photo of the band at two window widths: the band's picture is drawn this wide per column so the sky reaches both edges. */
+const CELL_PX = 8.5
 const kit = (els: any, surface: string) => {
   const { Box, Text, Button, Svg } = els
   const vector = surface !== 'terminal' && Svg !== undefined
@@ -112,7 +116,7 @@ const kit = (els: any, surface: string) => {
   return { Box, Text, Button, vector, svg, face }
 }
 
-/** A short sound, only when the person has turned sound on; a player that is missing never matters. */
+/** A short sound, on unless the person has turned it off, and never in calm or still; a player that is missing never matters. */
 const ring = async ($: any, which: SoundName) => {
   try {
     if (!isQuiet(await read($, feel)) && (await read($, sound))) await $.audio.play({ asset: `sounds/${which}.wav` }, { gain: 0.5 })
@@ -127,7 +131,7 @@ const openMods = async ($: any) => {
     await $.command.run({ command: 'mods', args: '' })
   } catch {
     try {
-      $.ui.toast('The control room is its own plugin: /plugin install mods@sovereign-critters, then restart.', { timeoutMs: 6000 })
+      $.ui.toast('The control room is its own plugin: /plugin install critter-mods@sovereign-critters, then restart.', { timeoutMs: 6000 })
     } catch {
       // no toast, no harm
     }
@@ -266,9 +270,10 @@ export const register: Register = on => {
     } catch {
       return r // a colour that cannot be worked out is no loss
     }
-  })
+  }).catch(($, e, next) => next(e))
 
   on('turn.complete', async ($, e, next) => {
+    if (e.agentId) return next(e) // a subagent's answer is its own turn.complete: it is not the end of the person's turn
     const now = await $.clock.now()
     const took = turnStartedAt ? now - turnStartedAt : 0
     let line = ''
@@ -358,7 +363,7 @@ export const register: Register = on => {
     if (mem) {
       const days = mem.lastSeen ? Math.max(0, Math.floor((now - mem.lastSeen) / DAY)) : 0
       const trust = returnTrust(mem.trust, days)
-      await update($, scene, (s: Scene): Scene => ({ ...s, trust, log: [...s.log, days >= 1 ? `You are back after ${days} day${days === 1 ? '' : 's'}. I am fine.` : 'Back already. Good.'] }))
+      await update($, scene, (s: Scene): Scene => ({ ...s, trust, log: [...s.log, days >= 1 ? `You are back after ${days} day${days === 1 ? '' : 's'}. {cat} missed you and will deny it.` : 'Back so soon. Good: {cat} kept your seat warm.'] }))
     }
     // The cat learns your habits: counts and hashes only, and at most one remark a session.
     try {
@@ -371,7 +376,9 @@ export const register: Register = on => {
     // The diary carries across sessions too.
     const kept = (await Promise.resolve($.store.get('diaryLog')).catch(() => undefined)) as string[] | undefined
     if (Array.isArray(kept)) await update($, diary, (d: string[]) => [...kept.filter(l => typeof l === 'string'), ...d].slice(-200))
-    await update($, world, () => (isNight(now) ? 'night' : 'day'))
+    live.world = isNight(now) ? 'night' : 'day'
+    await update($, world, () => live.world)
+    live.hidden = (await read($, isHidden)) === true; live.names = await read($, names); live.feel = await read($, feel); lastCadence = 1; probe = newProbe()
     try {
       streak = cleanStreak(await Promise.resolve($.store.get('streak')).catch(() => undefined))
       const days = streakAlive(streak, dayKey(now))
@@ -382,7 +389,7 @@ export const register: Register = on => {
     skyPickLive = await read($, sky)
     folderTint = tintOf(e.cwd ?? '')
     skyTintLive = tintFor(await read($, tint), folderTint)
-    lastSky = ''
+    lastSky = ''; skyDrawn = false; skyRetryAt = 0; backdropNote = 'not asked yet'
     await syncSky($, now, await read($, scene))
     await Promise.resolve($.agent.register(LOOKS_AGENT)).catch(() => undefined) // a build without agents keeps the rest
     await $.tool
@@ -395,28 +402,42 @@ export const register: Register = on => {
     ticker?.cancel() // a second session.start must not stack a second clock
     let beat = 0
     ticker = $.clock.every(250, async () => {
-      if ((await read($, isHidden)) === true) return
+      const t0 = Date.now()
+      let calls = 0
       beat += 1
-      if (beat % cadence(await read($, scene)) !== 0) return // still: the picture has not changed, so it is not redrawn
+      if (beat % 40 === 0) { // the mirrors are checked against the engine now and then, in case something else wrote them: while hidden too, so an outside un-hide is seen
+        live.hidden = (await read($, isHidden)) === true; live.names = await read($, names); live.feel = await read($, feel); calls += 3
+      }
+      if (live.hidden) { probe = noteBeat(probe, 'hidden', calls, calls ? Date.now() - t0 : 0); return } // hidden: nothing is drawn, and the engine is not asked anything between checks
+      if (lastCadence === 4) { // the picture was still at the last step: look once to see whether anything woke it
+        calls += 1
+        lastCadence = cadence(await read($, scene))
+        if (beat % lastCadence !== 0) { probe = noteBeat(probe, 'waited', calls, Date.now() - t0); return } // still: the picture has not changed, so it is not redrawn
+      }
       const t = await $.clock.now()
-      const nm = await read($, names)
-      const feelNow = await read($, feel)
       let said: string[] = []
       let snapshot: Scene | undefined
       await update($, scene, (s: Scene): Scene => {
-        const n = { ...stepFeel({ ...s, cols: liveCols }, feelNow), night: isNight(t) }
+        const n = { ...stepFeel({ ...s, cols: liveCols }, live.feel), night: isNight(t) }
         said = n.log
         snapshot = n
         return { ...n, log: [] }
       })
+      calls += 2
       if (said.length) {
-        const written = await update($, diary, (d: string[]) => foldDiary(d, said.map(l => `${hhmm(t)} ${named(l, nm)}`)).slice(-200))
+        const written = await update($, diary, (d: string[]) => foldDiary(d, said.map(l => `${hhmm(t)} ${named(l, live.names)}`)).slice(-200))
         await $.store.set('diaryLog', written)
+        calls += 2
       }
-      if (dueForWait(flights.values(), t)) await update($, scene, (s: Scene): Scene => react(s, 'wait'))
-      if (snapshot) await syncSky($, t, snapshot as Scene)
-      if (snapshot && snapshot.tick % 40 === 0) await $.store.set('memory', { trust: snapshot.trust, pets: snapshot.stats.pets, lastSeen: t })
-      if (snapshot && (snapshot.night ? 'night' : 'day') !== (await read($, world))) await update($, world, () => (snapshot!.night ? 'night' : 'day'))
+      if (dueForWait(flights.values(), t)) { await update($, scene, (s: Scene): Scene => react(s, 'wait')); calls += 1 }
+      if (snapshot) {
+        lastCadence = cadence(snapshot)
+        await syncSky($, t, snapshot as Scene)
+        if ((snapshot as Scene).tick % 40 === 0) { await $.store.set('memory', { trust: (snapshot as Scene).trust, pets: (snapshot as Scene).stats.pets, lastSeen: t }); calls += 1 }
+        const w = (snapshot as Scene).night ? 'night' : 'day'
+        if (w !== live.world) { live.world = w; await update($, world, () => w); calls += 1 }
+      }
+      probe = noteBeat(probe, 'stepped', calls, Date.now() - t0)
     })
     // One command, subcommands inside: the session already has /pet from another mod.
     try {
@@ -425,7 +446,7 @@ export const register: Register = on => {
       $.ui.log('critter-buddy: /critter is taken by another plugin; the buttons above the prompt still work')
     }
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   // The session ends: what the cat feels and what it wrote are kept, whatever the clock last saved.
   on('session.end', async ($, e, next) => {
@@ -470,7 +491,7 @@ export const register: Register = on => {
       const [target = '', ...words] = e.args.trim().split(/\s+/).slice(1) // the name may have spaces, so it is read from the whole line
       const value = cleanName(words.join(' '))
       if ((target !== 'cat' && target !== 'pip') || !value) return { text: 'Usage: /critter name cat <name> | /critter name pip <name>. Letters, digits, spaces and hyphens, up to 16.' }
-      await update($, names, (n: Names): Names => ({ ...n, [target]: value }))
+      live.names = (await update($, names, (n: Names): Names => ({ ...n, [target]: value }))) ?? (await read($, names))
       return { text: target === 'cat' ? `The cat is ${value}.` : `The wizard critter is ${value}.` }
     }
     if (sub === 'wizard') {
@@ -480,7 +501,7 @@ export const register: Register = on => {
       return { text: form === 'auto' ? 'The wizard follows the hour.' : form === 'gold' ? 'The wizard wears the gold star, day and night.' : 'The wizard wears the violet bolt, day and night.' }
     }
     if (sub === 'sound') {
-      if (arg !== 'on' && arg !== 'off') return { text: 'Usage: /critter sound on | off. A cast chime for a Skill and a purr for a pet; off until you say.' }
+      if (arg !== 'on' && arg !== 'off') return { text: 'Usage: /critter sound on | off. A cast chime for a Skill, a purr for a pet, a paw for a treat, a page for the diary and a brass chime for a prop. On by default; silent in calm and still.' }
       await update($, sound, () => arg === 'on')
       return { text: arg === 'on' ? 'Sound is on: a cast chime and a purr.' : 'Sound is off.' }
     }
@@ -495,11 +516,12 @@ export const register: Register = on => {
     if (sub === 'feel') {
       const f = FEELS.find(x => x === arg)
       if (!f) return { text: 'Usage: /critter feel calm | warm | playful | still. Calm: quiet, no sound. Warm: the usual. Playful: more hops and sparks. Still: nothing moves.' }
-      await update($, feel, () => f)
+      live.feel = (await update($, feel, () => f)) ?? (await read($, feel))
       return { text: f === 'still' ? 'Still: nothing moves, and there is no sound. /critter feel warm brings them back.' : f === 'calm' ? 'Calm: the pair only breathe, walk and sleep. No sparks, no sound.' : f === 'playful' ? 'Playful: more hops, more sparks.' : 'Warm: the usual.' }
     }
+    if (sub === 'perf') return { text: perfLines(probe).join('\n') }
     if (sub === 'doctor') {
-      return { text: doctorLines({ detail: await read($, detail), feel: await read($, feel), sound: await read($, sound), voice: await read($, voice), talk: await read($, talk), hidden: (await read($, isHidden)) === true, cols: windowCols, sky: await read($, sky), tint: (await read($, tint)) ? TINTS[folderTint ?? 0]!.name : '', surface: e.surface ?? 'terminal' }).join('\n') }
+      return { text: doctorLines({ detail: await read($, detail), feel: await read($, feel), sound: await read($, sound), voice: await read($, voice), talk: await read($, talk), hidden: (await read($, isHidden)) === true, cols: windowCols, sky: await read($, sky), tint: (await read($, tint)) ? TINTS[folderTint ?? 0]!.name : '', surface: surfaceOf(await Promise.resolve($.session.surfaces()).catch(() => []), e.surface), backdrop: backdropNote }).join('\n') }
     }
     if (sub === 'sky') {
       const pick = SKY_CHOICES.find(x => x === arg)
@@ -519,11 +541,11 @@ export const register: Register = on => {
       return { text: arg === 'on' ? `The sky leans ${TINTS[folderTint ?? 0]!.name} in this folder.` : 'The sky is plain again.' }
     }
     if (sub === 'stage') {
-      await $.ui.open({ id: STAGE, title: 'Stage', focus: true, ...PANE_ASKS.stage })
+      await $.ui.open({ id: STAGE, title: 'Stage', focus: true, ...PANE_ASKS.stage, columns: paneColumns(windowCols, PANE_ASKS.stage.columns) })
       return { text: 'The stage is open: the critter alone, walking and idling.' }
     }
     if (sub === 'corner') {
-      await $.ui.open({ id: PANE, title: 'Cat corner', focus: true, ...PANE_ASKS.corner })
+      await $.ui.open({ id: PANE, title: 'Cat corner', focus: true, ...PANE_ASKS.corner, columns: paneColumns(windowCols, PANE_ASKS.corner.columns) })
       return { text: 'Cat corner opened.' }
     }
     if (sub === 'diary') {
@@ -540,7 +562,7 @@ export const register: Register = on => {
       }
     }
     if (sub === 'talk') {
-      if (arg !== 'on' && arg !== 'off') return { text: 'Usage: /critter talk on | off. The cat speaks after each turn through one small model call; that costs tokens, so /critter talk off keeps the cat quiet.' }
+      if (arg !== 'on' && arg !== 'off') return { text: 'Usage: /critter talk on | off. The cat speaks after each turn through one small model call; that costs tokens, so it is off until you turn it on: /critter talk on. /critter talk off keeps the cat quiet.' }
       await update($, talk, () => arg === 'on')
       return { text: arg === 'on' ? 'The cat will speak after each turn: one small model call each time.' : 'The cat is quiet again.' }
     }
@@ -552,33 +574,36 @@ export const register: Register = on => {
     }
     if (sub === '' || sub === 'hide' || sub === 'show') {
       const hidden = await update($, isHidden, h => (sub === 'hide' ? true : sub === 'show' ? false : !h))
+      live.hidden = hidden === true; lastCadence = 1
       if (hidden) { lastSky = ''; await drawBackdrop($, undefined) } else { lastSky = ''; await syncSky($, await $.clock.now(), await read($, scene)) }
       return { text: hidden ? 'The pair are hidden.' : 'The pair are back.' }
     }
-    return { text: 'Usage: /critter [pet | treat | nap | spell | corner | stage | diary | doctor | sky auto|dawn|day|dusk|night | tint on|off | hide | show | lite | full | party | talk on|off | sound on|off | voice on|off|<name> | feel calm|warm|playful|still | wizard auto|gold|bolt | name cat|pip <name> | cat <coat>]' }
+    return { text: 'Usage: /critter [pet | treat | nap | spell | corner | stage | diary | doctor | perf | sky auto|dawn|day|dusk|night | tint on|off | hide | show | lite | full | party | talk on|off | sound on|off | voice on|off|<name> | feel calm|warm|playful|still | wizard auto|gold|bolt | name cat|pip <name> | cat <coat>]' }
   })
 
   // ---- the band above the prompt: the pair on the bar, and three things to press ----
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    // The window's width is noted before anything can send us away, so the stage and the corner and the doctor know it even while the pair are hidden.
+    const cols = Math.min(96, e.props.bodyColumns || e.viewport?.columns || 80) // a wide desktop window would spread the pair thin across it: the bar stops at 96 cells, like the film's frame
+    liveCols = cols
+    windowCols = windowWidth(e.props.bodyColumns, e.viewport?.columns)
     if (e.props.hasSurvey || (await read($, isHidden))) return next(e)
     const s = await read($, scene)
     const nm = await read($, names)
     const usageText = await read($, usage)
-    // A wide desktop window would spread the pair thin across it: the bar stops at 96 cells, like the film's frame.
-    const cols = Math.min(96, e.props.bodyColumns || e.viewport?.columns || 80)
-    liveCols = cols
-    windowCols = windowWidth(e.props.bodyColumns, e.viewport?.columns)
     const { Box, Text, Button, face, vector, svg } = kit($.ui.resolve(e), e.surface)
     // Other mods draw here too (usage-line, snoozing-pet): keep their rows beneath ours.
     const others = await next(e)
     const rows = paint({ ...s, cols })
+    // Where the app has drawn no backdrop (this version has none, or it refused), the sky is drawn behind the pair, in the same picture.
+    const bandSky = vector && !skyDrawn ? skyFor(skyArgs(await $.clock.now(), s.joy, s.fails, thinkingOf(s))) : undefined
     const lb = fitControls(controlLabels(s, moodOf(s), nm), cols)
     const [statusMain, statusRest] = statusParts(s.label, moodOf(s), usageText ? named(usageText, nm) : '', cols)
     return (
       <Box flexDirection="column">
         {vector ? (
-          <Box key="art" flexDirection="column">
-            <Box key="art-row" flexDirection="row" justifyContent="flex-end">{svg(paintSvg({ ...s, cols }, 5), 'The critter and the tabby cat on the bar')}</Box>
+          <Box key="art" flexDirection="column" backgroundColor={bandSky?.band?.ground ?? bandSky?.paper}>
+            <Box key="art-row" flexDirection="row" justifyContent="flex-end">{svg(bandSky ? withSky(paintSvg({ ...s, cols }, 5), bandSky, Math.round((e.props.bodyColumns || e.viewport?.columns || cols) * CELL_PX)) : paintSvg({ ...s, cols }, 5), 'The critter and the tabby cat on the bar')}</Box>
             <Text> </Text>
           </Box>
         ) : rowsOf(Text, rows, 'r')}
@@ -592,7 +617,7 @@ export const register: Register = on => {
           <Button key="treat" label={lb.feed} hotkey="t" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'treat')); await ring($, 'paw') }} />
           <Button key="cast" label={lb.cast} hotkey="c" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'spell')); await ring($, 'cast') }} />
           <Button key="nap" label={lb.nap} hotkey="n" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'nap'))} />
-          <Button key="corner" label={lb.corner} hotkey="k" onPress={() => $.ui.open({ id: PANE, title: 'Cat corner', focus: true, ...PANE_ASKS.corner })} />
+          <Button key="corner" label={lb.corner} hotkey="k" onPress={() => $.ui.open({ id: PANE, title: 'Cat corner', focus: true, ...PANE_ASKS.corner, columns: paneColumns(windowCols, PANE_ASKS.corner.columns) })} />
           {lb.mods ? <Button key="mods" label={lb.mods} hotkey="m" onPress={() => openMods($)} /> : null}
         </Box>
         <Box key="gap"><Text> </Text></Box>
@@ -683,10 +708,11 @@ export const register: Register = on => {
     const { Box, Text, face, vector, svg } = kit($.ui.resolve(e), e.surface)
     // the mail brought in by a background task or another session gets a happy face
     if (e.props.origin.kind === 'composer') return base
+    // The row spans the width and the bubble holds a floor, or a short message such as /mods is wrapped to the width the face leaves and splits mid-word.
     return (
-      <Box flexDirection="row" gap={1}>
+      <Box key="user-row" flexDirection="row" gap={1} width="100%" alignItems="flex-start">
         {face('ok')}
-        {base}
+        <Box key="user-bubble" flexShrink={1} minWidth={12}>{base}</Box>
       </Box>
     )
   }).catch(($, e, next) => next(e))
@@ -753,7 +779,7 @@ export const register: Register = on => {
     const { Box, Text, face, vector, svg } = kit($.ui.resolve(e), e.surface)
     let welcome: string | undefined
     try {
-      welcome = welcomeLine(await $.store.get('welcomed'), await read($, names), hourSast(await $.clock.now()))
+      welcome = welcomeLine(await $.store.get('welcomed'), await read($, names), hourSast(await $.clock.now()), (await read($, sound)) && !isQuiet(await read($, feel)))
       if (welcome) await $.store.set('welcomed', true) // said once, and never again
     } catch {
       // a welcome that cannot be remembered is shown rather than lost
@@ -955,19 +981,28 @@ const stageWord = (now: number, joy: number, fails = 0) => {
 }
 // Draw the backdrop again only when something it is made of changed; the desktop draws it, every other surface answers that it did not.
 const syncSky = async ($: any, now: number, s: { joy: number; fails?: number; look: string; label: string }) => {
-  if ((await read($, isHidden)) === true) return
+  if (live.hidden) return
   const a = skyArgs(now, s.joy, s.fails, thinkingOf(s))
   const key = skyFor(a).key
-  if (key === lastSky) return
+  if (!skyDrawn && now < skyRetryAt) return // refused, and not yet time to try again (never, if the app has no backdrop at all)
+  if (key === lastSky && skyDrawn) return // unchanged and drawn
   lastSky = key
-  await drawBackdrop($, { id: key, glass: glassOf(a.phase) })
+  const outcome = await drawBackdrop($, { id: key, glass: glassOf(a.phase) })
+  skyDrawn = outcome.drawn
+  skyRetryAt = outcome.drawn ? 0 : outcome.final ? Number.MAX_SAFE_INTEGER : now + 10_000 // the surface may attach later: ask again in ten seconds, not every beat
 }
 
 // Not every host has a backdrop to draw on: a missing or refused call is not the mod's problem.
-const drawBackdrop = async ($: any, arg: { id: string; glass: ReturnType<typeof glassOf> } | undefined) => {
+const drawBackdrop = async ($: any, arg: { id: string; glass: ReturnType<typeof glassOf> } | undefined): Promise<{ drawn: boolean; final?: boolean }> => {
   try {
-    await $.ui.backdrop(arg)
-  } catch {
-    // no backdrop here
+    const answer = await $.ui.backdrop(arg)
+    if (arg === undefined) { backdropNote = 'cleared (the pair are hidden)'; return { drawn: true } }
+    const outcome = backdropOutcome(answer)
+    backdropNote = outcome.text
+    return outcome
+  } catch (err) {
+    const failed = backdropFailure(err)
+    backdropNote = failed.text
+    return { drawn: false, final: failed.final }
   }
 }

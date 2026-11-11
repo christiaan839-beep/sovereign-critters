@@ -1,6 +1,6 @@
 # tools
 
-`preflight.sh` is the one to run before every commit: `bash tools/preflight.sh` validates and tests the root and all eight plugins, checks every sound, and scans the files for home paths, model ids, secret-shaped strings, emails and merge markers. It exits non-zero on any real failure. (The root's `claude plugin test` exits 1 with "no hooks module"; that one reason is expected and passes.)
+`preflight.sh` is the one to run before every commit: `bash tools/preflight.sh` validates and tests the root and all nine plugins, checks every sound, and scans the files for home paths, model ids, secret-shaped strings, emails and merge markers. It exits non-zero on any real failure. (The root's `claude plugin test` exits 1 with "no hooks module"; that one reason is expected and passes.)
 
 `review.sh` and `media.sh` run outside the Claude sandbox (headless Chrome needs a socket directory).
 
@@ -10,3 +10,5 @@
 - `media.sh` draws `demo.gif` and `preview.png` from `scene.ts` and `world.ts` themselves.
 
 `out/` is scratch: do not commit it.
+
+- `quality.py` writes `QUALITY.md` from what the plugins measure (version, tests, validation, hooks) and what people witnessed (`quality-facts.json`: reviews and sightings with dates). `python3 tools/quality.py --write` after a change; preflight warns when the file is out of date. `test_quality.py` tests it.

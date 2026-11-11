@@ -6,3 +6,9 @@ node_modules/
 
 # laid by the engine each time a plugin loads, never committed
 plugins/*/.claude-plugin/types/
+
+# local tool state, never part of the project
+.clawness/
+.governor/
+.claude/settings.local.json
+.claude/.cc-writes/

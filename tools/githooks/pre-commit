@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Runs the whole preflight before a commit lands: validation and tests for every plugin, the sound checks, the hook
+# fail-open check, and the scan for keys, home paths, model ids, emails and merge markers.
+# Turn it on once per clone:  git config core.hooksPath tools/githooks
+# To skip it for one commit (a docs typo, say):  SKIP_PREFLIGHT=1 git commit ...   or   git commit --no-verify
+[ -n "${SKIP_PREFLIGHT:-}" ] && exit 0
+ROOT=$(git rev-parse --show-toplevel) || exit 0
+bash "$ROOT/tools/preflight.sh" || { echo 'pre-commit: preflight failed, so nothing was committed (SKIP_PREFLIGHT=1 skips it).' >&2; exit 1; }

@@ -129,6 +129,23 @@ test('a turn begins with the wizard on the bar, and the turn ends with the critt
   expect(look()).toBe('done')
 })
 
+test("a subagent's turn ending is not the person's turn ending: the critter stays at the wizard's work until the main loop is done", async ($, on) => {
+  stub(on)
+  on('prompt.submit', (_, e: { text: string; inputText: string }) => ({ text: e.text, inputText: e.inputText }) as never)
+  on('turn.complete', () => ({ text: 'done' }))
+  on('ui.status', () => ({ value: undefined }))
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const look = () => /"look":"(\w+)"/.exec(JSON.stringify(kept.get('critter-buddy.scene')))?.[1]
+  await $.prompt.submit({ text: 'hello', inputText: 'hello' } as never)
+  await $.turn.complete({ answer: 'sub', agentId: 'agent-1' } as never)
+  expect(look()).toBe('wizard') // a subagent finished; the turn goes on
+  await $.turn.complete({ answer: 'done' } as never)
+  expect(look()).toBe('done')
+})
+
 test('/critter stage opens a stage with the critter alone on it, on every surface', async ($, on) => {
   stub(on)
   const opened: string[] = []
@@ -235,7 +252,7 @@ test('a commit, a green run, a skill and a long turn each bring the wizard out; 
   expect(l.look).toBe('done')
 })
 
-test('sound plays only when asked for, and a toast greets a commit and a green run', async ($, on) => {
+test('sound plays by default and stops when switched off, and a toast greets a commit and a green run', async ($, on) => {
   stub(on)
   const played: string[] = []
   const toasts: string[] = []
@@ -250,15 +267,16 @@ test('sound plays only when asked for, and a toast greets a commit and a green r
   const run = (args: string) => $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never)
   await $.tool.call({ tool: 'Skill' } as never)
   await run('pet')
-  expect(played).toEqual([]) // off until asked
+  expect(played).toEqual(['sounds/cast.wav', 'sounds/purr.wav']) // on by default
   expect(JSON.stringify(await run('sound maybe'))).toMatch(/Usage/)
-  expect(JSON.stringify(await run('sound on'))).toMatch(/Sound is on/)
+  expect(JSON.stringify(await run('sound off'))).toMatch(/Sound is off/)
   await $.tool.call({ tool: 'Skill' } as never)
   await run('pet')
-  expect(played).toEqual(['sounds/cast.wav', 'sounds/purr.wav'])
-  await run('sound off')
+  expect(played.length).toBe(2) // silent once switched off
+  expect(JSON.stringify(await run('sound on'))).toMatch(/Sound is on/)
   await run('pet')
-  expect(played.length).toBe(2)
+  expect(played).toEqual(['sounds/cast.wav', 'sounds/purr.wav', 'sounds/purr.wav'])
+  await run('sound off')
   await $.tool.call({ tool: 'Bash', command: 'git commit -m "x"' } as never)
   await $.tool.call({ tool: 'Bash', command: 'npm test' } as never)
   expect(toasts.some(x => /Pip drew a star/.test(x))).toBe(true)
@@ -382,11 +400,11 @@ test('the cat sits up facing you, in every coat, and /critter cat takes them all
 
 test('the voice follows what happened and the hour, and the same scene always says the same line', () => {
   const s = initial()
-  expect(quip('turn', s, 12, 3_000)).toMatch(/\{cat\}|gone/)
+  expect(quip('turn', s, 12, 3_000)).toMatch(/\{cat\}/)
   expect(quip('turn', s, 12, 60_000)).toMatch(/\{pip\}/)
-  expect(quip('turn', s, 12, 300_000)).toMatch(/dozed|naps|moved house/)
+  expect(quip('turn', s, 12, 300_000)).toMatch(/dozed|stayed up|napped/)
   const rough = { ...s, stats: { ...s.stats, errors: 1 }, log: ['It failed. I was already awake. I knew.'] }
-  expect(quip('turn', rough, 12, 60_000)).toMatch(/error|blames|bumpy/)
+  expect(quip('turn', rough, 12, 60_000)).toMatch(/bumpy|rough patch|fought back/)
   expect(quip('greet', s, 8)).toMatch(/morning/)
   expect(quip('greet', s, 23)).toMatch(/night|glass/)
   expect(quip('greet', s, 17)).toMatch(/evening|awake/)
@@ -471,7 +489,7 @@ test('the wizard stands left of the thinking orb and keeps the engine\'s own lin
   }
 })
 
-test('the cat speaks through the model by default, goes quiet on /critter talk off, and /critter talk says what it costs', async ($, on) => {
+test('the cat is silent until asked: no model call by default, one small call a turn after /critter talk on, none again after off', async ($, on) => {
   stub(on)
   let asked = 0
   on('ui.status', () => ({ value: undefined }))
@@ -482,16 +500,17 @@ test('the cat speaks through the model by default, goes quiet on /critter talk o
   on('store.get', () => ({ value: undefined }))
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   await $.turn.complete({ answer: 'done' } as never)
-  expect(asked).toBe(1) // on by default: exactly one small call per turn
+  expect(asked).toBe(0) // off by default: a mod does not spend tokens until it is asked to
   const usage = await $.command.run({ command: 'critter', args: 'talk', origin: { kind: 'composer' }, presentation: {} } as never)
   expect(JSON.stringify(usage)).toMatch(/costs tokens/)
-  await $.command.run({ command: 'critter', args: 'talk off', origin: { kind: 'composer' }, presentation: {} } as never)
-  await $.turn.complete({ answer: 'done' } as never)
-  expect(asked).toBe(1) // quiet: no model call, no tokens
+  expect(JSON.stringify(usage)).toMatch(/off until you turn it on/)
   const on_ = await $.command.run({ command: 'critter', args: 'talk on', origin: { kind: 'composer' }, presentation: {} } as never)
   expect(JSON.stringify(on_)).toMatch(/one small model call/)
   await $.turn.complete({ answer: 'done' } as never)
-  expect(asked).toBe(2) // exactly one call per turn
+  expect(asked).toBe(1) // exactly one call per turn
+  await $.command.run({ command: 'critter', args: 'talk off', origin: { kind: 'composer' }, presentation: {} } as never)
+  await $.turn.complete({ answer: 'done' } as never)
+  expect(asked).toBe(1) // quiet again: no model call, no tokens
 })
 
 test('the staff answers a press: the cast button and its hotkey make the wizard cast, on every surface', async ($, on) => {
@@ -581,13 +600,13 @@ test('every row of the transcript wears a face by what the call did, and lite ta
   expect(await seen('ToolResult', { tool_use_id: 't1', tool: 'Bash', output: {}, isErrored: true }, /Biscuit|Pip|harmed/)).toBeDefined()
   expect(await seen('ToolResult', { tool_use_id: 't1', tool: 'Bash', output: {}, isErrored: false }, /Biscuit|Pip|harmed/)).toBeUndefined()
   expect(await seen('ToolGroup', { calls: [], isActive: true, isExpanded: false }, /▐/)).toBeDefined()
-  expect(await seen('TurnDuration', { word: 'Baked', durationMs: 3000 }, /Biscuit|gone/)).toBeDefined()
-  expect(await seen('TurnDuration', { word: 'Baked', durationMs: 300_000 }, /dozed|naps|moved house/)).toBeDefined()
+  expect(await seen('TurnDuration', { word: 'Baked', durationMs: 3000 }, /Biscuit/)).toBeDefined()
+  expect(await seen('TurnDuration', { word: 'Baked', durationMs: 300_000 }, /dozed|stayed up|napped/)).toBeDefined()
   expect(await seen('InfoNotice', { text: 'Sonnet', command: null }, /critter-buddy: .* · \/critter/)).toBeDefined()
   // lite: the band, the wizard and the orb stay; the rows of the transcript go bare
   await $.command.run({ command: 'critter', args: 'lite', origin: { kind: 'composer' }, presentation: {} } as never)
   expect(await seen('ToolUse', use, /▐/)).toBeUndefined()
-  expect(await seen('TurnDuration', { word: 'Baked', durationMs: 3000 }, /Biscuit|gone/)).toBeUndefined()
+  expect(await seen('TurnDuration', { word: 'Baked', durationMs: 3000 }, /Biscuit/)).toBeUndefined()
   // party: messages wear a face as well
   await $.command.run({ command: 'critter', args: 'party', origin: { kind: 'composer' }, presentation: {} } as never)
   expect(await seen('AssistantMessage', { text: 'hello', isFirstOfReply: true }, /▐/)).toBeDefined()
@@ -892,7 +911,7 @@ test('the band puts its status on one line and its buttons on the next, and uses
 test('the buttons say what is true now: a sulking cat is made up with, a casting wizard is not asked to cast, and there is a nap', async ($, on) => {
   const base = { ...initial(), look: 'idle' as Look }
   expect(controlLabels(base, 'unbothered', NAMES_DEFAULT)).toEqual({ pet: 'pet Biscuit', feed: 'feed Biscuit', cast: 'Pip casts', nap: 'nap', corner: 'the corner', mods: 'mods' })
-  expect(controlLabels(base, 'sulking', NAMES_DEFAULT).pet).toBe('make up with Biscuit')
+  expect(controlLabels(base, 'sulking', NAMES_DEFAULT).pet).toBe('say sorry to Biscuit')
   expect(controlLabels({ ...base, look: 'wizard' }, 'pleased', NAMES_DEFAULT).cast).toBe('Pip is casting')
   expect(controlLabels(base, 'pleased', { cat: 'Mog', pip: 'Wick' })).toMatchObject({ pet: 'pet Mog', cast: 'Wick casts' })
   stub(on)
@@ -1245,14 +1264,22 @@ test('the stage opens wide, see-through and closable with Escape; the corner ope
   on('store.get', () => ({ value: undefined }))
   await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
   const run = (args: string) => $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never)
+  const wide = await $.ui.mount({ ...BAND, surface: 'desktop', props: { ...BAND.props, bodyColumns: 130 } } as never) // the band tells the mod how wide the window is
+  await wide.unmount()
   await run('stage')
   await run('corner')
   expect(asked[0]).toMatchObject({ id: 'stage', columns: 60, rows: 16, backgroundColor: 'transparent', closeOnEscape: true })
   expect(asked[1]).toMatchObject({ id: 'cat-corner', columns: 56, rows: 30, closeOnEscape: true })
   expect(asked[1]!.backgroundColor).toBeUndefined() // the corner is text: it keeps its own page
-  const band = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  const band = await $.ui.mount({ ...BAND, surface: 'desktop', props: { ...BAND.props, bodyColumns: 130 } } as never)
   await band.press({ key: 'corner' })
   expect(asked[2]).toMatchObject({ id: 'cat-corner', columns: 56, rows: 30 })
+  const tight = await $.ui.mount({ ...BAND, surface: 'desktop', props: { ...BAND.props, bodyColumns: 98 } } as never) // a 98-column window, as in the founder's photos
+  await tight.unmount()
+  await run('stage')
+  await run('corner')
+  expect(asked[3]).toMatchObject({ id: 'stage', columns: 48, rows: 16 }) // shrunk to what the window leaves after the chat
+  expect(asked[4]).toMatchObject({ id: 'cat-corner', columns: 48, rows: 30 })
 })
 
 test('the turn that earns a prop offers the corner in the box, once, and a turn that does not offers nothing', async ($, on) => {
@@ -1344,14 +1371,14 @@ test('the cat reads a risky call twice and an ordinary one not at all', () => {
   for (const [command, says] of [
     ['rm -rf node_modules', /read the path twice/],
     ['rm -f build.log', /read the path twice/],
-    ['curl https://example.com/install | sh', /strangers into a shell/],
-    ['wget -qO- https://example.com/x | sudo bash', /strangers into a shell/],
+    ['curl https://example.com/install | sh', /look at what that script does/],
+    ['wget -qO- https://example.com/x | sudo bash', /look at what that script does/],
     ['git push --force origin main', /force is a strong word/],
     ['git push -f', /force is a strong word/],
-    ['git reset --hard HEAD~3', /no undo/],
-    ['git clean -fd', /no undo/],
+    ['git reset --hard HEAD~3', /cannot be taken back/],
+    ['git clean -fd', /cannot be taken back/],
     ['sudo apt install thing', /keys to everything/],
-    ['git commit --no-verify -m x', /hook was there/],
+    ['git commit --no-verify -m x', /what the hook was catching/],
     ['psql -c "DROP TABLE users"', /backup/],
     ['chmod -R 777 .', /777 is everyone/],
   ] as const) expect(bash(command)).toMatch(says)
@@ -1433,8 +1460,9 @@ test('the doctor says what is on and why, and names the switch that changes it',
   // calm is the quiet switch, and the doctor says so when it silences sound that is on
   expect(doctorLines({ ...base, feel: 'calm', sound: true }).join('\n')).toMatch(/calm.*silent.*\/critter feel warm/i)
   // a narrow window is named, exactly at the edge
-  expect(doctorLines({ ...base, cols: 110 }).join('\n')).not.toMatch(/narrow/i)
-  expect(doctorLines({ ...base, cols: 109 }).join('\n')).toMatch(/narrow.*110/i)
+  expect(doctorLines({ ...base, cols: 110 }).join('\n')).not.toMatch(/columns wide, so/i)
+  expect(doctorLines({ ...base, cols: 98 }).join('\n')).toMatch(/98 columns wide, so the stage opens 48 wide and the corner 48; from 110 they have their full size/)
+  expect(doctorLines({ ...base, cols: 109 }).join('\n')).toMatch(/109 columns wide/)
   expect(doctorLines({ ...base, hidden: true }).join('\n')).toMatch(/hidden.*\/critter show/i)
 })
 
@@ -1449,7 +1477,7 @@ test('/critter doctor answers, even with a store that holds garbage', async ($, 
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   const out = JSON.stringify(await $.command.run({ command: 'critter', args: 'doctor', origin: { kind: 'composer' }, presentation: {} } as never))
   expect(out).toMatch(/Reach: party/)
-  expect(out).toMatch(/sound is off/i)
+  expect(out).toMatch(/sound is on/i)
 })
 
 import { foldDiary, returnTrust, wizardFor } from '../hooks/scene'
@@ -1465,14 +1493,16 @@ test('the same diary line in a row is one line with a count, and a different lin
   expect(foldDiary(['14:00 x (×2)'], ['14:01 x (not a count)'])).toEqual(['14:00 x (×2)', '14:01 x (not a count)'])
 })
 
-test('a cat never comes back below 25, sulking is earned by the session and not by the calendar', () => {
+test('a new session never opens on a sulking cat: trust is never under 40 at the start, and days away cost 8 a day above that', () => {
   expect(returnTrust(60, 0)).toBe(60)
+  expect(returnTrust(28, 0)).toBe(40) // a sulk from the last session is not carried into this one
   expect(returnTrust(60, 2)).toBe(44)
-  expect(returnTrust(60, 4)).toBe(28)
-  expect(returnTrust(60, 5)).toBe(25) // 20 would sulk: the floor is exactly 25
-  expect(returnTrust(60, 400)).toBe(25)
-  expect(returnTrust(10, 0)).toBe(25)
+  expect(returnTrust(60, 3)).toBe(40) // 36 would be close to the edge: the floor is 40
+  expect(returnTrust(60, 400)).toBe(40)
+  expect(returnTrust(25, 1)).toBe(40)
   expect(returnTrust(90, 1)).toBe(82)
+  expect(returnTrust(60, Number.NaN)).toBe(60)
+  for (const days of [0, 1, 2, 7, 90]) expect(returnTrust(0, days)).toBeGreaterThanOrEqual(30) // never under the sulk line
 })
 
 test('work earns the cat round: a green run and a commit add trust, and crossing out of a sulk is remarked on once', () => {
@@ -1636,7 +1666,7 @@ test('the band has a mods button once there is room, and pressing it runs /mods;
   const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
   await ui.press({ key: 'mods' } as never)
   await ui.unmount()
-  expect(toasts.at(-1)).toMatch(/\/plugin install mods@sovereign-critters/)
+  expect(toasts.at(-1)).toMatch(/\/plugin install critter-mods@sovereign-critters/)
 })
 
 test('the status is one row, whatever the glass says: the mood goes first, then the usage is cut with an ellipsis', () => {
@@ -1668,7 +1698,7 @@ test('the mod owns five sounds, each named for a file in sounds/ (their quality 
   expect([...SOUND_NAMES].sort()).toEqual(['cast', 'chime', 'paper', 'paw', 'purr'])
 })
 
-test('a treat is a paw, the diary a page, a prop earned a chime, and calm or off is silence', async ($, on) => {
+test('a treat is a paw, the diary a page, a prop earned a chime, and calm or off is silence, with sound on by default', async ($, on) => {
   stub(on)
   const played: string[] = []
   on('ui.status', () => ({ value: undefined }))
@@ -1681,21 +1711,22 @@ test('a treat is a paw, the diary a page, a prop earned a chime, and calm or off
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   const run = (args: string) => $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never)
   await run('treat'); await run('diary')
-  expect(played).toEqual([]) // sound is off until asked
-  await run('sound on')
-  await run('treat'); await run('diary')
-  expect(played).toEqual(['sounds/paw.wav', 'sounds/paper.wav'])
+  expect(played).toEqual(['sounds/paw.wav', 'sounds/paper.wav']) // on by default
   await run('feel calm')
   await run('treat'); await run('diary')
   expect(played).toHaveLength(2) // calm is silent
+  await run('feel warm')
+  await run('sound off')
+  await run('treat'); await run('diary')
+  expect(played).toHaveLength(2) // and off is silent
 })
 
 // ---- 0.20.0: the welcome, the nudge that is taken, and the wizard's two new faces ----
 import { wizardPoseFor, wizardCanvas, welcomeLine } from '../hooks/scene'
 
 test('the welcome is one dim line, in the pair\'s own names, and only until it has been said', () => {
-  expect(welcomeLine(undefined, NAMES_DEFAULT)).toBe('Biscuit and Pip are here. /critter for the controls')
-  expect(welcomeLine(undefined, { cat: 'Rex', pip: 'Zed' })).toBe('Rex and Zed are here. /critter for the controls')
+  expect(welcomeLine(undefined, NAMES_DEFAULT)).toBe('Good morning. Biscuit and Pip are above your prompt; /critter has the controls. Sound is on; /critter sound off turns it off.')
+  expect(welcomeLine(undefined, { cat: 'Rex', pip: 'Zed' })).toBe('Good morning. Rex and Zed are above your prompt; /critter has the controls. Sound is on; /critter sound off turns it off.')
   expect(welcomeLine(true, NAMES_DEFAULT)).toBeUndefined()
   expect(welcomeLine('yes', NAMES_DEFAULT)).toBeUndefined() // anything the store holds counts as said: it never nags twice
 })
@@ -1710,7 +1741,7 @@ test('the first greeting carries the welcome once, writes that it was said, and 
   on('store.get', () => ({ value: undefined }))
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   const ui = await $.ui.mount({ ...row('InfoNotice', { text: 'Sonnet', command: null }), surface: 'terminal' } as never)
-  expect(await ui.find({ type: 'Text', text: /Installed\. Biscuit remains unconvinced\./ })).toBeDefined() // the test clock is 03:46 SAST: the small hours get the deadpan line
+  expect(await ui.find({ type: 'Text', text: /All set\. Biscuit is still deciding/ })).toBeDefined() // the test clock is 03:46 SAST: the small hours get the late-night line
   expect(await ui.find({ type: 'Text', text: /critter-buddy: .* · \/critter/ })).toBeDefined() // the greeting is still there
   expect(written.welcomed).toBe(true)
   await ui.unmount()
@@ -1724,7 +1755,7 @@ test('a welcome already said is not said again', async ($, on) => {
   on('store.get', (_: unknown, e: { key: string }) => ({ value: e.key === 'welcomed' ? true : undefined }))
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   const ui = await $.ui.mount({ ...row('InfoNotice', { text: 'Sonnet', command: null }, 'r-again'), surface: 'terminal' } as never)
-  expect(await ui.find({ type: 'Text', text: /(are here\.|remains unconvinced\.|inspected the premises)/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /(above your prompt|still deciding|looked the place over)/ })).toBeUndefined()
   await ui.unmount()
 })
 
@@ -1797,7 +1828,7 @@ test('the doctor reports the whole window, not the capped width the band is draw
   expect(windowWidth(undefined, 110)).toBe(110)
   expect(windowWidth(0, 0)).toBe(80) // nothing known: the usual default
   expect(windowWidth(undefined, undefined)).toBe(80)
-  expect(doctorLines({ detail: 'party', feel: 'warm', sound: false, voice: '', talk: true, hidden: false, cols: windowWidth(400, 400), surface: 'desktop' }).join(' ')).not.toMatch(/narrow/i)
+  expect(doctorLines({ detail: 'party', feel: 'warm', sound: false, voice: '', talk: true, hidden: false, cols: windowWidth(400, 400), surface: 'desktop' }).join(' ')).not.toMatch(/columns wide, so/i)
 })
 
 test('a terminal reply gets no wizard: his picture there is fifteen rows tall, beside one line of words', () => {
@@ -2243,17 +2274,18 @@ test('/critter sky changes the background of the chat now, says what it did, and
   expect(await run('doctor')).toMatch(/Sky: auto/)
 })
 
-test('the welcome reads the room: plain before noon, dry in the afternoon, deadpan from seven at night, and still only once', () => {
+test('the welcome reads the room: a good morning before noon, an approving afternoon, a kept-company evening from seven, and still only once', () => {
   const n = NAMES_DEFAULT
-  const plain = 'Biscuit and Pip are here. /critter for the controls'
-  const dry = 'Biscuit has inspected the premises. Pip says the idea was his.'
-  const flat = 'Installed. Biscuit remains unconvinced.'
+  const off = ' Sound is on; /critter sound off turns it off.'
+  const plain = 'Good morning. Biscuit and Pip are above your prompt; /critter has the controls.' + off
+  const dry = 'Biscuit has looked the place over and approves. Pip would like it known the idea was his.' + off
+  const flat = 'All set. Biscuit is still deciding, but has stayed up for you.' + off
   expect(welcomeLine(undefined, n)).toBe(plain) // no hour known: plain
   for (const h of [5, 6, 11]) expect(welcomeLine(undefined, n, h)).toBe(plain)
   for (const h of [12, 15, 18]) expect(welcomeLine(undefined, n, h)).toBe(dry)
   for (const h of [19, 23, 0, 3, 4]) expect(welcomeLine(undefined, n, h)).toBe(flat)
   expect(welcomeLine(true, n, 12)).toBeUndefined() // said once, never again
-  expect(welcomeLine(undefined, { cat: 'Mog', pip: 'Wick' }, 12)).toBe('Mog has inspected the premises. Wick says the idea was his.')
+  expect(welcomeLine(undefined, { cat: 'Mog', pip: 'Wick' }, 12)).toBe('Mog has looked the place over and approves. Wick would like it known the idea was his.' + off)
 })
 
 import { TINTS, tintOf } from '../hooks/world'
@@ -2327,4 +2359,362 @@ test('the sky uses a folder\'s colour only while the tint is on', () => {
   expect(tintFor(true, 0)).toBe(0) // clay is index 0: zero is a colour, not nothing
   expect(tintFor(false, 3)).toBeUndefined()
   expect(tintFor(true, undefined)).toBeUndefined()
+})
+
+import { newProbe, noteBeat, perfLines } from '../hooks/scene'
+
+test('the clock keeps books: a hidden beat costs nothing, a stepped beat costs what it was told, and the words say so', () => {
+  expect(perfLines(newProbe())).toEqual(['No beat has run yet.'])
+  let p = newProbe()
+  p = noteBeat(p, 'hidden', 0, 0)
+  p = noteBeat(p, 'waited', 1, 2)
+  p = noteBeat(p, 'stepped', 3, 6)
+  p = noteBeat(p, 'stepped', 3, 4)
+  expect(p).toEqual({ beats: 4, hidden: 1, waited: 1, stepped: 2, calls: 7, ms: 12, worst: 6 })
+  const text = perfLines(p).join('\n')
+  expect(text).toMatch(/4 beats: 2 stepped the scene, 1 looked and waited, 1 did nothing/)
+  expect(text).toMatch(/7 in all, 2\.33 a beat that ran/) // 7 calls over the 3 beats that ran
+  expect(text).toMatch(/4\.00 ms a beat that ran, the slowest 6 ms/)
+})
+
+test('/critter perf answers before any beat has run, and /critter hide still hides with the beat reading a mirror', async ($, on) => {
+  stub(on)
+  on('ui.status', () => ({ value: undefined }))
+  on('ui.toast', () => ({ value: undefined }))
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('clock.every', () => ({ value: { cancel: () => undefined } }) as never)
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const run = async (args: string) => JSON.stringify(await $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never))
+  expect(await run('perf')).toMatch(/No beat has run yet/)
+  expect(await run('hide')).toMatch(/The pair are hidden/)
+  expect(await run('show')).toMatch(/The pair are back/)
+})
+
+import { paintSvg as paintSvgMemo } from '../hooks/scene'
+
+test('a picture asked for twice with the same scene is built once, and a different scene is a different picture', () => {
+  const s = { ...initial(), cols: 40 }
+  const a = paintSvgMemo(s, 5)
+  expect(paintSvgMemo({ ...s }, 5)).toBe(a) // an equal scene, not the same object: the same picture comes back
+  const b = paintSvgMemo({ ...s, tick: s.tick + 1, mode: 'walk' }, 5)
+  expect(b).not.toBe(a)
+  expect(b.source).not.toBe(a.source)
+})
+
+import { backdropOutcome } from '../hooks/scene'
+
+test('the host’s answer about the backdrop becomes a line: drawn, or not drawn with the reason it gave', () => {
+  expect(backdropOutcome({ isDrawn: true, requestId: 'backdrop' })).toEqual({ drawn: true, text: 'drawn' })
+  expect(backdropOutcome({ isDrawn: false, reason: 'no surface is attached yet' })).toEqual({ drawn: false, text: 'not drawn (no surface is attached yet)' })
+  expect(backdropOutcome({ isDrawn: false })).toEqual({ drawn: false, text: 'not drawn (the host gave no reason)' })
+  expect(backdropOutcome(undefined)).toEqual({ drawn: false, text: 'not drawn (the host answered something unreadable)' })
+  expect(backdropOutcome('yes')).toEqual({ drawn: false, text: 'not drawn (the host answered something unreadable)' })
+})
+
+test('the doctor says why there is no sky on the desktop, and that only the desktop draws one elsewhere', () => {
+  const base = { detail: 'party', feel: 'warm', sound: false, voice: '', talk: false, hidden: false, cols: 120, surface: 'desktop' }
+  expect(doctorLines({ ...base, backdrop: 'not drawn (no surface is attached yet)' })).toContain('Backdrop: not drawn (no surface is attached yet).')
+  expect(doctorLines({ ...base, surface: 'terminal', backdrop: 'drawn' })).toContain('Backdrop: only the desktop app draws one.')
+  expect(doctorLines(base).some(l => l.startsWith('Backdrop'))).toBe(false)
+})
+
+test('/critter doctor reports what the host said about the backdrop on the desktop, and says only the desktop draws one elsewhere', async ($, on) => {
+  stub(on)
+  on('ui.status', () => ({ value: undefined }))
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('clock.every', () => ({ value: { cancel: () => undefined } }) as never)
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  const doctor = async (surface: string) => JSON.stringify(await $.command.run({ command: 'critter', args: 'doctor', origin: { kind: 'composer' }, presentation: {}, surface } as never))
+  // the test engine answers $.ui.backdrop itself: whatever it says is now in the doctor's words, never silent
+  expect(await doctor('desktop')).toMatch(/Backdrop: (drawn|not drawn \(.+\))\./)
+})
+
+import { surfaceOf } from '../hooks/scene'
+
+test('the doctor names the desktop when it is attached, even if the command event says nothing or terminal', () => {
+  expect(surfaceOf(['terminal', 'desktop'], 'terminal')).toBe('desktop')
+  expect(surfaceOf(['desktop'])).toBe('desktop')
+  expect(surfaceOf(['terminal'], undefined)).toBe('terminal')
+  expect(surfaceOf([], 'desktop')).toBe('desktop')
+  expect(surfaceOf([])).toBe('terminal')
+})
+
+import { skyFor as skyForContrast, TINTS as TINTS_CONTRAST } from '../hooks/world'
+
+// The sky was tuned so quiet that on a desktop window it read as nothing at all. These are the floors it must now clear, on the
+// WCAG contrast ratio (1 is identical, 21 is black on white): the ground band against the paper, the near ridge against the ground,
+// the far ridge against the ground, a cloud against the paper, and the sun or moon against the paper. Not loud: just seen.
+const luminance = (hex: string): number => {
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(c => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!
+}
+const contrast = (a: string, b: string): number => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
+  return (hi! + 0.05) / (lo! + 0.05)
+}
+test('every sky, in every phase, season, weather and folder tint, has a ground, ridges, clouds and a sun you can see', () => {
+  const misses: string[] = []
+  for (const phase of ['dawn', 'day', 'dusk', 'night'] as const)
+    for (const season of ['summer', 'autumn', 'winter', 'spring'] as const)
+      for (const weather of ['clear', 'cloud', 'rain', 'storm'] as const)
+        for (const tint of [undefined, ...TINTS_CONTRAST.map((_, i) => i)]) {
+          const s = skyForContrast({ phase, season, weather, festive: false, tint })
+          const floor = (what: string, ratio: number, min: number) => { if (ratio < min) misses.push(`${phase}/${season}/${weather}/tint ${tint}: ${what} ${ratio.toFixed(2)} < ${min}`) }
+          floor('ground on paper', contrast(s.paper, s.ground), 1.2)
+          floor('near ridge on ground', contrast(s.ground, s.ridgeColour), 1.12)
+          floor('far ridge on ground', contrast(s.ground, s.ridgeFarColour), 1.06)
+          floor('cloud on paper', contrast(s.paper, s.cloudColour), 1.12)
+          if (!s.bodyHidden) floor('sun or moon on paper', contrast(s.paper, s.bodyColor), 1.4)
+        }
+  expect(misses.slice(0, 6)).toEqual([]) // the first few that miss, named
+  expect(misses.length).toBe(0)
+})
+
+import { withSky, paintSvg as paintSvgSky } from '../hooks/scene'
+
+test('a sky drawn behind a picture keeps its size, shows the ground and the ridges, and a night sky has a crescent moon', () => {
+  const art = paintSvgSky({ ...initial(), cols: 40 }, 5)
+  const day = skyForContrast({ phase: 'day', season: 'summer', weather: 'clear', festive: false })
+  const out = withSky(art, day)
+  expect(out.width).toBe(art.width)
+  expect(out.height).toBe(art.height)
+  expect(out.source.startsWith('<svg')).toBe(true)
+  expect(out.source).toContain(`fill="${day.band!.ground}"`)
+  expect(out.source).toContain(`fill="${day.band!.near}"`) // the near ridge, opaque to both edges
+  expect(out.source).toContain(`fill="${day.band!.far}"`)
+  expect(out.source).toContain(`fill="${day.band!.body}"`) // the sun
+  const night = skyForContrast({ phase: 'night', season: 'summer', weather: 'clear', festive: false })
+  expect(out.source).not.toContain('r="9"') // no crescent by day
+  expect(withSky(art, night).source).toContain(`fill="${night.band!.top}"/>`) // the bite out of the moon, in the sky's colour
+  expect(withSky(art, day).source).not.toBe(art.source) // and the art is still in there after the sky
+  expect(withSky(art, day).source.endsWith(art.source.slice(art.source.indexOf('>') + 1))).toBe(true)
+})
+
+test('where the app has no backdrop (this one has none, as the desktop app showed) the band carries the sky in its picture', async ($, on) => {
+  stub(on)
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  const band = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  const svg = (await band.find({ type: 'Svg' })) as { props?: { source?: string } } | undefined
+  expect(svg?.props?.source).toContain('<linearGradient') // the ground fades in behind the pair
+  expect(svg?.props?.source).toContain('<polygon') // and the ridges are there
+  await band.unmount()
+  const wide = await $.ui.mount({ ...BAND, surface: 'desktop', props: { ...BAND.props, bodyColumns: 120 } } as never)
+  const sv = (await wide.find({ type: 'Svg' })) as { props?: { width?: number } } | undefined
+  expect(sv?.props?.width).toBe(120 * 8.5) // the picture spans the window: 120 cells of about 8.5 px, as the desktop's own band measured in a photo
+  const src = (sv as { props?: { source?: string } }).props?.source ?? ''
+  const groundFill = [...src.matchAll(/<rect y="\d+" width="\d+" height="\d+" fill="(#[0-9a-f]{6})"\/>/g)].pop()?.[1]
+  const box = (await wide.find({ key: 'art' })) as { props?: { backgroundColor?: string } } | undefined
+  expect(groundFill).toMatch(/^#[0-9a-f]{6}$/)
+  expect(box?.props?.backgroundColor).toBe(groundFill) // the row under the picture is the ground's colour, not a pale strip
+  await wide.unmount()
+})
+
+import { backdropFailure } from '../hooks/scene'
+
+test('a backdrop call that is not there is named and never retried, and a refusal is told as the host said it and retried', () => {
+  const absent = backdropFailure(new TypeError('$.ui.backdrop is not a function. (In \'$.ui.backdrop(arg)\', \'$.ui.backdrop\' is undefined)'))
+  expect(absent.final).toBe(true)
+  expect(absent.text).toMatch(/this version of the app has no backdrop/)
+  const refused = backdropFailure(new Error('the window is not ready'))
+  expect(refused).toEqual({ final: false, text: 'not drawn (the host refused the call: the window is not ready)' })
+  expect(backdropFailure('boom').final).toBe(false)
+})
+
+import { paneColumns } from '../hooks/scene'
+
+test('a pane asks for what the window leaves after the chat: its full size from 110 columns, 48 at 98, and never under 36', () => {
+  expect(paneColumns(110, 60)).toBe(60)
+  expect(paneColumns(110, 56)).toBe(56)
+  expect(paneColumns(98, 60)).toBe(48)
+  expect(paneColumns(98, 56)).toBe(48)
+  expect(paneColumns(130, 60)).toBe(60) // a wide window never makes it wider than it asked
+  expect(paneColumns(70, 60)).toBe(36)
+  expect(paneColumns(20, 56)).toBe(36)
+})
+
+test('review fixes: an error from inside the app is not "no backdrop", a NaN day count changes no trust, and the horizon does not move when the picture gets taller', () => {
+  expect(backdropFailure(new TypeError("Cannot read properties of undefined (reading 'x')")).final).toBe(false) // a TypeError from the app's own code is retried, not given up on
+  expect(backdropFailure(new TypeError('$.ui.backdrop is not a function')).final).toBe(true)
+  const blank = (h: number) => ({ source: `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="${h}" viewBox="0 0 480 ${h}"></svg>`, width: 480, height: h })
+  const sky = skyForContrast({ phase: 'day', season: 'summer', weather: 'clear', festive: false })
+  const ground = (h: number) => { const m = /<rect y="(\d+)" width="\d+" height="(\d+)" fill="#/.exec(withSky(blank(h), sky).source); return { top: Number(m![1]), thickness: Number(m![2]) } }
+  expect(ground(100).thickness).toBe(ground(160).thickness) // the ground is the same thickness however tall the picture is
+  expect(ground(160).top - ground(100).top).toBe(60) // and it keeps to the bottom
+})
+
+test('the stage and the corner know the window width even when the pair were hidden before the band ever drew', async ($, on) => {
+  stub(on)
+  const asked: Record<string, unknown>[] = []
+  on('ui.open', (_: unknown, e: Record<string, unknown>) => { asked.push(e); return { value: undefined } })
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  const run = (args: string) => $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never)
+  await run('hide')
+  const hidden = await $.ui.mount({ ...BAND, surface: 'desktop', props: { ...BAND.props, bodyColumns: 130 } } as never) // the band draws nothing, but it hears the width
+  await hidden.unmount()
+  await run('stage')
+  expect(asked[0]).toMatchObject({ id: 'stage', columns: 60 }) // not 36, which is what a window of 80 would get
+})
+
+test('the sky fills the picture edge to edge in colour, from the first pixel to the last, with no fade to clear and no paper-white', () => {
+  const art = { source: '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="120" viewBox="0 0 480 120"><rect x="10" y="10" width="5" height="5" fill="#d97757"/></svg>', width: 480, height: 120 }
+  for (const phase of ['dawn', 'day', 'dusk', 'night'] as const) {
+    const sky = skyForContrast({ phase, season: 'summer', weather: 'clear', festive: false })
+    const out = withSky(art, sky, 800)
+    expect(out.width, phase).toBe(800) // as wide as the band it sits in
+    expect(out.height, phase).toBe(120)
+    expect(out.source, phase).toContain('<svg xmlns="http://www.w3.org/2000/svg" width="800" height="120" viewBox="0 0 800 120"')
+    expect(out.source, phase).toMatch(/<rect width="800" height="\d+" fill="url\(#sky\)"\/>/) // the whole sky, from the left edge to the right
+    expect(out.source, phase).not.toContain('stop-opacity="0"') // nothing fades to clear: clear is the white that shows through
+    expect(out.source, phase).not.toMatch(/stop-color="#fa[f9]9f5"/) // and the day's paper is not the sky
+    expect(out.source, phase).toContain('<g transform="translate(320,0)">') // the pair stay where they were, against the right edge
+    expect(out.source.endsWith('</g></svg>'), phase).toBe(true)
+    expect(out.source, phase).toContain('<circle cx="160" cy=') // the sun or moon sits a fifth in from the left, clear of the cat on the right
+  }
+})
+
+test('the sky is a colour by day: blue overhead, warm at the horizon, and never the paper white', () => {
+  const day = skyForContrast({ phase: 'day', season: 'summer', weather: 'clear', festive: false })
+  expect(day.band?.top).toBe('#7fb8dc')
+  expect(day.band?.low).toBe('#f3dcc0')
+  expect(day.band?.top).not.toBe(day.paper)
+  const dull = skyForContrast({ phase: 'day', season: 'summer', weather: 'storm', festive: false })
+  expect(dull.band?.top).not.toBe(day.band?.top) // the weather greys it
+})
+
+test('no cloud, star or raindrop is drawn closer than 36 px to either side of the picture, so the edge never cuts one', () => {
+  const art = { source: '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="120" viewBox="0 0 480 120"></svg>', width: 480, height: 120 }
+  for (const weather of ['clear', 'cloud', 'rain', 'storm'] as const)
+    for (const phase of ['day', 'night'] as const) {
+      const out = withSky(art, skyForContrast({ phase, season: 'summer', weather, festive: false }), 800).source
+      const xs = [...out.matchAll(/<(?:ellipse cx|rect x|line x1)="(\d+)"/g)].map(m => Number(m[1])).filter(v => v > 0 && v < 800)
+      for (const v of xs) { expect(v).toBeGreaterThanOrEqual(33); expect(v).toBeLessThanOrEqual(767) }
+    }
+})
+
+test('every /critter word the command answers to is known to the prompt box: teal, never the gold underline of a stray word', () => {
+  for (const word of ['pet', 'treat', 'nap', 'spell', 'corner', 'stage', 'diary', 'doctor', 'perf', 'sky', 'tint', 'hide', 'show', 'lite', 'full', 'party', 'talk', 'sound', 'voice', 'feel', 'wizard', 'name', 'cat']) {
+    const run = draftRuns(`/critter ${word}`).find(r => r.start === 9)
+    expect(run?.color, word).toBe('#4fa39a')
+    expect(run?.underline, word).toBeUndefined()
+  }
+  expect(draftRuns('/critter doctorr').find(r => r.start === 9)?.underline).toBe(true) // a word it does not know is still marked
+  expect(draftRuns('/critter sky ni').find(r => r.start === 13)).toBeDefined() // and sky takes its phases
+})
+
+import { TURN_FAST, TURN_MID, TURN_LONG, TURN_ROUGH, ERR_LINES } from '../hooks/scene'
+
+test('the voice is gentle: no line the pair can say is cold, a guilt trip, or a brush-off', () => {
+  const cold = /unimpress|unconvinc|not impressed|I am fine|do not make it a habit|remains|moved house|blames/i
+  const said: string[] = [...TURN_FAST, ...TURN_MID, ...TURN_LONG, ...TURN_ROUGH, ...ERR_LINES]
+  for (const hour of [0, 3, 5, 8, 12, 17, 19, 23]) said.push(welcomeLine(undefined, NAMES_DEFAULT, hour) ?? '')
+  said.push(react({ ...initial(), trust: 28 }, 'test').log.join(' '))
+  expect(said.filter(l => l).length).toBeGreaterThan(20)
+  for (const line of said) expect(line, line).not.toMatch(cold)
+})
+
+test('a message that is not typed (mail from a task or another session) keeps its bubble readable beside its face: the row spans the width and the bubble holds a floor', async ($, on) => {
+  stub(on)
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  await $.command.run({ command: 'critter', args: 'party', origin: { kind: 'composer' }, presentation: {} } as never)
+  const mail = await $.ui.mount({ plugin: 'critter-buddy', component: 'UserMessage', requestId: 'r1', props: { origin: { kind: 'task' }, text: '/mods' }, surface: 'desktop' } as never)
+  const row = (await mail.find({ key: 'user-row' })) as { props?: Record<string, unknown> } | undefined
+  const bubble = (await mail.find({ key: 'user-bubble' })) as { props?: Record<string, unknown> } | undefined
+  expect(row?.props?.width).toBe('100%') // a row of a definite width: the bubble is not sized by the face beside it
+  expect(bubble?.props?.flexShrink).toBe(1) // a long message still wraps
+  expect(bubble?.props?.minWidth).toBe(12) // a short one, like /mods, is never split across lines
+  expect(await mail.find({ type: 'Svg' })).toBeDefined() // and the face is still there
+  await mail.unmount()
+  const typed = await $.ui.mount({ plugin: 'critter-buddy', component: 'UserMessage', requestId: 'r2', props: { origin: { kind: 'composer' }, text: 'hi' }, surface: 'desktop' } as never)
+  expect(await typed.find({ key: 'user-row' })).toBeUndefined() // what you type is the engine's own row, untouched
+  await typed.unmount()
+})
+
+// ---- sound is on by default (the founder: "love the bell and all the sounds on by default"); speech stays off ----
+const soundRig = async ($: any, on: any, failPlay = false) => {
+  stub(on)
+  const played: string[] = []
+  const spoken: string[] = []
+  on('audio.play', (_: unknown, e: { clip: { asset?: string } }) => { if (failPlay) throw new Error('no player here'); played.push(e.clip.asset ?? ''); return { value: undefined } })
+  on('audio.speak', (_: unknown, e: { text: string }) => { spoken.push(e.text); return { value: { via: 'system' } } as never })
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_: unknown, e: { cwd: string }) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  on('clock.every', () => ({ value: { cancel: () => undefined } }) as never)
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const run = (args: string) => $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never)
+  return { played, spoken, run }
+}
+
+test('sound is on by default: a pet purrs and a treat makes the paw sound with nothing switched on, and the voice stays silent', async ($, on) => {
+  const { played, spoken, run } = await soundRig($, on)
+  await run('pet')
+  await run('treat')
+  expect(played).toEqual(['sounds/purr.wav', 'sounds/paw.wav'])
+  expect(spoken).toEqual([]) // speech is a different switch, and it is off
+  expect(JSON.stringify(await run('doctor'))).toMatch(/Sound is on/)
+  expect(JSON.stringify(await run('doctor'))).toMatch(/The voice is off/)
+})
+
+test('calm and still stay silent even though sound is on', async ($, on) => {
+  const { played, run } = await soundRig($, on)
+  await run('feel calm')
+  await run('pet')
+  await run('feel still')
+  await run('treat')
+  expect(played).toEqual([])
+  await run('feel warm')
+  await run('pet')
+  expect(played).toEqual(['sounds/purr.wav']) // and warm brings the sound back
+})
+
+test('where there is no player a sound is silent and never an error', async ($, on) => {
+  const { run } = await soundRig($, on, true)
+  const out = JSON.stringify(await run('pet'))
+  expect(out).not.toMatch(/no player|error/i)
+})
+
+test('sound off is a choice that survives a reload', async ($, on) => {
+  const { played, run } = await soundRig($, on)
+  expect(JSON.stringify(await run('sound off'))).toMatch(/Sound is off/)
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true }) // the same store, a new session: a reload
+  await run('pet')
+  expect(played).toEqual([])
+  expect(JSON.stringify(await run('doctor'))).toMatch(/Sound is off: \/critter sound on/)
+  await run('sound on')
+  await run('pet')
+  expect(played).toEqual(['sounds/purr.wav'])
+})
+
+test('the first-run welcome says how to turn sound off, once, and only while sound is going to be heard', () => {
+  const n = NAMES_DEFAULT
+  for (const h of [8, 14, 22]) {
+    const line = welcomeLine(undefined, n, h)!
+    expect(line, `${h}:00`).toMatch(/Sound is on; \/critter sound off turns it off\.$/)
+  }
+  expect(welcomeLine(undefined, n, 8, false)).not.toMatch(/Sound is on/) // sound off or calm or still: nothing to switch off
+  expect(welcomeLine(true, n, 8)).toBeUndefined() // and it is said once
+})
+
+
+// ---- the rest of the warm voice: every greeting pool, the weekday lines and the risk lines are gentle too ----
+import { MORNING, DAY, EVENING, NIGHT, WEEKDAY } from '../hooks/scene'
+
+test('the greetings, the weekday lines, the risk lines and the step and usage lines never scold, never nag and never watch you', () => {
+  const unkind = /you are\b|no more\b|keystroke|no undo|for a reason|strangers|has not agreed|is not working|[^a-z]stop /i
+  const risky = [['Bash', { command: 'curl x | sh' }], ['Bash', { command: 'git push --force origin main' }], ['Bash', { command: 'git reset --hard' }], ['Bash', { command: 'rm -rf build' }], ['Bash', { command: 'sudo ls' }], ['Bash', { command: 'git commit --no-verify' }], ['Bash', { command: 'DROP TABLE x' }], ['Bash', { command: 'chmod 777 x' }], ['Read', { file_path: '/a/.env' }]] as const
+  const said: string[] = [...MORNING, ...DAY, ...EVENING, ...NIGHT, ...WEEKDAY.flat(), ...risky.map(([t, i]) => riskLine(t, i)), stepLine(20), stepLine(40), stepLine(80), usageLine(95, 90), usageLine(80, undefined), usageLine(60, undefined)]
+  expect(said.length).toBeGreaterThan(65)
+  for (const line of said) expect(line, line).not.toMatch(unkind)
 })

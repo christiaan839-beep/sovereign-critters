@@ -16,10 +16,13 @@ command -v claude >/dev/null 2>&1 || { note 'FAIL  the claude CLI is not on PATH
 command -v python3 >/dev/null 2>&1 || { note 'FAIL  python3 is not on PATH'; exit 2; }
 
 # 1. validate and test: every plugin and every example must pass both, exactly
+: >"$TMP/counts.tsv"   # name, tests passing, validated: what tools/quality.py checks QUALITY.md against
 for dir in plugins/*/ examples/*/; do
-  p=${dir%/}
-  if claude plugin validate "$p" --strict >"$TMP/v.log" 2>&1; then ok "$p validate --strict"; else bad "$p validate --strict"; sed 's/^/      /' "$TMP/v.log"; fi
-  if claude plugin test "$p" >"$TMP/t.log" 2>&1; then ok "$p test ($(grep -Eo '[0-9]+ pass' "$TMP/t.log" | tail -1))"; else bad "$p test"; sed 's/^/      /' "$TMP/t.log" | tail -40; fi
+  [ -f "${dir}.claude-plugin/plugin.json" ] || continue   # a folder without a manifest is not a plugin (the host leaves journals in old ones)
+  p=${dir%/}; valid=bad; passing=0
+  if claude plugin validate "$p" --strict >"$TMP/v.log" 2>&1; then ok "$p validate --strict"; valid=ok; else bad "$p validate --strict"; sed 's/^/      /' "$TMP/v.log"; fi
+  if claude plugin test "$p" >"$TMP/t.log" 2>&1; then ok "$p test ($(grep -Eo '[0-9]+ pass' "$TMP/t.log" | tail -1))"; passing=$(grep -Eo '[0-9]+ pass' "$TMP/t.log" | tail -1 | grep -Eo '[0-9]+'); else bad "$p test"; sed 's/^/      /' "$TMP/t.log" | tail -40; fi
+  case $p in plugins/*) printf '%s\t%s\t%s\n' "${p#plugins/}" "$passing" "$valid" >>"$TMP/counts.tsv" ;; esac
 done
 
 # 2. the root is a marketplace with no hooks of its own: it must validate, and its test must fail for exactly that one reason
@@ -29,9 +32,19 @@ if [ "$rc" -eq 0 ]; then ok 'root test (passed)'
 elif [ "$rc" -eq 1 ] && grep -q 'no hooks module to load' "$TMP/t.log" && [ "$(wc -l <"$TMP/t.log")" -le 2 ]; then ok 'root test (exit 1, "no hooks module": expected)'
 else bad "root test exited $rc for a reason other than the expected one"; sed 's/^/      /' "$TMP/t.log" | tail -20; fi
 
+# 2b. every hook on the tool path fails open (the guard fails closed on purpose and is left out)
+if python3 tools/check-hooks.py >"$TMP/h.log" 2>&1; then ok 'every tool-path hook ends in .catch'; else bad 'a tool-path hook has no .catch'; sed 's/^/      /' "$TMP/h.log"; fi
+
+# 2c. QUALITY.md is a table of facts: it says when it has fallen behind, and does not fail the commit for it
+if python3 tools/quality.py --check --counts "$TMP/counts.tsv" >"$TMP/q.log" 2>&1; then ok 'QUALITY.md is current'; else note "warn  $(cat "$TMP/q.log")"; fi
+
+# 2d. the tools that check the project are themselves tested
+if python3 -m unittest tools.test_quality >"$TMP/u.log" 2>&1; then ok 'tools/quality.py tests'; else bad 'tools/quality.py tests'; sed 's/^/      /' "$TMP/u.log"; fi
+
 # 3. every sound
 for s in plugins/*/sounds; do
   [ -d "$s" ] || continue
+  [ -f "${s%/sounds}/.claude-plugin/plugin.json" ] || continue
   if python3 tools/check-sounds.py "$s" >"$TMP/s.log" 2>&1; then ok "$s sounds"; else bad "$s sounds"; sed 's/^/      /' "$TMP/s.log"; fi
 done
 
@@ -52,6 +65,39 @@ scan 'secret-shaped strings' '(sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{30,}|
 scan 'email addresses' '[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}' 'a@b\.com|noreply@anthropic\.com|git@github\.com:'
 scan 'event text in a workflow expression' '\$\{\{[^}]*(github\.event|github\.head_ref|github\.actor)' 
 scan 'merge markers' '^(<<<<<<< |>>>>>>> |=======$)'
+scan 'personal names in code' '(Christiaan|Tiaan)([^a-z]|$)' 'christiaan839-beep'
+scan 'old plugin names used as ids' '(plugins/(guard|mods|forge|crab|stunt|everywhere|session-diary|build-bell)([^a-zA-Z0-9-]|$)|(^|[^a-zA-Z0-9-])(guard|mods|forge|crab|stunt|everywhere|session-diary|build-bell)@sovereign-critters|mcp__(guard|mods|forge|crab|stunt|everywhere|session-diary|build-bell)__)'
+
+# 5. secrets in the whole git history, when gitleaks is installed (settings in .gitleaks.toml)
+if command -v gitleaks >/dev/null 2>&1 && git rev-parse --git-dir >/dev/null 2>&1; then
+  if gitleaks git . --no-banner -l error >"$TMP/leaks" 2>&1; then ok 'gitleaks: no secrets in history'; else bad 'gitleaks found something'; sed 's/^/      /' "$TMP/leaks" | head -20; fi
+else
+  note 'skip  gitleaks (not installed, or not a git checkout)'
+fi
+
+# 5b. types, when TypeScript is installed (the repo itself takes no dependency; each plugin has its own tsconfig.json)
+if command -v tsc >/dev/null 2>&1; then
+  for d in plugins/*/; do
+    [ -f "$d/.claude-plugin/plugin.json" ] || continue
+    [ -f "$d/tsconfig.json" ] || continue
+    if tsc -p "$d" --noEmit >"$TMP/tsc" 2>&1; then ok "${d%/} typecheck"; else bad "${d%/} typecheck"; sed 's/^/      /' "$TMP/tsc" | head -10; fi
+  done
+else
+  note 'skip  typecheck (tsc not installed: npm i -g typescript to turn it on)'
+fi
+
+# 6. every plugin card has what a directory listing shows: a short description, a homepage, a repository, keywords
+listing=$(python3 - <<'PY'
+import glob, json
+for f in sorted(glob.glob('plugins/*/.claude-plugin/plugin.json')):
+    j = json.load(open(f))
+    miss = [k for k in ('homepage', 'repository') if not j.get(k)]
+    if len(j.get('keywords', [])) < 3: miss.append('keywords (3 or more)')
+    if len(j.get('description', '')) > 300: miss.append('description over 300 characters')
+    if miss: print(f"{j.get('name', f)}: {', '.join(miss)}")
+PY
+)
+if [ -n "$listing" ]; then bad 'listing: plugin.json is thin'; printf '%s\n' "$listing" | sed 's/^/      /'; else ok 'listing: every plugin.json has homepage, repository, keywords, a short description'; fi
 
 note
 if [ "$fails" -eq 0 ]; then note 'preflight: all clear'; exit 0; else note "preflight: $fails failure(s)"; exit 1; fi
