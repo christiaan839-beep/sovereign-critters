@@ -27,6 +27,7 @@ export const register: Register = on => {
       key = hashOf(String(e.cwd ?? ''))
       sessionAt = await $.clock.now()
       current = (await saved($))[key]
+      unread = false
     } catch {
       current = undefined // a store that will not read is an empty store; the crab never blocks a session
       unread = true
@@ -46,7 +47,8 @@ export const register: Register = on => {
     const rest = args.slice(sub.length)
     try {
       if ((sub === '' || sub === 'drop') && unread && key) {
-        try { current = (await saved($))[key]; unread = false } catch { /* the store still will not answer */ }
+        try { current = (await saved($))[key]; unread = false; redraw($) } catch { /* the store still will not answer */ }
+        if (unread) return { text: 'The crab cannot read its notes just now: the store would not answer. Try again in a moment.' }
       }
       if (sub === '') return { text: current ? `Holding: ${current.text}` : 'The crab is holding nothing for this folder. /crab hold <text> gives it something.' }
       if (sub === 'hold') {

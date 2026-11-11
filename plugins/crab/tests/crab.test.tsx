@@ -256,9 +256,9 @@ test('a store that is damaged, will not read, or will not write never stops the 
   on('store.set', () => { throw new Error('disk on fire') })
   on('ui.render', ($: any, e: any) => { const { Text } = $.ui.resolve(e); return <Text>the engine's own band</Text> })
   await begin($) // does not throw
-  expect(await run($, '')).toMatch(/holding nothing/i)
+  expect(await run($, '')).toMatch(/cannot read its notes/i)
   expect(await run($, 'hold remember the milk')).toMatch(/could not keep/i) // told, not thrown
-  expect(await run($, 'drop')).toMatch(/could not|nothing to put down/i)
+  expect(await run($, 'drop')).toMatch(/could not|nothing to put down|cannot read its notes/i)
   const ui = await $.ui.mount({ plugin: 'crab', surface: 'terminal', ...BAND })
   expect(await ui.find({ type: 'Text', text: "the engine's own band" })).toBeDefined() // nothing was kept, so nothing is drawn
   await ui.unmount()
@@ -313,4 +313,24 @@ test('/crab drop with no note and a store that reads fine says there is nothing 
   keep(on)
   await begin($)
   expect(await run($, 'drop')).toMatch(/nothing to put down/)
+})
+
+test('while the store still will not read, /crab and /crab drop say so instead of claiming there is nothing; a good retry redraws the band', async ($, on) => {
+  mock.clock(on, { now: NOW })
+  const key = hashOf('/work/atlas')
+  const store: Record<string, unknown> = { notes: { [key]: { text: 'ask Mira', at: NOW - 1000 } } }
+  let down = true
+  let redraws = 0
+  on('store.get', (_: unknown, e: { key: string }) => { if (down) throw new Error('not yet'); return { value: store[e.key] } })
+  on('store.set', (_: unknown, e: { key: string; value: unknown }) => { store[e.key] = e.value; return { value: undefined } })
+  on('command.register', () => ({ value: { command: 'crab' } }))
+  on('session.start', (_: unknown, e: { cwd: string }) => ({ cwd: e.cwd }))
+  on('ui.invalidate', () => { redraws += 1; return { value: undefined } })
+  await begin($)
+  expect(await run($, '')).toMatch(/cannot read its notes/i)
+  expect(await run($, 'drop')).toMatch(/cannot read its notes/i)
+  down = false
+  const before = redraws
+  expect(await run($, '')).toMatch(/Holding: ask Mira/)
+  expect(redraws).toBeGreaterThan(before)
 })

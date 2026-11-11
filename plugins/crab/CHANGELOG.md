@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.5
+
+- **Fixed:** while the store will not read, `/crab` and `/crab drop` now say so instead of claiming the crab holds nothing; when it reads again the band comes back by itself.
+
 ## 0.2.4
 
 - **Fixed:** if the store would not read when a session started, `/crab` said it held nothing and `/crab drop` did nothing even once the store was back. Both now ask the store again.
