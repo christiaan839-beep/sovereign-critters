@@ -13,8 +13,8 @@ Kept so a long run survives a context summary. Newest state first. Update it in 
 
 ## In flight
 
-- [ ] Third independent review round on latch and seal (two reviewers running when this was written). Fix what they confirm, test first.
-- [ ] Regenerate `QUALITY.md` after the last commit (`python3 tools/quality.py --write`).
+- [x] Third independent review round on latch and seal: findings fixed (latch 58 tests, seal 55).
+- [ ] A fourth round only if the founder wants one: each round found fewer and smaller holes, but spelling-based guards will keep missing things (scripts, aliases, multi-step encoding). Say so in the release notes instead of promising a clean bill.
 
 ## Needs the founder
 
@@ -28,3 +28,17 @@ Kept so a long run survives a context summary. Newest state first. Update it in 
 - [ ] That repo calls its mods early access: the API "may change between releases without notice", and hooks modules load only where function hooks are enabled. Say so in our READMEs, and re-run validate on each engine update.
 - [ ] On a machine with `allowManagedModsOnly`, user-installed hooks modules are refused at load; with `sec-default` seated, user plugins cannot lift an organization's deny rules (ours only add stops). Confirm with the real docs before writing it into `SECURITY.md`.
 - [ ] That repo names tests `register.test.ts` with a `tier(...)` call and typechecks with `scripts/ci/typecheck-mods.sh`. We name tests by topic and skip the typecheck when `tsc` is missing; decide whether to match.
+
+## Value extracted from the links (read 2026-11-11; summaries of pages, not tested here)
+
+Applied already: stop rules in `CLAUDE.md`, this file as the compaction-safe task list, a reviewer pass before reporting. Still to do:
+
+- [ ] **A skill that carries our method.** Agent Skills are a folder with `SKILL.md` (name, description, optional scripts/references) loaded on demand. Ship one with the family: "review a guard" (write the failing test, fix, sabotage in a temp copy, independent review, check flag behaviour against the tool's own option tables). That routine is the real asset of this session. Check the plugin docs for how a plugin ships skills before building.
+- [ ] **Memory design for critter-crab and critter-diary** (Anthropic's "components of agent memory"): store only what the folder cannot show you; record how and when a fact was confirmed; keep the always-loaded part short and let it point to files; one note per source so writes do not collide; re-check notes against the raw log. Crab already keeps one note per folder (keyed by a hash, so no path to traverse); add a "last confirmed" date and a size cap. Diary: persist the week's counts only, as decided earlier.
+- [ ] **Memory tool guidance** (platform docs): cap file sizes, expire old notes, never write secrets (reuse seal's shapes to refuse them), validate every path. Crab uses `$.store`, not files, so only the cap, the expiry and the secret check apply.
+- [ ] **Hook decisions: prefer ask to deny** for the uncertain cases (latch "cannot read", seal "host the guard cannot read"). `tool.call` here returns only a deny; look at the `tool.check` event for an ask before changing anything, and keep deny for the clear cases.
+- [ ] **Models**: Fable 5.2 and Mythos 5.2 launched 2026-11-09 (medium effort is the default in Claude Code); Opus 5.5 at medium effort is the recommended start, Sonnet 5.5 for well-scoped work, Haiku 5.5 for cheap classification. Do not put prices or model ids in the repo (preflight forbids ids); ledger counts tokens and does not price them, which stays right. Fable blocks most high-risk cyber work: a red-team review of a guard on Fable may be refused, so keep reviews on Opus.
+- [ ] **MCP-UI** (sandboxed `ui://` HTML resources returned by tools, always with a plain-text fallback): not needed for our native panes; note for later if a mod's result should show in hosts that have no mod panes.
+- [ ] **Compaction**: server-side summaries replace older turns; files outside the context survive. `critter-ledger` and `critter-clock` reset on a reload, not on compaction; confirm that against a real compaction before claiming it.
+
+Not read (no instruction on what to take from them): transformer-circuits.pub and the induction-heads paper, the YouTube video, harvey-labs, managed-agents memory and the dreaming cookbook, the knowledge-wiki quickstart, interactive connectors, sheets and whiteboards, the recursive-self-improvement page, and the garbled text pasted with them.
