@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { windowWidth, fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, wizardPoseFor, isQuiet, motionTick, welcomeLine, cleanMemory, cleanStreak, doctorLines, withSky, backdropFailure, backdropOutcome, surfaceOf, newProbe, noteBeat, perfLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import { windowWidth, fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, wizardPoseFor, isQuiet, motionTick, welcomeLine, cleanMemory, cleanStreak, doctorLines, paneColumns, withSky, backdropFailure, backdropOutcome, surfaceOf, newProbe, noteBeat, perfLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
 import { TINTS, tintOf, tintFor, SKY_CHOICES, hourSast, dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, RIDGE_FAR, thinkingOf, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
 import type { Flight, SkyChoice, Streak } from './world'
 import type { SoundName, Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
@@ -545,11 +545,11 @@ export const register: Register = on => {
       return { text: arg === 'on' ? `The sky leans ${TINTS[folderTint ?? 0]!.name} in this folder.` : 'The sky is plain again.' }
     }
     if (sub === 'stage') {
-      await $.ui.open({ id: STAGE, title: 'Stage', focus: true, ...PANE_ASKS.stage })
+      await $.ui.open({ id: STAGE, title: 'Stage', focus: true, ...PANE_ASKS.stage, columns: paneColumns(windowCols, PANE_ASKS.stage.columns) })
       return { text: 'The stage is open: the critter alone, walking and idling.' }
     }
     if (sub === 'corner') {
-      await $.ui.open({ id: PANE, title: 'Cat corner', focus: true, ...PANE_ASKS.corner })
+      await $.ui.open({ id: PANE, title: 'Cat corner', focus: true, ...PANE_ASKS.corner, columns: paneColumns(windowCols, PANE_ASKS.corner.columns) })
       return { text: 'Cat corner opened.' }
     }
     if (sub === 'diary') {
@@ -621,7 +621,7 @@ export const register: Register = on => {
           <Button key="treat" label={lb.feed} hotkey="t" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'treat')); await ring($, 'paw') }} />
           <Button key="cast" label={lb.cast} hotkey="c" onPress={async () => { await update($, scene, (x: Scene): Scene => react(x, 'spell')); await ring($, 'cast') }} />
           <Button key="nap" label={lb.nap} hotkey="n" onPress={() => update($, scene, (x: Scene): Scene => react(x, 'nap'))} />
-          <Button key="corner" label={lb.corner} hotkey="k" onPress={() => $.ui.open({ id: PANE, title: 'Cat corner', focus: true, ...PANE_ASKS.corner })} />
+          <Button key="corner" label={lb.corner} hotkey="k" onPress={() => $.ui.open({ id: PANE, title: 'Cat corner', focus: true, ...PANE_ASKS.corner, columns: paneColumns(windowCols, PANE_ASKS.corner.columns) })} />
           {lb.mods ? <Button key="mods" label={lb.mods} hotkey="m" onPress={() => openMods($)} /> : null}
         </Box>
         <Box key="gap"><Text> </Text></Box>

@@ -1163,6 +1163,12 @@ export const cleanStreak = (raw: unknown): { days: number; last: string } | unde
 }
 
 export const MIN_COLS = 110
+/**
+ * How wide a pane asks to be in a window of this width: what it wants, but never more than the window leaves after the chat's
+ * 50 columns, and never under 36 (the narrowest the portrait and the diary read at). In a 98-column window the stage asks for 48
+ * and the corner for 48; at 110 and over they have their full size.
+ */
+export const paneColumns = (windowCols: number, want: number): number => Math.max(36, Math.min(want, windowCols - 50))
 export type DoctorInput = {
   detail: string; feel: string; sound: boolean; voice: string; talk: boolean; hidden: boolean; cols: number; surface: string; sky?: string; tint?: string; backdrop?: string
 }
@@ -1173,7 +1179,7 @@ export const doctorLines = (d: DoctorInput): string[] => {
   if (d.sky) out.push(d.sky === 'auto' ? 'Sky: auto, it follows the hour. /critter sky night holds a phase.' : `Sky: held at ${d.sky}. /critter sky auto lets the hour decide.`)
   if (d.backdrop !== undefined) out.push(d.surface === 'desktop' ? `Backdrop: ${d.backdrop}.` : 'Backdrop: only the desktop app draws one.')
   if (d.hidden) out.push('The pair are hidden: /critter show brings them back.')
-  if (d.cols < MIN_COLS) out.push(`The window is narrow (${d.cols} columns); the stage and the corner want ${MIN_COLS}.`)
+  if (d.cols < MIN_COLS) out.push(`The window is ${d.cols} columns wide, so the stage opens ${paneColumns(d.cols, 60)} wide and the corner ${paneColumns(d.cols, 56)}; from ${MIN_COLS} they have their full size.`)
   if (d.feel === 'still') out.push(d.sound || d.voice ? 'Still: nothing moves, and the pair are silent, so sound and voice say nothing: /critter feel warm lets them speak.' : 'Still: nothing moves.')
   else if (d.feel === 'calm') out.push(d.sound || d.voice ? 'Calm keeps the pair silent, so sound and voice say nothing: /critter feel warm lets them speak.' : 'Calm: the pair only breathe, walk and sleep.')
   out.push(d.sound ? 'Sound is on: a cast chime and a purr.' : 'Sound is off: /critter sound on.')
@@ -1182,8 +1188,12 @@ export const doctorLines = (d: DoctorInput): string[] => {
   return out
 }
 
-/** A cat comes back at 25 at the least: wary, not sulking. Sulking (under 30) is earned in a session, never by the calendar. */
-export const returnTrust = (trust: number, days: number): number => Math.max(25, trust - days * 8)
+/**
+ * How much the cat trusts you when a session starts. The same day, nothing changes. After a day or more away it drops 8 a day, but
+ * never below 40: unbothered, not sulking (a sulk is under 30, and is earned in a session, never by the calendar). A night's sleep
+ * also forgives a sulk carried over from before: a cat that went to bed at 25 wakes at 40.
+ */
+export const returnTrust = (trust: number, days: number): number => (days < 1 ? trust : Math.max(40, trust - days * 8))
 
 /** The line a sulking cat says when work lifts it out of the sulk (30 and over); nothing for a cat that was not sulking. */
 const forgives = (s: Scene, gain: number): string[] => (s.trust < 30 && s.trust + gain >= 30 ? ['{cat} has decided to forgive you. Do not make it a habit.'] : [])

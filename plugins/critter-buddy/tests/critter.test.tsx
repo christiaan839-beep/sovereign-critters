@@ -1246,14 +1246,22 @@ test('the stage opens wide, see-through and closable with Escape; the corner ope
   on('store.get', () => ({ value: undefined }))
   await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
   const run = (args: string) => $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never)
+  const wide = await $.ui.mount({ ...BAND, surface: 'desktop', props: { ...BAND.props, bodyColumns: 130 } } as never) // the band tells the mod how wide the window is
+  await wide.unmount()
   await run('stage')
   await run('corner')
   expect(asked[0]).toMatchObject({ id: 'stage', columns: 60, rows: 16, backgroundColor: 'transparent', closeOnEscape: true })
   expect(asked[1]).toMatchObject({ id: 'cat-corner', columns: 56, rows: 30, closeOnEscape: true })
   expect(asked[1]!.backgroundColor).toBeUndefined() // the corner is text: it keeps its own page
-  const band = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  const band = await $.ui.mount({ ...BAND, surface: 'desktop', props: { ...BAND.props, bodyColumns: 130 } } as never)
   await band.press({ key: 'corner' })
   expect(asked[2]).toMatchObject({ id: 'cat-corner', columns: 56, rows: 30 })
+  const tight = await $.ui.mount({ ...BAND, surface: 'desktop', props: { ...BAND.props, bodyColumns: 98 } } as never) // a 98-column window, as in the founder's photos
+  await tight.unmount()
+  await run('stage')
+  await run('corner')
+  expect(asked[3]).toMatchObject({ id: 'stage', columns: 48, rows: 16 }) // shrunk to what the window leaves after the chat
+  expect(asked[4]).toMatchObject({ id: 'cat-corner', columns: 48, rows: 30 })
 })
 
 test('the turn that earns a prop offers the corner in the box, once, and a turn that does not offers nothing', async ($, on) => {
@@ -1434,8 +1442,9 @@ test('the doctor says what is on and why, and names the switch that changes it',
   // calm is the quiet switch, and the doctor says so when it silences sound that is on
   expect(doctorLines({ ...base, feel: 'calm', sound: true }).join('\n')).toMatch(/calm.*silent.*\/critter feel warm/i)
   // a narrow window is named, exactly at the edge
-  expect(doctorLines({ ...base, cols: 110 }).join('\n')).not.toMatch(/narrow/i)
-  expect(doctorLines({ ...base, cols: 109 }).join('\n')).toMatch(/narrow.*110/i)
+  expect(doctorLines({ ...base, cols: 110 }).join('\n')).not.toMatch(/columns wide, so/i)
+  expect(doctorLines({ ...base, cols: 98 }).join('\n')).toMatch(/98 columns wide, so the stage opens 48 wide and the corner 48; from 110 they have their full size/)
+  expect(doctorLines({ ...base, cols: 109 }).join('\n')).toMatch(/109 columns wide/)
   expect(doctorLines({ ...base, hidden: true }).join('\n')).toMatch(/hidden.*\/critter show/i)
 })
 
@@ -1466,14 +1475,15 @@ test('the same diary line in a row is one line with a count, and a different lin
   expect(foldDiary(['14:00 x (×2)'], ['14:01 x (not a count)'])).toEqual(['14:00 x (×2)', '14:01 x (not a count)'])
 })
 
-test('a cat never comes back below 25, sulking is earned by the session and not by the calendar', () => {
+test('a cat never comes back sulking: the same day nothing changes, days away cost 8 a day down to 40, and a night forgives a sulk', () => {
   expect(returnTrust(60, 0)).toBe(60)
+  expect(returnTrust(28, 0)).toBe(28) // the same day: a sulk earned this session is still a sulk
   expect(returnTrust(60, 2)).toBe(44)
-  expect(returnTrust(60, 4)).toBe(28)
-  expect(returnTrust(60, 5)).toBe(25) // 20 would sulk: the floor is exactly 25
-  expect(returnTrust(60, 400)).toBe(25)
-  expect(returnTrust(10, 0)).toBe(25)
+  expect(returnTrust(60, 3)).toBe(40) // 36 would be close to the edge: the floor is 40
+  expect(returnTrust(60, 400)).toBe(40)
+  expect(returnTrust(25, 1)).toBe(40) // a night's sleep forgives a sulk carried over
   expect(returnTrust(90, 1)).toBe(82)
+  for (const days of [1, 2, 7, 90]) expect(returnTrust(0, days)).toBeGreaterThanOrEqual(30) // never under the sulk line
 })
 
 test('work earns the cat round: a green run and a commit add trust, and crossing out of a sulk is remarked on once', () => {
@@ -1798,7 +1808,7 @@ test('the doctor reports the whole window, not the capped width the band is draw
   expect(windowWidth(undefined, 110)).toBe(110)
   expect(windowWidth(0, 0)).toBe(80) // nothing known: the usual default
   expect(windowWidth(undefined, undefined)).toBe(80)
-  expect(doctorLines({ detail: 'party', feel: 'warm', sound: false, voice: '', talk: true, hidden: false, cols: windowWidth(400, 400), surface: 'desktop' }).join(' ')).not.toMatch(/narrow/i)
+  expect(doctorLines({ detail: 'party', feel: 'warm', sound: false, voice: '', talk: true, hidden: false, cols: windowWidth(400, 400), surface: 'desktop' }).join(' ')).not.toMatch(/columns wide, so/i)
 })
 
 test('a terminal reply gets no wizard: his picture there is fifteen rows tall, beside one line of words', () => {
@@ -2484,4 +2494,16 @@ test('a backdrop call that is not there is named and never retried, and a refusa
   const refused = backdropFailure(new Error('the window is not ready'))
   expect(refused).toEqual({ final: false, text: 'not drawn (the host refused the call: the window is not ready)' })
   expect(backdropFailure('boom').final).toBe(false)
+})
+
+import { paneColumns } from '../hooks/scene'
+
+test('a pane asks for what the window leaves after the chat: its full size from 110 columns, 48 at 98, and never under 36', () => {
+  expect(paneColumns(110, 60)).toBe(60)
+  expect(paneColumns(110, 56)).toBe(56)
+  expect(paneColumns(98, 60)).toBe(48)
+  expect(paneColumns(98, 56)).toBe(48)
+  expect(paneColumns(130, 60)).toBe(60) // a wide window never makes it wider than it asked
+  expect(paneColumns(70, 60)).toBe(36)
+  expect(paneColumns(20, 56)).toBe(36)
 })

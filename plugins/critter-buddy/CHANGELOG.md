@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.28.1
+
+- **The stage and the corner fit a narrow window.** They used to want 110 columns and the doctor just said so. Now each opens as wide as the window leaves after the chat (48 columns in a 98-column window, never under 36), and at 110 columns and over they have their full size. `/critter doctor` says how wide they will open.
+- **Fixed: a returning cat came back sulking.** The code floor was 25 while a sulk starts under 30, so a few days away sulked the cat, against its own comment. A cat now comes back at 40 at the least after any day away, and a night's sleep forgives a sulk carried over; the same day nothing changes.
+
 ## 0.28.0
 
 - **Changed: the cat no longer speaks until you ask.** `/critter talk` is off by default (it was on). The line after a turn costs one small model call, so a mod now spends nothing on your account until you run `/critter talk on`. If you liked the speech, run that once. `/critter doctor` says which it is.
