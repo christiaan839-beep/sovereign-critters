@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.30.1
+
+- **Fixed: the sky now reaches the left edge of the band.** A photo of the desktop app showed a strip of pale colour on the left (about 5% of the width) and another under the picture. The picture is now drawn 8.5 px a column, measured from that photo, and the row under it takes the ground's colour.
+
 ## 0.30.0
 
 - **Changed: sounds are on by default.** The purr for a pet, the paw for a treat, the cast chime for a Skill, the page for the diary and the brass chime for a prop earned all sound unless you switch them off with `/critter sound off`; the choice is kept across restarts, and a choice you made before is kept as it was. They stay silent in `calm` and `still`, and where the app has no audio player they stay silent without an error. Speech (`/critter voice`) is a separate switch and stays off until you ask. The first-run welcome now ends with "Sound is on; /critter sound off turns it off." when the sounds will be heard, and `/critter doctor` says how to silence them.

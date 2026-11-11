@@ -106,8 +106,8 @@ const faceOf = (Text: any, kind: FaceKind) => (
 
 // What a surface draws with: the terminal paints half-block text, every other surface takes the same pixels as vector art
 // (the desktop smears block glyphs; it draws SVG crisply). One call gives a hook the right face and sprite for where it runs.
-/** About how wide one text cell is on the desktop, in px: the band's picture is drawn this wide per column so the sky reaches both edges (an estimate, a little under, so it never overruns). */
-const CELL_PX = 8
+/** About how wide one text cell is on the desktop, in px, measured from a photo of the band at two window widths: the band's picture is drawn this wide per column so the sky reaches both edges. */
+const CELL_PX = 8.5
 const kit = (els: any, surface: string) => {
   const { Box, Text, Button, Svg } = els
   const vector = surface !== 'terminal' && Svg !== undefined
@@ -602,7 +602,7 @@ export const register: Register = on => {
     return (
       <Box flexDirection="column">
         {vector ? (
-          <Box key="art" flexDirection="column" backgroundColor={bandSky?.band?.low ?? bandSky?.paper}>
+          <Box key="art" flexDirection="column" backgroundColor={bandSky?.band?.ground ?? bandSky?.paper}>
             <Box key="art-row" flexDirection="row" justifyContent="flex-end">{svg(bandSky ? withSky(paintSvg({ ...s, cols }, 5), bandSky, Math.round((e.props.bodyColumns || e.viewport?.columns || cols) * CELL_PX)) : paintSvg({ ...s, cols }, 5), 'The critter and the tabby cat on the bar')}</Box>
             <Text> </Text>
           </Box>

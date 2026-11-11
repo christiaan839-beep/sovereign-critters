@@ -2506,7 +2506,12 @@ test('where the app has no backdrop (this one has none, as the desktop app showe
   await band.unmount()
   const wide = await $.ui.mount({ ...BAND, surface: 'desktop', props: { ...BAND.props, bodyColumns: 120 } } as never)
   const sv = (await wide.find({ type: 'Svg' })) as { props?: { width?: number } } | undefined
-  expect(sv?.props?.width).toBe(120 * 8) // the picture spans the window: 120 cells of about 8 px
+  expect(sv?.props?.width).toBe(120 * 8.5) // the picture spans the window: 120 cells of about 8.5 px, as the desktop's own band measured in a photo
+  const src = (sv as { props?: { source?: string } }).props?.source ?? ''
+  const groundFill = [...src.matchAll(/<rect y="\d+" width="\d+" height="\d+" fill="(#[0-9a-f]{6})"\/>/g)].pop()?.[1]
+  const box = (await wide.find({ key: 'art' })) as { props?: { backgroundColor?: string } } | undefined
+  expect(groundFill).toMatch(/^#[0-9a-f]{6}$/)
+  expect(box?.props?.backgroundColor).toBe(groundFill) // the row under the picture is the ground's colour, not a pale strip
   await wide.unmount()
 })
 

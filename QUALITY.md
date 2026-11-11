@@ -30,7 +30,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The lead mods
 
-### critter-buddy 0.30.0
+### critter-buddy 0.30.1
 
 | | |
 | --- | --- |
