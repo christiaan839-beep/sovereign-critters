@@ -2462,13 +2462,13 @@ test('a sky drawn behind a picture keeps its size, shows the ground and the ridg
   expect(out.width).toBe(art.width)
   expect(out.height).toBe(art.height)
   expect(out.source.startsWith('<svg')).toBe(true)
-  expect(out.source).toContain(`stop-color="${day.ground}"`)
-  expect(out.source).toContain(`stop-color="${day.ridgeColour}"`) // each ridge fades in from the left, so it has no hard edge
-  expect(out.source).toContain(`stop-color="${day.ridgeFarColour}"`)
-  expect(out.source).toContain(`fill="${day.bodyColor}"`) // the sun
-  expect(out.source).not.toContain(`fill="${day.paper}"`) // no crescent by day
+  expect(out.source).toContain(`fill="${day.band!.ground}"`)
+  expect(out.source).toContain(`fill="${day.band!.near}"`) // the near ridge, opaque to both edges
+  expect(out.source).toContain(`fill="${day.band!.far}"`)
+  expect(out.source).toContain(`fill="${day.band!.body}"`) // the sun
   const night = skyForContrast({ phase: 'night', season: 'summer', weather: 'clear', festive: false })
-  expect(withSky(art, night).source).toContain(`fill="${night.paper}"`) // the bite out of the moon
+  expect(out.source).not.toContain('r="9"') // no crescent by day
+  expect(withSky(art, night).source).toContain(`fill="${night.band!.top}"/>`) // the bite out of the moon, in the sky's colour
   expect(withSky(art, day).source).not.toBe(art.source) // and the art is still in there after the sky
   expect(withSky(art, day).source.endsWith(art.source.slice(art.source.indexOf('>') + 1))).toBe(true)
 })
@@ -2484,6 +2484,10 @@ test('where the app has no backdrop (this one has none, as the desktop app showe
   expect(svg?.props?.source).toContain('<linearGradient') // the ground fades in behind the pair
   expect(svg?.props?.source).toContain('<polygon') // and the ridges are there
   await band.unmount()
+  const wide = await $.ui.mount({ ...BAND, surface: 'desktop', props: { ...BAND.props, bodyColumns: 120 } } as never)
+  const sv = (await wide.find({ type: 'Svg' })) as { props?: { width?: number } } | undefined
+  expect(sv?.props?.width).toBe(120 * 8) // the picture spans the window: 120 cells of about 8 px
+  await wide.unmount()
 })
 
 import { backdropFailure } from '../hooks/scene'
@@ -2514,7 +2518,7 @@ test('review fixes: an error from inside the app is not "no backdrop", a NaN day
   expect(backdropFailure(new TypeError('$.ui.backdrop is not a function')).final).toBe(true)
   const blank = (h: number) => ({ source: `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="${h}" viewBox="0 0 480 ${h}"></svg>`, width: 480, height: h })
   const sky = skyForContrast({ phase: 'day', season: 'summer', weather: 'clear', festive: false })
-  const ground = (h: number) => { const m = /<rect x="0" y="(\d+)" width="\d+" height="(\d+)" fill="url/.exec(withSky(blank(h), sky).source); return { top: Number(m![1]), thickness: Number(m![2]) } }
+  const ground = (h: number) => { const m = /<rect y="(\d+)" width="\d+" height="(\d+)" fill="#/.exec(withSky(blank(h), sky).source); return { top: Number(m![1]), thickness: Number(m![2]) } }
   expect(ground(100).thickness).toBe(ground(160).thickness) // the ground is the same thickness however tall the picture is
   expect(ground(160).top - ground(100).top).toBe(60) // and it keeps to the bottom
 })
@@ -2535,21 +2539,39 @@ test('the stage and the corner know the window width even when the pair were hid
   expect(asked[0]).toMatchObject({ id: 'stage', columns: 60 }) // not 36, which is what a window of 80 would get
 })
 
-test('the ridges and the ground all fade in from fully clear at the left edge of the picture', () => {
-  const art = { source: '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="120" viewBox="0 0 480 120"></svg>', width: 480, height: 120 }
-  const sky = skyForContrast({ phase: 'day', season: 'summer', weather: 'clear', festive: false })
-  const out = withSky(art, sky).source
-  for (const id of ['fade', 'ridge-near', 'ridge-far']) expect(new RegExp(`<linearGradient id="${id}"[^>]*><stop offset="0" stop-color="#[0-9a-f]{6}" stop-opacity="0"/>`).test(out), id).toBe(true)
-  expect(out).not.toMatch(/<polygon[^>]*fill="#/) // no ridge is drawn in a flat colour
+test('the sky fills the picture edge to edge in colour, from the first pixel to the last, with no fade to clear and no paper-white', () => {
+  const art = { source: '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="120" viewBox="0 0 480 120"><rect x="10" y="10" width="5" height="5" fill="#d97757"/></svg>', width: 480, height: 120 }
+  for (const phase of ['dawn', 'day', 'dusk', 'night'] as const) {
+    const sky = skyForContrast({ phase, season: 'summer', weather: 'clear', festive: false })
+    const out = withSky(art, sky, 800)
+    expect(out.width, phase).toBe(800) // as wide as the band it sits in
+    expect(out.height, phase).toBe(120)
+    expect(out.source, phase).toContain('<svg xmlns="http://www.w3.org/2000/svg" width="800" height="120" viewBox="0 0 800 120"')
+    expect(out.source, phase).toMatch(/<rect width="800" height="\d+" fill="url\(#sky\)"\/>/) // the whole sky, from the left edge to the right
+    expect(out.source, phase).not.toContain('stop-opacity="0"') // nothing fades to clear: clear is the white that shows through
+    expect(out.source, phase).not.toMatch(/stop-color="#fa[f9]9f5"/) // and the day's paper is not the sky
+    expect(out.source, phase).toContain('<g transform="translate(320,0)">') // the pair stay where they were, against the right edge
+    expect(out.source.endsWith('</g></svg>'), phase).toBe(true)
+    expect(out.source, phase).toContain('<circle cx="160" cy=') // the sun or moon sits a fifth in from the left, clear of the cat on the right
+  }
+})
+
+test('the sky is a colour by day: blue overhead, warm at the horizon, and never the paper white', () => {
+  const day = skyForContrast({ phase: 'day', season: 'summer', weather: 'clear', festive: false })
+  expect(day.band?.top).toBe('#7fb8dc')
+  expect(day.band?.low).toBe('#f3dcc0')
+  expect(day.band?.top).not.toBe(day.paper)
+  const dull = skyForContrast({ phase: 'day', season: 'summer', weather: 'storm', festive: false })
+  expect(dull.band?.top).not.toBe(day.band?.top) // the weather greys it
 })
 
 test('no cloud, star or raindrop is drawn closer than 36 px to either side of the picture, so the edge never cuts one', () => {
   const art = { source: '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="120" viewBox="0 0 480 120"></svg>', width: 480, height: 120 }
   for (const weather of ['clear', 'cloud', 'rain', 'storm'] as const)
     for (const phase of ['day', 'night'] as const) {
-      const out = withSky(art, skyForContrast({ phase, season: 'summer', weather, festive: false })).source
-      const xs = [...out.matchAll(/<(?:ellipse cx|rect x|line x1)="(\d+)"/g)].map(m => Number(m[1])).filter(v => v > 0 && v < 480)
-      for (const v of xs) { expect(v).toBeGreaterThanOrEqual(33); expect(v).toBeLessThanOrEqual(447) }
+      const out = withSky(art, skyForContrast({ phase, season: 'summer', weather, festive: false }), 800).source
+      const xs = [...out.matchAll(/<(?:ellipse cx|rect x|line x1)="(\d+)"/g)].map(m => Number(m[1])).filter(v => v > 0 && v < 800)
+      for (const v of xs) { expect(v).toBeGreaterThanOrEqual(33); expect(v).toBeLessThanOrEqual(767) }
     }
 })
 

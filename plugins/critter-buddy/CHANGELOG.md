@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.28.6
+
+- **Changed: the band is a sky from edge to edge.** On the desktop app the picture now spans the whole band in colour (blue by day, rose at dawn, violet at dusk, indigo at night, greyed by weather) with opaque ground and ridges; the white at the left, where the ground faded to clear, is gone. The sun or moon moved to the left so the cat never covers it. The width is estimated at 8 px a column, so a window that measures differently may show a thin strip of the horizon colour on the left.
+
 ## 0.28.5
 
 - The listing card now carries a homepage, a repository link and keywords. No behaviour change.

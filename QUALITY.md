@@ -9,11 +9,11 @@ The first three are the lead of the release; the other six are held to the same 
 
 ## The lead mods
 
-### critter-buddy 0.28.5
+### critter-buddy 0.28.6
 
 | | |
 | --- | --- |
-| Tests passing | 166 |
+| Tests passing | 167 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |

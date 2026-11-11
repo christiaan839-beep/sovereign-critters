@@ -1057,43 +1057,47 @@ export const cadence = (s: Scene): 1 | 4 => {
 
 // ---- the sky behind the pair, for an app with no backdrop -----------------------------------------
 /** The pieces of a sky that `withSky` draws: the colours and the places `skyFor` chose. */
-export type SkyDraw = { ground: string; ridgeColour: string; ridgeFarColour: string; body: string; bodyColor: string; bodyTop: number; bodyHidden: boolean; paper: string; cloudColour: string; clouds: { top: number; left: number }[]; wisps: { top: number; left: number }[]; rain: { top: number; left: number }[]; stars: { top: number; left: number; big: boolean }[] }
+export type SkyDraw = { ground: string; ridgeColour: string; ridgeFarColour: string; body: string; bodyColor: string; bodyTop: number; bodyHidden: boolean; paper: string; cloudColour: string; band?: { top: string; low: string; ground: string; near: string; far: string; cloud: string; body: string }; clouds: { top: number; left: number }[]; wisps: { top: number; left: number }[]; rain: { top: number; left: number }[]; stars: { top: number; left: number; big: boolean }[] }
 
 /**
  * A picture with a sky drawn behind it, in the same SVG so the two always line up: the ground with the near and far ridges,
- * the sun or the moon, stars, cloud and rain. Where the app draws no backdrop of its own this is the sky; the ground fades in
- * from the left so it has no hard edge where the picture ends. The picture's size is not changed.
+ * the sun or the moon, stars, cloud and rain. Where the app draws no backdrop of its own this is the sky; the sky and the ground run in colour to both edges of the band, and the pair keep their place against the right edge.
  */
-export const withSky = (art: Svgd, sky: SkyDraw): Svgd => {
-  const { width: w, height: h } = art
+export const withSky = (art: Svgd, sky: SkyDraw, wide = art.width): Svgd => {
+  const { height: h } = art
+  const w = Math.max(wide, art.width) // the sky spans the band: the picture is never narrower than the pair's own
+  const slide = w - art.width // the pair keep their place against the right edge
+  const c = sky.band ?? { top: sky.paper, low: sky.paper, ground: sky.ground, near: sky.ridgeColour, far: sky.ridgeFarColour, cloud: sky.cloudColour, body: sky.bodyColor }
   // The ground is a fixed thickness from the bottom, not a share of the height: the picture's height changes whenever the pair hop (empty rows above are trimmed), and the horizon must not jump with it.
   const groundTop = Math.max(Math.round(h * 0.4), h - 46)
-  const ridge = (text: string, base: number, id: string) => {
+  const ridge = (text: string, base: number, fill: string) => {
     const step = 10
     const pts = [`0,${h}`]
     for (let x = 0, i = 0; x <= w + step; x += step, i++) pts.push(`${x},${base - ('▁▂▃▄▅'.indexOf(text[i % text.length] ?? '▁') + 1) * 3}`)
     pts.push(`${w},${h}`)
-    return `<polygon points="${pts.join(' ')}" fill="url(#${id})"/>`
+    return `<polygon points="${pts.join(' ')}" fill="${fill}"/>`
   }
   const across = (frac: number) => Math.round(36 + frac * (w - 72)) // kept 36 px in from each side, so no cloud is cut by the picture's edge
   const at = (top: number, rows: number) => Math.min(groundTop - 6, Math.round((top / rows) * 110)) // a fixed scale from the top, never past the ground
   const bits: string[] = []
-  // Ground and ridges fade in from the left, so the sky has no hard edge where the pair's picture begins.
-  const fade = (id: string, colour: string, to: number) => `<linearGradient id="${id}" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="${colour}" stop-opacity="0"/><stop offset="0.35" stop-color="${colour}" stop-opacity="${to}"/></linearGradient>`
-  bits.push(`<defs>${fade('fade', sky.ground, 1)}${fade('ridge-near', sky.ridgeColour, 0.9)}${fade('ridge-far', sky.ridgeFarColour, 0.9)}</defs>`)
+  // The sky is a gradient over the whole width, top to horizon, and the ground and ridges are opaque to both edges: nothing fades to clear.
+  bits.push(`<defs><linearGradient id="sky" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${c.top}"/><stop offset="1" stop-color="${c.low}"/></linearGradient></defs>`)
+  bits.push(`<rect width="${w}" height="${h}" fill="url(#sky)"/>`)
   for (const st of sky.stars) bits.push(`<rect x="${across(st.left / 150)}" y="${at(st.top, 34)}" width="${st.big ? 3 : 2}" height="${st.big ? 3 : 2}" fill="${st.big ? '#d4a548' : '#8f7cc4'}"/>`)
-  for (const c of [...sky.wisps, ...sky.clouds]) bits.push(`<ellipse cx="${across((c.left % 130) / 130)}" cy="${at(c.top, 12)}" rx="${sky.clouds.includes(c) ? 26 : 18}" ry="${sky.clouds.includes(c) ? 7 : 4}" fill="${sky.cloudColour}"/>`)
-  for (const d of sky.rain) bits.push(`<line x1="${across((d.left % 150) / 150)}" y1="${at(d.top, 30)}" x2="${across((d.left % 150) / 150) - 3}" y2="${at(d.top, 30) + 8}" stroke="${sky.cloudColour}" stroke-width="1.5"/>`)
+  for (const cl of [...sky.wisps, ...sky.clouds]) bits.push(`<ellipse cx="${across((cl.left % 130) / 130)}" cy="${at(cl.top, 12)}" rx="${sky.clouds.includes(cl) ? 26 : 18}" ry="${sky.clouds.includes(cl) ? 7 : 4}" fill="${c.cloud}"/>`)
+  for (const d of sky.rain) bits.push(`<line x1="${across((d.left % 150) / 150)}" y1="${at(d.top, 30)}" x2="${across((d.left % 150) / 150) - 3}" y2="${at(d.top, 30) + 8}" stroke="${c.cloud}" stroke-width="1.5"/>`)
   if (!sky.bodyHidden) {
-    const cx = w - 34, cy = Math.min(groundTop - 14, sky.bodyTop * 6 + 16)
-    bits.push(`<circle cx="${cx}" cy="${cy}" r="10" fill="${sky.bodyColor}"/>`)
-    if (sky.body === '☾') bits.push(`<circle cx="${cx + 5}" cy="${cy - 3}" r="9" fill="${sky.paper}"/>`) // the moon is a crescent: a second disc in the paper's colour bites it
+    const cx = Math.round(w * 0.2), cy = Math.min(groundTop - 14, sky.bodyTop * 6 + 16)
+    bits.push(`<circle cx="${cx}" cy="${cy}" r="10" fill="${c.body}"/>`)
+    if (sky.body === '☾') bits.push(`<circle cx="${cx + 5}" cy="${cy - 3}" r="9" fill="${sky.band?.top ?? sky.paper}"/>`) // the moon is a crescent: a second disc in the sky's colour bites it
   }
-  bits.push(`<rect x="0" y="${groundTop}" width="${w}" height="${h - groundTop}" fill="url(#fade)"/>`)
-  bits.push(ridge(RIDGE_FAR, groundTop - 2, 'ridge-far'), ridge(RIDGE, groundTop, 'ridge-near'))
-  bits.push(`<rect x="0" y="${groundTop}" width="${w}" height="${h - groundTop}" fill="url(#fade)"/>`)
-  const source = art.source.replace(/(<svg[^>]*>)/, `$1<g shape-rendering="geometricPrecision">${bits.join('')}</g>`)
-  return { ...art, source }
+  bits.push(ridge(RIDGE_FAR, groundTop - 2, c.far), ridge(RIDGE, groundTop, c.near))
+  bits.push(`<rect y="${groundTop}" width="${w}" height="${h - groundTop}" fill="${c.ground}"/>`)
+  const m = /^(<svg[^>]*>)([\s\S]*)<\/svg>\s*$/.exec(art.source)
+  if (!m) return art
+  const root = slide ? m[1]!.replace(/width="\d+"/, `width="${w}"`).replace(/viewBox="[^"]*"/, `viewBox="0 0 ${w} ${h}"`) : m[1]!
+  const pair = slide ? `<g transform="translate(${slide},0)">${m[2]}</g>` : m[2]!
+  return { source: `${root}<g shape-rendering="geometricPrecision">${bits.join('')}</g>${pair}</svg>`, width: w, height: h }
 }
 
 // ---- what a beat costs -------------------------------------------------------------

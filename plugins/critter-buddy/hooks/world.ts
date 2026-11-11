@@ -172,6 +172,15 @@ export const tintOf = (cwd: string): number => {
   for (let i = 0; i < cwd.length; i++) h = Math.imul(h ^ cwd.charCodeAt(i), 0x01000193) >>> 0
   return h % TINTS.length
 }
+// The band's own sky, for an app with no backdrop: real colour from edge to edge, never the paper white.
+const BAND_SKY: Record<Phase, { top: string; low: string; body: string }> = {
+  day: { top: '#7fb8dc', low: '#f3dcc0', body: '#ffe27a' },
+  dawn: { top: '#e0907f', low: '#f8d6a2', body: '#fff0b8' },
+  dusk: { top: '#4a3a78', low: '#e0875f', body: '#ffb978' },
+  night: { top: '#0e1330', low: '#2b2a5c', body: '#efe4c4' },
+}
+const BAND_LAND: Record<Season, string> = { summer: '#a3b97c', autumn: '#c2a36a', winter: '#b9c6c4', spring: '#9fc58a' }
+const DULL: Record<Weather, number> = { clear: 0, cloud: 0.3, rain: 0.45, storm: 0.6 }
 export const skyFor = (o: { phase: Phase; season: Season; weather: Weather; festive: boolean; glow?: boolean; tint?: number }) => {
   const lean = (c: string, k: number): string => (o.tint === undefined ? c : mix(c, TINTS[o.tint]!.hex, k)) // a folder's colour, a little
   const ground0 = lean(GROUND[o.phase][o.season], 0.13)
@@ -182,7 +191,23 @@ export const skyFor = (o: { phase: Phase; season: Season; weather: Weather; fest
   const ground = seen(warm(ground0), paper, 1.2) // the floors: ground on paper 1.2, near ridge on ground 1.12, far ridge 1.06, cloud on paper 1.12, sun or moon 1.4
   const ridgeNear = seen(dark ? mix(ground, '#8f7cc4', 0.3) : mix(ground, '#4fa39a', 0.22), ground, 1.12)
   const ridgeFar = seen(dark ? mix(ground, '#8f7cc4', 0.15) : mix(ground, '#4fa39a', 0.1), ground, 1.06)
+  const bs = BAND_SKY[o.phase]
+  const dull = DULL[o.weather]
+  const top = warm(lean(mix(bs.top, '#8a8f98', dull), 0.1))
+  const low = warm(mix(bs.low, '#a8a8a8', dull * 0.8))
+  const land0 = BAND_LAND[o.season]
+  const land = lean(o.phase === 'day' ? land0 : o.phase === 'dawn' ? mix(land0, '#c98f7a', 0.3) : o.phase === 'dusk' ? mix(land0, '#2b2236', 0.72) : mix(land0, '#10131f', 0.85), 0.1)
+  const band = {
+    top,
+    low,
+    ground: land,
+    near: dark ? mix(land, '#8f7cc4', 0.2) : mix(land, '#2f5d4a', 0.22),
+    far: mix(land, low, 0.4),
+    cloud: o.weather === 'rain' || o.weather === 'storm' ? mix(top, '#4a4f5a', 0.45) : o.phase === 'night' ? mix(top, '#ffffff', 0.1) : o.phase === 'dusk' ? mix(top, '#ffffff', 0.18) : mix(low, '#ffffff', 0.55),
+    body: bs.body,
+  }
   return {
+    band,
     key: `${o.phase}-${o.season}-${o.weather}-${o.festive ? 'lights' : 'plain'}${o.glow ? '-glow' : ''}${o.tint === undefined ? '' : `-t${o.tint}`}`,
     paper,
     ground,
