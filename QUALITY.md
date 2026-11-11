@@ -30,11 +30,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The lead mods
 
-### critter-buddy 0.30.1
+### critter-buddy 0.30.2
 
 | | |
 | --- | --- |
-| Tests passing | 175 |
+| Tests passing | 176 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -63,11 +63,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - the corner and the stage have not been seen in the real app
 - the cat overlapping Pip when a side panel opens was seen once and not reproduced
 
-### mods 0.5.6
+### mods 0.5.7
 
 | | |
 | --- | --- |
-| Tests passing | 61 |
+| Tests passing | 63 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -132,11 +132,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The others
 
-### session-diary 0.5.1
+### session-diary 0.5.2
 
 | | |
 | --- | --- |
-| Tests passing | 29 |
+| Tests passing | 30 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -201,7 +201,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - its three settings cannot be set (no declared user configuration)
 - a long command rings twice
 
-### crab 0.2.5
+### crab 0.2.6
 
 | | |
 | --- | --- |
