@@ -471,7 +471,7 @@ test('the wizard stands left of the thinking orb and keeps the engine\'s own lin
   }
 })
 
-test('the cat speaks through the model by default, goes quiet on /critter talk off, and /critter talk says what it costs', async ($, on) => {
+test('the cat is silent until asked: no model call by default, one small call a turn after /critter talk on, none again after off', async ($, on) => {
   stub(on)
   let asked = 0
   on('ui.status', () => ({ value: undefined }))
@@ -482,16 +482,17 @@ test('the cat speaks through the model by default, goes quiet on /critter talk o
   on('store.get', () => ({ value: undefined }))
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   await $.turn.complete({ answer: 'done' } as never)
-  expect(asked).toBe(1) // on by default: exactly one small call per turn
+  expect(asked).toBe(0) // off by default: a mod does not spend tokens until it is asked to
   const usage = await $.command.run({ command: 'critter', args: 'talk', origin: { kind: 'composer' }, presentation: {} } as never)
   expect(JSON.stringify(usage)).toMatch(/costs tokens/)
-  await $.command.run({ command: 'critter', args: 'talk off', origin: { kind: 'composer' }, presentation: {} } as never)
-  await $.turn.complete({ answer: 'done' } as never)
-  expect(asked).toBe(1) // quiet: no model call, no tokens
+  expect(JSON.stringify(usage)).toMatch(/off until you turn it on/)
   const on_ = await $.command.run({ command: 'critter', args: 'talk on', origin: { kind: 'composer' }, presentation: {} } as never)
   expect(JSON.stringify(on_)).toMatch(/one small model call/)
   await $.turn.complete({ answer: 'done' } as never)
-  expect(asked).toBe(2) // exactly one call per turn
+  expect(asked).toBe(1) // exactly one call per turn
+  await $.command.run({ command: 'critter', args: 'talk off', origin: { kind: 'composer' }, presentation: {} } as never)
+  await $.turn.complete({ answer: 'done' } as never)
+  expect(asked).toBe(1) // quiet again: no model call, no tokens
 })
 
 test('the staff answers a press: the cast button and its hotkey make the wizard cast, on every surface', async ($, on) => {

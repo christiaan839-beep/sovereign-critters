@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.28.0
+
+- **Changed: the cat no longer speaks until you ask.** `/critter talk` is off by default (it was on). The line after a turn costs one small model call, so a mod now spends nothing on your account until you run `/critter talk on`. If you liked the speech, run that once. `/critter doctor` says which it is.
+
 ## 0.27.0
 
 - **The sky is drawn in the band when the app has no backdrop.** Your doctor showed why the window behind the chat was empty: this version of the desktop app has no `$.ui.backdrop` at all, so no mod can draw behind the chat. The pair's band now carries the sky itself (the ground fading in from the left, two ridges, the sun or moon, stars, cloud and rain) in the same picture as the pair, so it lines up and stays crisp. It keeps the hour, season, weather and folder tint. When an app that does have a backdrop is used, the full-window sky is drawn as before and the band stays plain.

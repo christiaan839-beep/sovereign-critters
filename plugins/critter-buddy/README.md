@@ -8,7 +8,7 @@ The Sovereign Matrix critter, a wizard version of it, and a tabby cat, living in
 
 - It makes no network request and sends no telemetry. State (the scene, the diary, the streak, the habits, your settings) stays in the plugin's own store on this machine.
 - It learns your habits as counts and hashes: the hours you work, and a short hash of each folder, never a path or a name. At most 50 hashes are kept.
-- **One thing does cost tokens:** after each turn the cat may say a line through one small model call (`/critter talk`, on by default). The call carries only numbers (the seconds the turn took and the counts of tools, errors and commits), never a command, a path, a file or a prompt. `/critter talk off` stops it and spends nothing.
+- **One thing does cost tokens:** after each turn the cat may say a line through one small model call (`/critter talk on`; it is off until you turn it on). The call carries only numbers (the seconds the turn took and the counts of tools, errors and commits), never a command, a path, a file or a prompt. `/critter talk off` stops it and spends nothing.
 - Sound and speech are off until you ask (`/critter sound on`, `/critter voice on`).
 - `biscuit-looks`, its one agent, can read and search but never edit, and it runs only when you ask it.
 
@@ -47,7 +47,7 @@ The cat keeps its trust in you across sessions in `$.store`; it falls by 8 for e
 | `/critter diary` | What the cat wrote. |
 | (automatic) | The sky: the hour, the season and the session's weather (joy sets it) behind the conversation; the streak and its props (3, 7, 14, 30 days); South African public holidays in the greeting and lights in December; the cat at the window during a call longer than 20 s. Nothing is fetched. |
 | `/critter lite`, `full`, `party` | How far it reaches: lite is the bar, the wizard and the orb; full adds the transcript's rows; party adds every message (default). |
-| `/critter talk on`, `off` | The cat speaks after each turn through one small model call. On by default; `off` keeps the cat quiet and spends nothing. |
+| `/critter talk on`, `off` | The cat speaks after each turn through one small model call. Off by default; `on` turns it on, `off` keeps the cat quiet and spends nothing. |
 | `/critter cat <coat>` | The cat's coat: `orange` (the default), `ink`, `brown`, `tabby`, `ginger`, `black`, `tuxedo`, `cream`, `grey`, `siamese`, or `pair` (follows day and night). |
 | `/critter name cat <name>`, `name pip <name>` | What the cat (Biscuit) and the wizard critter (Pip) are called; every line says it. |
 | `/critter wizard auto`, `gold`, `bolt` | The wizard by the hour, the gold star always, or the violet bolt always. |
