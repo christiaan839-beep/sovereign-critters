@@ -23,7 +23,7 @@ Eight gates. The lead mods (the first three) must meet all eight before release.
 | critter-clock | met | met | met | open | open | open | open | open | Not ready: 5 of 8 open |
 | critter-ledger | met | met | met | open | open | open | open | open | Not ready: 5 of 8 open |
 | critter-latch | met | met | met | stale | stale | open | open | open | Not ready: 5 of 8 open |
-| critter-seal | met | met | met | met | met | open | open | open | Not ready: 3 of 8 open |
+| critter-seal | met | met | met | stale | stale | open | open | open | Not ready: 5 of 8 open |
 
 met: done, and nothing has changed since. stale: done, but the plugin has changed since, so it needs another look. open: not done yet.
 
@@ -401,7 +401,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 | | |
 | --- | --- |
-| Tests passing | 40 |
+| Tests passing | 44 |
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
@@ -436,7 +436,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
-| Verdict | Not ready: 3 of 8 open |
+| Verdict | Not ready: 5 of 8 open |
 
 **Independent reviews**
 
