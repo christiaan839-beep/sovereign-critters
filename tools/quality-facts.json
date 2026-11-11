@@ -38,6 +38,14 @@
           "at": "10f284e",
           "kind": "code",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "the whole voice read for scolding, nagging and watching",
+          "found": "greetings, weekday lines and warnings softened, and a test now covers every line the pair can say",
+          "at": "147e77a",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [
@@ -77,13 +85,19 @@
           "at": "3c843c2",
           "kind": "code",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review, three rounds of the fixes for the earlier open findings",
+          "found": "the pane is re-read after a failed or timed-out switch, install all names each failure and why, a session never waits on the plugin manager, what a session loaded is seeded by the first good read, a flaky read keeps the last good list and says so, and a missing import was found and fixed; the old short names still work as aliases",
+          "at": "147e77a",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [],
       "gaps": [
-        "the index cards have not been photographed in the real app",
-        "a failed or timed-out switch leaves the pane stale",
-        "\"install all\" does not say which installs failed"
+        "the index cards have not been photographed in the real app"
       ],
       "failFirst": null,
       "coldInstall": []
@@ -162,13 +176,21 @@
           "at": "3c843c2",
           "kind": "code",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review, three rounds of the fixes for the earlier open findings",
+          "found": "the week now lives in the store and survives a restart, /diary clear empties it, spans and the markdown are escaped; the rounds found and fixed a hung store holding up tools, clear racing a write, a missing import, a leaked timer, autolinks and bidi controls in tool names; open: two sessions at once can undercount, and a store step that times out is not cancelled",
+          "at": "147e77a",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [],
       "gaps": [
-        "never seen in the real app",
         "the 14-day week does not survive a restart (session-scoped state)",
-        "/diary clear does not clear the week"
+        "/diary clear does not clear the week",
+        "never seen in the real app"
       ],
       "failFirst": null,
       "coldInstall": []
@@ -199,14 +221,19 @@
           "at": "3c843c2",
           "kind": "code",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review, three rounds of the fixes for the earlier open findings",
+          "found": "the three settings are declared and can be set, a command and its turn ring once, the sound and toast are not awaited; a failing toast no longer disturbs the turn; open: the time may include the permission dialog",
+          "at": "147e77a",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [],
       "gaps": [
-        "never heard or seen in the real app",
-        "where its three settings are set is not documented",
-        "its three settings cannot be set (no declared user configuration)",
-        "a long command rings twice"
+        "never heard or seen in the real app"
       ],
       "failFirst": null,
       "coldInstall": []
@@ -229,12 +256,19 @@
           "at": "3c843c2",
           "kind": "code",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review, three rounds of the fixes for the earlier open findings",
+          "found": "a note whose first read failed can be seen and dropped once the store answers, and the band redraws; while the store is down it says so; the previous folder is forgotten before the next hashes; open: two folders writing at once can overwrite each other",
+          "at": "147e77a",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [],
       "gaps": [
-        "never seen in the real app",
-        "/crab drop after a failed store read"
+        "never seen in the real app"
       ],
       "failFirst": null,
       "coldInstall": []
@@ -257,12 +291,19 @@
           "at": "3c843c2",
           "kind": "code",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-11",
+          "what": "independent code review, three rounds of the fixes for the earlier open findings",
+          "found": "the blink's follow-up timer is cancelled with the pane and cannot re-arm or raise; a pane lookup that fails is contained",
+          "at": "147e77a",
+          "kind": "code",
+          "openHigh": 0
         }
       ],
       "seen": [],
       "gaps": [
-        "never seen in the real app",
-        "the follow-up timer outlives the pane for up to 160 ms"
+        "never seen in the real app"
       ],
       "failFirst": null,
       "coldInstall": []
@@ -334,6 +375,12 @@
       "at": "d6bd248",
       "what": "a cold clone installs and passes preflight",
       "found": "it does (checked in the audit session; this is a reproducibility check, not the cold install by someone else that the bar asks for)"
+    },
+    {
+      "date": "2026-11-11",
+      "at": "6c84daa",
+      "what": "renamed the eight bare-word plugins into one critter-* family, with a preflight gate against old ids",
+      "found": "slash commands unchanged; the plugin store of each renamed plugin starts fresh"
     }
   ]
 }
