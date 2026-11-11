@@ -36,7 +36,7 @@ export const register: Register = on => {
     }
     redraw($)
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   on('command.run', { command: 'crab' }, async ($, e) => {
     const args = String(e.args ?? '').trim()

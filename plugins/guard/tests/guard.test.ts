@@ -674,3 +674,32 @@ test('when only one of git’s three answers fails, the push waits', async ($, o
   const out = await $.tool.call({ tool: 'Bash', command: 'git push' })
   expect(out.text ?? out.deny).toBe(WAITS)
 })
+
+// Found by an independent red-team of the guard: lines that push to main or force with no `push` the guard could read.
+const REFUSED = [
+  'echo git push -f origin main | bash',
+  'echo git push --force | sh -s',
+  'bash <(echo git push -f origin main)',
+  'git config alias.p "push --force origin main"; git p',
+  'git config alias.p "push -f" && git p origin main',
+  'echo push | xargs -I% git % origin main',
+  'G=git; P=push; $G $P -f origin main',
+  'git${IFS}pu${x}sh -f origin main',
+  'caffeinate $GIT push -f',
+]
+for (const command of REFUSED)
+  test(`a push the line hides is refused: ${command}`, async ($, on) => {
+    on('tool.call', () => ran)
+    on('process.run', onBranch('feature/lens'))
+    const out = await $.tool.call({ tool: 'Bash', command })
+    expect(out.deny).toMatch(/^guard: /)
+  })
+
+test('the same shapes that are not pushes still go through, so the guard does not strand ordinary lines', async ($, on) => {
+  on('tool.call', () => ran)
+  on('process.run', onBranch('feature/lens'))
+  for (const command of ['echo hello | bash', 'echo git status | bash', 'git config alias.st status; git st', 'git status', '$EDITOR README.md', 'echo $HOME']) {
+    const out = await $.tool.call({ tool: 'Bash', command })
+    expect(out.deny, command).toBeUndefined()
+  }
+})

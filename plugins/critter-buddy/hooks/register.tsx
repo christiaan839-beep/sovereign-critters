@@ -274,7 +274,7 @@ export const register: Register = on => {
     } catch {
       return r // a colour that cannot be worked out is no loss
     }
-  })
+  }).catch(($, e, next) => next(e))
 
   on('turn.complete', async ($, e, next) => {
     const now = await $.clock.now()
@@ -405,14 +405,13 @@ export const register: Register = on => {
     ticker?.cancel() // a second session.start must not stack a second clock
     let beat = 0
     ticker = $.clock.every(250, async () => {
-      if (live.hidden) { probe = noteBeat(probe, 'hidden', 0, 0); return } // hidden: nothing is drawn, and the engine is not asked anything
       const t0 = Date.now()
       let calls = 0
       beat += 1
-      if (beat % 40 === 0) { // the mirrors are checked against the engine now and then, in case something else wrote them
+      if (beat % 40 === 0) { // the mirrors are checked against the engine now and then, in case something else wrote them: while hidden too, so an outside un-hide is seen
         live.hidden = (await read($, isHidden)) === true; live.names = await read($, names); live.feel = await read($, feel); calls += 3
-        if (live.hidden) return
       }
+      if (live.hidden) { probe = noteBeat(probe, 'hidden', calls, calls ? Date.now() - t0 : 0); return } // hidden: nothing is drawn, and the engine is not asked anything between checks
       if (lastCadence === 4) { // the picture was still at the last step: look once to see whether anything woke it
         calls += 1
         lastCadence = cadence(await read($, scene))
@@ -450,7 +449,7 @@ export const register: Register = on => {
       $.ui.log('critter-buddy: /critter is taken by another plugin; the buttons above the prompt still work')
     }
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   // The session ends: what the cat feels and what it wrote are kept, whatever the clock last saved.
   on('session.end', async ($, e, next) => {
@@ -495,7 +494,7 @@ export const register: Register = on => {
       const [target = '', ...words] = e.args.trim().split(/\s+/).slice(1) // the name may have spaces, so it is read from the whole line
       const value = cleanName(words.join(' '))
       if ((target !== 'cat' && target !== 'pip') || !value) return { text: 'Usage: /critter name cat <name> | /critter name pip <name>. Letters, digits, spaces and hyphens, up to 16.' }
-      live.names = await update($, names, (n: Names): Names => ({ ...n, [target]: value }))
+      live.names = (await update($, names, (n: Names): Names => ({ ...n, [target]: value }))) ?? (await read($, names))
       return { text: target === 'cat' ? `The cat is ${value}.` : `The wizard critter is ${value}.` }
     }
     if (sub === 'wizard') {
@@ -520,7 +519,7 @@ export const register: Register = on => {
     if (sub === 'feel') {
       const f = FEELS.find(x => x === arg)
       if (!f) return { text: 'Usage: /critter feel calm | warm | playful | still. Calm: quiet, no sound. Warm: the usual. Playful: more hops and sparks. Still: nothing moves.' }
-      live.feel = await update($, feel, () => f)
+      live.feel = (await update($, feel, () => f)) ?? (await read($, feel))
       return { text: f === 'still' ? 'Still: nothing moves, and there is no sound. /critter feel warm brings them back.' : f === 'calm' ? 'Calm: the pair only breathe, walk and sleep. No sparks, no sound.' : f === 'playful' ? 'Playful: more hops, more sparks.' : 'Warm: the usual.' }
     }
     if (sub === 'perf') return { text: perfLines(probe).join('\n') }
@@ -587,14 +586,14 @@ export const register: Register = on => {
 
   // ---- the band above the prompt: the pair on the bar, and three things to press ----
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    // The window's width is noted before anything can send us away, so the stage and the corner and the doctor know it even while the pair are hidden.
+    const cols = Math.min(96, e.props.bodyColumns || e.viewport?.columns || 80) // a wide desktop window would spread the pair thin across it: the bar stops at 96 cells, like the film's frame
+    liveCols = cols
+    windowCols = windowWidth(e.props.bodyColumns, e.viewport?.columns)
     if (e.props.hasSurvey || (await read($, isHidden))) return next(e)
     const s = await read($, scene)
     const nm = await read($, names)
     const usageText = await read($, usage)
-    // A wide desktop window would spread the pair thin across it: the bar stops at 96 cells, like the film's frame.
-    const cols = Math.min(96, e.props.bodyColumns || e.viewport?.columns || 80)
-    liveCols = cols
-    windowCols = windowWidth(e.props.bodyColumns, e.viewport?.columns)
     const { Box, Text, Button, face, vector, svg } = kit($.ui.resolve(e), e.surface)
     // Other mods draw here too (usage-line, snoozing-pet): keep their rows beneath ours.
     const others = await next(e)
@@ -987,7 +986,8 @@ const syncSky = async ($: any, now: number, s: { joy: number; fails?: number; lo
   if (live.hidden) return
   const a = skyArgs(now, s.joy, s.fails, thinkingOf(s))
   const key = skyFor(a).key
-  if (key === lastSky && (skyDrawn || now < skyRetryAt)) return // unchanged and drawn, or refused and not yet time to try again
+  if (!skyDrawn && now < skyRetryAt) return // refused, and not yet time to try again (never, if the app has no backdrop at all)
+  if (key === lastSky && skyDrawn) return // unchanged and drawn
   lastSky = key
   const outcome = await drawBackdrop($, { id: key, glass: glassOf(a.phase) })
   skyDrawn = outcome.drawn

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.3
+
+- Every hook on the tool path now fails open: if it throws, the tool or prompt goes on as if the mod were not there.
+
 ## 0.4.2
 
 - Timing a tool call no longer waits on the clock before the tool starts, and each tool's two diary writes are made together.

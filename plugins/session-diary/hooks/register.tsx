@@ -125,7 +125,7 @@ export const register: Register = on => {
   on('prompt.submit', async ($, e, next) => {
     try { turnStart = await $.clock.now(); tools = 0; errors = 0 } catch { /* the diary never holds up a prompt */ }
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   // Every tool, timed. The call's input is never read: the diary holds names and times, not what was run.
   on('tool.call', async ($, e, next) => {
@@ -172,7 +172,7 @@ export const register: Register = on => {
       $.ui.log('session-diary: /diary is taken by another plugin')
     }
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   on('command.run', { command: 'diary' }, async ($, e) => {
     const sub = e.args.trim()

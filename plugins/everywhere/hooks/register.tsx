@@ -45,7 +45,7 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'everywhere', description: 'Opens a pane of the tools this session called most' })
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   // One pane for the session, drawn wherever the app draws a mod's panes: the terminal and the Desktop app. Where
   // no app draws it (the VS Code chat panel, claude -p), the answer is the tally in words.
@@ -58,7 +58,7 @@ export const register: Register = on => {
   on('tool.call', async ($, e, next) => {
     await update($, tally, t => ({ ...t, [e.tool]: (t[e.tool] ?? 0) + 1 }))
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   // One hook draws the pane for each app; each app's table supplies its own Box, Text and Button.
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {

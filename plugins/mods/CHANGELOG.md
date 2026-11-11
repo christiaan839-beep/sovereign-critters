@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.2
+
+- Every hook on the tool path now fails open: if it throws, the tool or prompt goes on as if the mod were not there.
+
 ## 0.5.1
 
 - Opening the control room draws each card once: a card is redrawn only when its mod's name, version, state or notes change.

@@ -143,7 +143,7 @@ export const register: Register = on => {
       $.ui.log('mods: /mods is taken by another plugin')
     }
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   on('command.run', { command: HUB }, async ($, e) => {
     try {

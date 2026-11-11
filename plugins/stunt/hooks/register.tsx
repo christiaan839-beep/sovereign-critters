@@ -77,7 +77,7 @@ export const register: Register = on => {
       $.clock.after(160, () => void flip(false))
     })
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   // /stunt asks for a pane as wide and as tall as the stand and the line under it (a request: the person's own
   // sizing wins). Its answer says what the person sees: the words alone where no app draws a mod's pane (the VS
@@ -109,7 +109,7 @@ export const register: Register = on => {
   on('tool.call', async ($, e, next) => {
     await Promise.all([update($, calls, list => [...list, e.tool].slice(-COLUMNS)), update($, total, n => n + 1)]) // independent atoms: written together
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const history = await read($, calls)

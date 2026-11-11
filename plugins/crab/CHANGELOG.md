@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+- Every hook on the tool path now fails open: if it throws, the tool or prompt goes on as if the mod were not there.
+
 ## 0.2.0
 
 - Redesigned: the crab holds your place. `/crab hold <text>` leaves a one-line note (120 characters at most) for the folder you are in; `/crab` shows it; `/crab drop` puts it down. A small pixel crab of our own, in the pair's clay, carries it in a band above the prompt: "holding: ..." for a note from this session, "you left this: ..." when you come back to the folder in a new session.

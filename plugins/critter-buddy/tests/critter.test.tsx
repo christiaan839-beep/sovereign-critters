@@ -2507,3 +2507,30 @@ test('a pane asks for what the window leaves after the chat: its full size from 
   expect(paneColumns(70, 60)).toBe(36)
   expect(paneColumns(20, 56)).toBe(36)
 })
+
+test('review fixes: an error from inside the app is not "no backdrop", a NaN day count changes no trust, and the horizon does not move when the picture gets taller', () => {
+  expect(backdropFailure(new TypeError("Cannot read properties of undefined (reading 'x')")).final).toBe(false) // a TypeError from the app's own code is retried, not given up on
+  expect(backdropFailure(new TypeError('$.ui.backdrop is not a function')).final).toBe(true)
+  expect(returnTrust(60, Number.NaN)).toBe(60)
+  const blank = (h: number) => ({ source: `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="${h}" viewBox="0 0 480 ${h}"></svg>`, width: 480, height: h })
+  const sky = skyForContrast({ phase: 'day', season: 'summer', weather: 'clear', festive: false })
+  const ground = (h: number) => { const m = /<rect x="0" y="(\d+)" width="\d+" height="(\d+)" fill="url/.exec(withSky(blank(h), sky).source); return { top: Number(m![1]), thickness: Number(m![2]) } }
+  expect(ground(100).thickness).toBe(ground(160).thickness) // the ground is the same thickness however tall the picture is
+  expect(ground(160).top - ground(100).top).toBe(60) // and it keeps to the bottom
+})
+
+test('the stage and the corner know the window width even when the pair were hidden before the band ever drew', async ($, on) => {
+  stub(on)
+  const asked: Record<string, unknown>[] = []
+  on('ui.open', (_: unknown, e: Record<string, unknown>) => { asked.push(e); return { value: undefined } })
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  const run = (args: string) => $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never)
+  await run('hide')
+  const hidden = await $.ui.mount({ ...BAND, surface: 'desktop', props: { ...BAND.props, bodyColumns: 130 } } as never) // the band draws nothing, but it hears the width
+  await hidden.unmount()
+  await run('stage')
+  expect(asked[0]).toMatchObject({ id: 'stage', columns: 60 }) // not 36, which is what a window of 80 would get
+})

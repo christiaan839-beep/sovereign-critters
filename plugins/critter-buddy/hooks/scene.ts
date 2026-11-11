@@ -1066,7 +1066,8 @@ export type SkyDraw = { ground: string; ridgeColour: string; ridgeFarColour: str
  */
 export const withSky = (art: Svgd, sky: SkyDraw): Svgd => {
   const { width: w, height: h } = art
-  const groundTop = Math.round(h * 0.72)
+  // The ground is a fixed thickness from the bottom, not a share of the height: the picture's height changes whenever the pair hop (empty rows above are trimmed), and the horizon must not jump with it.
+  const groundTop = Math.max(Math.round(h * 0.4), h - 46)
   const ridge = (text: string, base: number, colour: string, opacity: number) => {
     const step = 10
     const pts = [`0,${h}`]
@@ -1074,7 +1075,7 @@ export const withSky = (art: Svgd, sky: SkyDraw): Svgd => {
     pts.push(`${w},${h}`)
     return `<polygon points="${pts.join(' ')}" fill="${colour}" fill-opacity="${opacity}"/>`
   }
-  const at = (top: number, rows: number) => Math.round((top / rows) * groundTop)
+  const at = (top: number, rows: number) => Math.min(groundTop - 6, Math.round((top / rows) * 110)) // a fixed scale from the top, never past the ground
   const bits: string[] = []
   bits.push(`<defs><linearGradient id="fade" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="${sky.ground}" stop-opacity="0"/><stop offset="0.3" stop-color="${sky.ground}" stop-opacity="1"/></linearGradient></defs>`)
   for (const st of sky.stars) bits.push(`<rect x="${Math.round((st.left / 150) * w)}" y="${at(st.top, 34)}" width="${st.big ? 3 : 2}" height="${st.big ? 3 : 2}" fill="${st.big ? '#d4a548' : '#8f7cc4'}"/>`)
@@ -1138,7 +1139,7 @@ export const backdropOutcome = (answer: unknown): { drawn: boolean; text: string
 
 /** What a failed `$.ui.backdrop` call means: the app has no backdrop at all (a call to something that is not there: never tried again), or it refused. */
 export const backdropFailure = (err: unknown): { text: string; final: boolean } => {
-  const absent = err instanceof TypeError && /not a function|undefined/.test(err.message)
+  const absent = err instanceof TypeError && /backdrop\b.*(is not a function|is undefined)/.test(err.message) // our own call to something that is not there, not any TypeError from inside the app
   return absent
     ? { final: true, text: 'not drawn (this version of the app has no backdrop, so the sky is drawn behind the pair in the band; update the app for the full-window sky)' }
     : { final: false, text: `not drawn (the host refused the call: ${err instanceof Error ? err.message : String(err)})` }
@@ -1193,7 +1194,7 @@ export const doctorLines = (d: DoctorInput): string[] => {
  * never below 40: unbothered, not sulking (a sulk is under 30, and is earned in a session, never by the calendar). A night's sleep
  * also forgives a sulk carried over from before: a cat that went to bed at 25 wakes at 40.
  */
-export const returnTrust = (trust: number, days: number): number => (days < 1 ? trust : Math.max(40, trust - days * 8))
+export const returnTrust = (trust: number, days: number): number => (!(days >= 1) ? trust : Math.max(40, trust - days * 8))
 
 /** The line a sulking cat says when work lifts it out of the sulk (30 and over); nothing for a cat that was not sulking. */
 const forgives = (s: Scene, gain: number): string[] => (s.trust < 30 && s.trust + gain >= 30 ? ['{cat} has decided to forgive you. Do not make it a habit.'] : [])

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.28.2
+
+- **Fixed: the stage and the corner opened 36 columns wide when the pair were hidden at the start.** The window width is now noted before the band decides to draw nothing.
+- **Fixed: a hidden critter could stay hidden** if something other than `/critter show` un-hid it; the clock now re-checks while hidden too.
+- **Fixed: the sky in the band no longer jumps** when the pair hop: the ground keeps a fixed thickness from the bottom.
+- A TypeError from inside the app is no longer taken for \"this app has no backdrop\" (and so no longer given up on); a NaN day count changes no trust.
+- Every hook on the tool path now fails open.
+
 ## 0.28.1
 
 - **The stage and the corner fit a narrow window.** They used to want 110 columns and the doctor just said so. Now each opens as wide as the window leaves after the chat (48 columns in a 98-column window, never under 36), and at 110 columns and over they have their full size. `/critter doctor` says how wide they will open.

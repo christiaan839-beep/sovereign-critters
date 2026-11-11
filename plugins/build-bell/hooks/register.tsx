@@ -25,7 +25,7 @@ export const register: Register = (on, options) => {
   on('prompt.submit', async ($, e, next) => {
     try { turnStart = await $.clock.now() } catch { /* never hold up a prompt */ }
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
   on('turn.complete', async ($, e, next) => {
     try {
       const took = turnStart ? (await $.clock.now()) - turnStart : 0

@@ -428,16 +428,19 @@ function walk(parts: Part[], start: string | undefined, changes: Changes, outer:
   }
   // The words that reach parts[n] as a script it reads: those of the commands piped into it, and of a <( )
   // right after it (bash <(echo …)).
+  // What a command prints into a pipe, as the shell reads it: its arguments as one line (echo git push -f | bash is the
+  // script `git push -f`, not three scripts), and any heredoc it was given (cat <<EOF | bash).
+  const prints = (c: Command) => [...c.stdin, c.words.slice(1).join(' ')]
   const feeds = (n: number) => {
-    const words: string[] = []
-    for (let j = n - 1; parts[j] === '|' && typeof parts[j - 1] === 'object'; j -= 2) words.push(...(parts[j - 1] as Command).words)
+    const scripts: string[] = []
+    for (let j = n - 1; parts[j] === '|' && typeof parts[j - 1] === 'object'; j -= 2) scripts.push(...prints(parts[j - 1] as Command))
     if (parts[n + 1] === '(')
       for (let j = n + 2, depth = 0; j < parts.length && !(parts[j] === ')' && depth-- === 0); j++) {
         const p = parts[j]!
         if (p === '(') depth++
-        else if (typeof p === 'object') words.push(...p.words)
+        else if (typeof p === 'object') scripts.push(...prints(p))
       }
-    return words
+    return scripts
   }
   const command = (part: Command, n: number) => {
     const f = frame()
@@ -486,6 +489,7 @@ function walk(parts: Part[], start: string | undefined, changes: Changes, outer:
         vars[key] = value
       }
       if (words.length && configures(vars)) unknown('it sets git settings in its environment (GIT_CONFIG_…)')
+      if (Object.values(vars).some(v => /git|push/i.test(v))) changes.names = true // a variable that holds git or push may be run as a command later on the line
       if (Object.keys(vars).some(LOCATES)) move(undefined, !piped)
       changes.loads ??= Object.keys(vars).find(LOADS)
     } else if (name === 'find') {
@@ -505,8 +509,9 @@ function walk(parts: Part[], start: string | undefined, changes: Changes, outer:
       })
       if (carried) unknown(`it runs git push through ${name}, which the guard does not read`)
     } else if (unread(words[0] ?? '')) {
-      if (words.some(w => w.includes('push'))) unknown('it runs a command named by an expansion')
-    } else if (!['echo', 'printf'].includes(name) && words.some((w, j) => j > 0 && base(w) === 'git' && words[j + subcommand(words.slice(j))] === 'push'))
+      // A command named by an expansion may be git: refused when its words name push, or git, or when a variable the line set holds either.
+      if (words.some(w => w.includes('push') || w.toLowerCase().includes('git')) || changes.names) unknown('it runs a command named by an expansion')
+    } else if (!['echo', 'printf'].includes(name) && words.some((w, j) => j > 0 && (base(w) === 'git' || unread(w)) && words[j + subcommand(words.slice(j))] === 'push'))
       unknown(`it runs git push through ${name}, which the guard does not read`)
 
     // A loop runs its body again, so a push earlier in it runs after what the commands after it change too.
@@ -584,10 +589,15 @@ function git(words: string[], here: string | undefined, env: Record<string, stri
   const options = words.slice(1, k)
   const args = words.slice(k + 1)
   let unknown: string | undefined
+  // An alias this very line made (git config alias.p "push -f"; git p): read as the command it stands for, so it is judged as one.
+  const made = sub === 'push' ? undefined : changes.alias?.[sub.toLowerCase()]
+  if (made !== undefined && !unread(made))
+    return walk(split(`${made.startsWith('!') ? made.slice(1) : `git ${made}`} ${args.map(quote).join(' ')}`), here, changes, env).found
   if (sub !== 'push') {
     if (options.some(o => o.toLowerCase().includes(`alias.${sub.toLowerCase()}=`))) unknown = 'it runs a git alias set on the command line'
+    else if (made !== undefined) unknown = 'it runs a git alias this line just made, and the guard cannot read it'
     else if (unread(sub)) unknown = 'its git subcommand is an expansion'
-    else if (xargs && !sub) unknown = 'xargs adds its git subcommand'
+    else if (xargs && !QUIET.has(sub)) unknown = 'xargs may put push where its git subcommand is'
     else if (options.some((o, j) => unread(o) && /^(-c|--config-env)$/.test(options[j - 1] ?? ''))) unknown = 'it sets a git setting the guard cannot read'
     else if (runs(sub, args).some(s => walk(split(s), undefined, changes).found.length)) unknown = `it runs git push through git ${sub}`
     else if (/^(send-pack|http-push)$/.test(sub) || (sub === 'subtree' && args.includes('push'))) unknown = `git ${sub} pushes in a way the guard does not read`
@@ -617,7 +627,7 @@ function runs(sub: string, args: string[]) {
 // runs: the branches the line may check out (UNREAD when the guard cannot tell which), the branches whose
 // upstream it may set ('HEAD' for the one checked out), why the settings git reports may be stale by then, and a
 // variable the line sets for the shell that changes the program that runs (PATH=, export LD_PRELOAD=).
-type Changes = { heads: string[]; fresh: string[]; stale?: string; loads?: string }
+type Changes = { heads: string[]; fresh: string[]; stale?: string; loads?: string; alias?: Record<string, string>; names?: boolean }
 // What a push carries: the changes made so far, as they stand when it is found.
 const seen = (changes: Changes): Changes => ({ heads: [...changes.heads], fresh: [...changes.fresh], stale: changes.stale })
 const UNREAD = WILD
@@ -667,6 +677,8 @@ function note(sub: string, args: string[], changes: Changes) {
     else stale('git symbolic-ref on this line makes one branch a name for another')
   } else if (sub === 'config') {
     const writes = named.length >= 2 || args.some(a => /^(--add|--unset|--unset-all|--replace-all|--rename-section|--remove-section|-e|--edit)$/.test(a))
+    const al = named.findIndex(w => /^alias\./i.test(w))
+    if (writes && al >= 0) (changes.alias ??= {})[named[al]!.slice(6).toLowerCase()] = named[al + 1] ?? UNREAD
     if (writes && (args.some(a => /^(-e|--edit)$/.test(a)) || named.some(w => /^(push|branch|remote|alias|include)/i.test(w) || unread(w))))
       stale('git config on this line changes the settings that decide where a push goes')
   } else if (sub === 'remote') {

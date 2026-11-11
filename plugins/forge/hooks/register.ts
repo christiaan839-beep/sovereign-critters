@@ -39,9 +39,9 @@ export const register: Register = on => {
       },
     })
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   // The model calls it as mcp__forge__measure. Every call is answered here; nothing beneath runs it.
   on('tool.call', { tool: 'mcp__forge__measure' }, ($, e) =>
-    ({ result: describe(measure(String(e.text ?? ''))) }))
+    ({ result: describe(measure(String(e.text ?? ''))) })).catch(($, e, next) => next(e))
 }

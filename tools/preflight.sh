@@ -29,6 +29,9 @@ if [ "$rc" -eq 0 ]; then ok 'root test (passed)'
 elif [ "$rc" -eq 1 ] && grep -q 'no hooks module to load' "$TMP/t.log" && [ "$(wc -l <"$TMP/t.log")" -le 2 ]; then ok 'root test (exit 1, "no hooks module": expected)'
 else bad "root test exited $rc for a reason other than the expected one"; sed 's/^/      /' "$TMP/t.log" | tail -20; fi
 
+# 2b. every hook on the tool path fails open (the guard fails closed on purpose and is left out)
+if python3 tools/check-hooks.py >"$TMP/h.log" 2>&1; then ok 'every tool-path hook ends in .catch'; else bad 'a tool-path hook has no .catch'; sed 's/^/      /' "$TMP/h.log"; fi
+
 # 3. every sound
 for s in plugins/*/sounds; do
   [ -d "$s" ] || continue

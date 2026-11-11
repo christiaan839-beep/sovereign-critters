@@ -16,7 +16,7 @@ If the check cannot finish (git fails or times out, or the line cannot be read),
 
 ## What it does not do
 
-It is **best effort**. A push made by a script or another program (`make`, an npm script, `gh`, an MCP tool), a command built while the line runs, and a git alias in a config file are outside it. It is no substitute for **branch protection on the server**.
+It is **best effort**. A push made by a script or another program (`make`, an npm script, `gh`, an MCP tool), a command built while the line runs, and a git alias in a config file are outside it. So is a line that changes what a bare `git push` would do through something other than git before it (a program that checks out `main`, or `echo ... > .git/HEAD`), and a shell whose working directory an earlier call changed (the guard asks git where the hook runs, which may not be where the shell is). An alias the line itself makes (`git config alias.p "push -f"; git p`) is read and judged. It is no substitute for **branch protection on the server**.
 
 ## What it never does
 
