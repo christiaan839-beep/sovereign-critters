@@ -653,3 +653,24 @@ forms('ordinary work runs', { ...ON_FEATURE, '/abs/repo': { branch: 'feature' } 
   ['git push origin --delete old-feature', 'ran'],
   ['npm test 2>&1 | tail -20', 'ran'],
 ])
+
+test("git's three answers are asked together, and one failing still makes the push wait", async ($, on) => {
+  on('tool.call', () => ran)
+  let inflight = 0, most = 0
+  on('process.run', async (_: unknown, e: { argv: readonly string[] }) => {
+    inflight += 1; most = Math.max(most, inflight)
+    await new Promise(done => setTimeout(done, 5))
+    inflight -= 1
+    return onBranch('feature/lens')(_, e)
+  })
+  const out = await $.tool.call({ tool: 'Bash', command: 'git push' })
+  expect(out.deny).toBeUndefined()
+  expect(most).toBe(3)
+})
+
+test('when only one of git’s three answers fails, the push waits', async ($, on) => {
+  on('tool.call', () => ran)
+  on('process.run', (_: unknown, e: { argv: readonly string[] }) => (e.argv.includes('for-each-ref') ? git('', 128) : onBranch('feature/lens')(_, e)))
+  const out = await $.tool.call({ tool: 'Bash', command: 'git push' })
+  expect(out.text ?? out.deny).toBe(WAITS)
+})

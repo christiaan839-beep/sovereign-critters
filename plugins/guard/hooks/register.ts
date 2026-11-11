@@ -823,9 +823,13 @@ export const register: Register = on => {
           if (answer?.exitCode !== 0 || answer.isStdoutTruncated) throw new Error(UNANSWERED)
           return answer.stdout
         }
-        const head = await run('branch', '--show-current')
-        const config = await run('config', '--list', '-z')
-        const refs = await run('for-each-ref', '--format=%(refname) %(symref)', 'refs/heads')
+        // The three questions do not depend on one another, so they are asked together: the push waits for the slowest
+        // git, not for all three one after another. Any one failing still fails the whole check (and the push waits).
+        const [head, config, refs] = await Promise.all([
+          run('branch', '--show-current'),
+          run('config', '--list', '-z'),
+          run('for-each-ref', '--format=%(refname) %(symref)', 'refs/heads'),
+        ])
         const symrefs: Record<string, string> = {}
         for (const [ref, to] of refs.split('\n').map(l => l.split(' '))) if (ref && to) symrefs[ref] = to
         return { head: head.trim() || undefined, config: settings(config), symrefs }
