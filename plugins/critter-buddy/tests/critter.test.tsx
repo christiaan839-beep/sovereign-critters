@@ -1475,15 +1475,16 @@ test('the same diary line in a row is one line with a count, and a different lin
   expect(foldDiary(['14:00 x (×2)'], ['14:01 x (not a count)'])).toEqual(['14:00 x (×2)', '14:01 x (not a count)'])
 })
 
-test('a cat never comes back sulking: the same day nothing changes, days away cost 8 a day down to 40, and a night forgives a sulk', () => {
+test('a new session never opens on a sulking cat: trust is never under 40 at the start, and days away cost 8 a day above that', () => {
   expect(returnTrust(60, 0)).toBe(60)
-  expect(returnTrust(28, 0)).toBe(28) // the same day: a sulk earned this session is still a sulk
+  expect(returnTrust(28, 0)).toBe(40) // a sulk from the last session is not carried into this one
   expect(returnTrust(60, 2)).toBe(44)
   expect(returnTrust(60, 3)).toBe(40) // 36 would be close to the edge: the floor is 40
   expect(returnTrust(60, 400)).toBe(40)
-  expect(returnTrust(25, 1)).toBe(40) // a night's sleep forgives a sulk carried over
+  expect(returnTrust(25, 1)).toBe(40)
   expect(returnTrust(90, 1)).toBe(82)
-  for (const days of [1, 2, 7, 90]) expect(returnTrust(0, days)).toBeGreaterThanOrEqual(30) // never under the sulk line
+  expect(returnTrust(60, Number.NaN)).toBe(60)
+  for (const days of [0, 1, 2, 7, 90]) expect(returnTrust(0, days)).toBeGreaterThanOrEqual(30) // never under the sulk line
 })
 
 test('work earns the cat round: a green run and a commit add trust, and crossing out of a sulk is remarked on once', () => {
@@ -2511,7 +2512,6 @@ test('a pane asks for what the window leaves after the chat: its full size from 
 test('review fixes: an error from inside the app is not "no backdrop", a NaN day count changes no trust, and the horizon does not move when the picture gets taller', () => {
   expect(backdropFailure(new TypeError("Cannot read properties of undefined (reading 'x')")).final).toBe(false) // a TypeError from the app's own code is retried, not given up on
   expect(backdropFailure(new TypeError('$.ui.backdrop is not a function')).final).toBe(true)
-  expect(returnTrust(60, Number.NaN)).toBe(60)
   const blank = (h: number) => ({ source: `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="${h}" viewBox="0 0 480 ${h}"></svg>`, width: 480, height: h })
   const sky = skyForContrast({ phase: 'day', season: 'summer', weather: 'clear', festive: false })
   const ground = (h: number) => { const m = /<rect x="0" y="(\d+)" width="\d+" height="(\d+)" fill="url/.exec(withSky(blank(h), sky).source); return { top: Number(m![1]), thickness: Number(m![2]) } }
@@ -2551,4 +2551,14 @@ test('no cloud, star or raindrop is drawn closer than 36 px to either side of th
       const xs = [...out.matchAll(/<(?:ellipse cx|rect x|line x1)="(\d+)"/g)].map(m => Number(m[1])).filter(v => v > 0 && v < 480)
       for (const v of xs) { expect(v).toBeGreaterThanOrEqual(33); expect(v).toBeLessThanOrEqual(447) }
     }
+})
+
+test('every /critter word the command answers to is known to the prompt box: teal, never the gold underline of a stray word', () => {
+  for (const word of ['pet', 'treat', 'nap', 'spell', 'corner', 'stage', 'diary', 'doctor', 'perf', 'sky', 'tint', 'hide', 'show', 'lite', 'full', 'party', 'talk', 'sound', 'voice', 'feel', 'wizard', 'name', 'cat']) {
+    const run = draftRuns(`/critter ${word}`).find(r => r.start === 9)
+    expect(run?.color, word).toBe('#4fa39a')
+    expect(run?.underline, word).toBeUndefined()
+  }
+  expect(draftRuns('/critter doctorr').find(r => r.start === 9)?.underline).toBe(true) // a word it does not know is still marked
+  expect(draftRuns('/critter sky ni').find(r => r.start === 13)).toBeDefined() // and sky takes its phases
 })

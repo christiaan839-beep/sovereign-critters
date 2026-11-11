@@ -903,9 +903,9 @@ const WORDS = (n: Names): Record<string, string> => ({
   pet: `${n.cat} allows it`, treat: `${n.pip} is sure it is his`, cast: `${n.pip} casts something`, spell: `${n.pip} casts something`, nap: 'both of them sleep',
   stage: 'the critter alone on a stage', corner: `${n.cat}'s corner`, diary: `what ${n.cat} wrote`, hide: 'out of sight', show: 'back again',
   lite: 'the bar, the wizard, the orb', full: 'and the rows of the transcript', party: 'and every message',
-  cat: 'choose a coat', wizard: 'choose the wizard', name: 'rename them', sound: 'chime and purr', voice: 'speak the big moments aloud', talk: `let ${n.cat} speak`, feel: 'calm, warm or playful',
+  cat: 'choose a coat', wizard: 'choose the wizard', name: 'rename them', sound: 'chime and purr', voice: 'speak the big moments aloud', talk: `let ${n.cat} speak`, feel: 'calm, warm or playful', doctor: 'what is on and why', perf: "the clock's own books", sky: 'the window behind the chat', tint: "this folder's colour in the sky",
 })
-const ARGS: Record<string, string[]> = { cat: COATS_LIST, wizard: ['auto', 'gold', 'bolt'], sound: ['on', 'off'], voice: ['on', 'off'], talk: ['on', 'off'], name: ['cat', 'pip'], feel: ['calm', 'warm', 'playful'] }
+const ARGS: Record<string, string[]> = { cat: COATS_LIST, wizard: ['auto', 'gold', 'bolt'], sound: ['on', 'off'], voice: ['on', 'off'], talk: ['on', 'off'], name: ['cat', 'pip'], feel: ['calm', 'warm', 'playful'], sky: ['auto', 'dawn', 'day', 'dusk', 'night'], tint: ['on', 'off'] }
 const FAMILY: Record<string, { ghost: string; subs?: Record<string, string> }> = {
   diary: { ghost: 'what Claude did, in order', subs: { copy: 'the whole session, as markdown', clear: 'empty it', week: 'the last seven days, a bar a day' } },
   stunt: { ghost: 'the critter in a pane, a card per call' },
@@ -1193,11 +1193,11 @@ export const doctorLines = (d: DoctorInput): string[] => {
 }
 
 /**
- * How much the cat trusts you when a session starts. The same day, nothing changes. After a day or more away it drops 8 a day, but
- * never below 40: unbothered, not sulking (a sulk is under 30, and is earned in a session, never by the calendar). A night's sleep
- * also forgives a sulk carried over from before: a cat that went to bed at 25 wakes at 40.
+ * How much the cat trusts you when a session starts: never below 40, so a new session never opens on a sulking cat (a sulk is under
+ * 30, and is earned inside a session, never by the calendar or carried into the next one). After a day or more away it also drops
+ * 8 a day from where it was, down to that floor.
  */
-export const returnTrust = (trust: number, days: number): number => (!(days >= 1) ? trust : Math.max(40, trust - days * 8))
+export const returnTrust = (trust: number, days: number): number => Math.max(40, trust - (days >= 1 ? days : 0) * 8)
 
 /** The line a sulking cat says when work lifts it out of the sulk (30 and over); nothing for a cat that was not sulking. */
 const forgives = (s: Scene, gain: number): string[] => (s.trust < 30 && s.trust + gain >= 30 ? ['{cat} has decided to forgive you. Do not make it a habit.'] : [])

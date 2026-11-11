@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.28.4
+
+- **Fixed: the prompt box marked `doctor` as a stray word.** Your photo showed `/critter doctor` with `doctor` underlined in gold, the mark for a word the mod does not know. `doctor`, `perf`, `sky` and `tint` were missing from the table the prompt box reads, so they were also missing from the typeahead and had no hint after them. All four are known now, and `sky` offers its five phases and `tint` offers `on` and `off`.
+- **Fixed: a new session could still open on a sulking cat.** The cat kept a sulk from the last session until a day had passed. A new session now always opens at 40 or above (unbothered), and a sulk is earned only inside a session.
+
 ## 0.28.3
 
 - **Fixed: the sky in the band had a hard edge.** Rendering it in a real browser showed the ridges starting abruptly at the left of the pair's picture, and clouds cut in half by the edge. The ridges now fade in from the left like the ground, and clouds, stars and rain keep 36 pixels in from each side.
