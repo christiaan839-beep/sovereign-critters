@@ -5,7 +5,7 @@ An opt-in guard against deletes you cannot take back. Install it and it stops th
 - a recursive `rm` that reaches outside the folder you opened, or would remove that folder or one above it (`rm -rf ..`, `rm -rf ~`, `rm -rf *`);
 - `git reset --hard`;
 - `git clean -f` (any spelling that forces and is not a dry run);
-- `git checkout .`, `git checkout -f` and `git restore .` over the whole tree.
+- `git checkout .`, `git checkout -f`, `git switch -f` (or `--discard-changes`) and `git restore .` over the whole tree; a `--pathspec-from-file` it cannot read waits.
 
 ```
 latch: rm -r reaches outside the folder you opened (/work/app). Ask the person to run it themselves if they meant it.
@@ -22,7 +22,7 @@ It reads the command line, past `sudo`, `env`, `time`, `nice`, `xargs`, `find -e
 It is best effort and no substitute for a backup or for version control.
 
 - It reads how a command is spelled, not what a script does. `make clean`, `npm run reset`, `find -delete`, `rsync --delete`, a git alias and a program that deletes on its own are invisible to it.
-- It guards `rm` and four git commands. It does not guard `mv`, `dd`, `>` truncation, `git branch -D`, `git stash drop`, `git switch -f`, `git checkout-index`, `git read-tree --reset` or `git push --force` (that is [critter-ward](../critter-ward)).
+- It guards `rm` and four git commands. It does not guard `mv`, `dd`, `>` truncation, `git branch -D`, `git stash drop`, `git checkout-index`, `git read-tree --reset` or `git push --force` (that is [critter-ward](../critter-ward)).
 - It cannot read options built from a variable (`rm $FLAGS x`), a `case` inside `$( )`, or a `CDPATH` that changes where `cd` goes. A symlink inside the folder that points outside it is not followed.
 - It judges the folder the session was opened in. If it cannot tell which that is, a recursive delete waits.
 - It fails closed for a line that names `rm`, `git` or `xargs` and that it cannot read; any other command goes on as if the mod were not there.

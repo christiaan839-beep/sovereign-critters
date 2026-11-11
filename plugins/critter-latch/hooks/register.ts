@@ -411,6 +411,11 @@ function git(args: Word[], where: Where, again: (script: string) => string | und
   if (sub === 'checkout' && !patch) {
     if (bundle.has('f') || flags.some(a => spells(a, '--force', 3)) || pathspecs.some(wholeTree)) return 'git checkout throws away every uncommitted change in the tree'
   }
+  if (sub === 'switch' && (bundle.has('f') || flags.some(x => spells(x, '--force', 3) || spells(x, '--discard-changes', 3)))) return 'git switch throws away every uncommitted change in the tree'
+  const fromFile = flags.some(x => x.startsWith('--pathspec-from-file'))
+  if ((sub === 'checkout' || sub === 'restore') && !patch && fromFile && !(sub === 'restore' && (bundle.has('S') || flags.some(x => spells(x, '--staged', 3))) && !bundle.has('W') && !flags.some(x => spells(x, '--worktree', 3)))) {
+    return `git ${sub} --pathspec-from-file reads its paths from a file the guard cannot read, so it waits`
+  }
   if (sub === 'restore' && !patch) {
     const staged = flags.some(a => spells(a, '--staged', 3)) || bundle.has('S')
     const worktree = flags.some(a => spells(a, '--worktree', 3)) || bundle.has('W')
