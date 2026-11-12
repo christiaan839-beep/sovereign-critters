@@ -2,6 +2,8 @@
 
 ![critter-tally: One pane, each app's own way.](preview.png)
 
+**Witness** pillar: says what happened, honestly. One of thirteen [sovereign-critters](../../README.md#what-is-here) mods.
+
 /everywhere opens a pane of the three tools the session called most, drawn by each app from its own elements.
 
 ## What it does

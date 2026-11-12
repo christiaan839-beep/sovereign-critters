@@ -2,6 +2,8 @@
 
 ![critter-latch: Holds the delete you cannot take back.](preview.png)
 
+**Guard** pillar: stops the one thing you cannot take back. One of thirteen [sovereign-critters](../../README.md#what-is-here) mods.
+
 An opt-in guard against deletes you cannot take back. Install it and it stops these before the Bash tool runs them:
 
 - a recursive `rm` that reaches outside the folder you opened, or would remove that folder or one above it (`rm -rf ..`, `rm -rf ~`, `rm -rf *`);

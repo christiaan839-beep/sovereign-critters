@@ -2,6 +2,8 @@
 
 ![critter-ward: Stops the push before it happens.](preview.png)
 
+**Guard** pillar: stops the one thing you cannot take back. One of thirteen [sovereign-critters](../../README.md#what-is-here) mods.
+
 Stops a git push that forces, or that writes main or master, before the Bash tool runs it. It fails closed, and it is best effort: no substitute for branch protection on the server.
 
 ## What it does

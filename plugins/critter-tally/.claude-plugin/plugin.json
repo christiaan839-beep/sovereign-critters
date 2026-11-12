@@ -1,6 +1,6 @@
 {
   "name": "critter-tally",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "license": "Apache-2.0",
   "icon": "./.claude-plugin/icon.png",
   "description": "/everywhere opens a pane of the three tools the session called most, drawn by each app its own way (natively on the Desktop app), with a Hide button. Where no app draws it, the answer comes in words.",
@@ -15,6 +15,7 @@
     "pane",
     "usage",
     "desktop",
-    "terminal"
+    "terminal",
+    "witness"
   ]
 }

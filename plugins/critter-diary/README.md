@@ -2,6 +2,8 @@
 
 ![critter-diary: What Claude did, in order](preview.png)
 
+**Witness** pillar: says what happened, honestly. One of thirteen [sovereign-critters](../../README.md#what-is-here) mods.
+
 `/diary` opens a pane that keeps what Claude did this session.
 
 - **Every tool call**, with the hour (Johannesburg time), whether it succeeded or failed, and how long it took.

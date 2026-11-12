@@ -2,6 +2,8 @@
 
 ![critter-bell: A bell for the long ones](preview.png)
 
+**Witness** pillar: says what happened, honestly. One of thirteen [sovereign-critters](../../README.md#what-is-here) mods.
+
 A soft bell and a toast when a long command finishes, so you can look away while a build, an install or a test run goes.
 
 - It rings and shows a toast for a Bash command that ran **20 seconds or more**, and for a **turn** that ran that long: "Claude finished after 1 min 30 s". Change it in the plugin's settings (`minSeconds`).

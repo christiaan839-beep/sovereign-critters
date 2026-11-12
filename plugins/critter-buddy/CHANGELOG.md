@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.30.6
+
+- Docs: the README names the mod's pillar (Companion) in the sovereign-critters family, and the marketplace lists it under that tag. No behaviour change.
+
 ## 0.30.5
 
 - Types: the plugin typechecks with no errors against Claude Code's own mod types (`tsconfig.json` now extends the ones Claude Code writes into `.claude-plugin/types`, leaving out the MCP list), and its tests follow the current test kit. No behaviour change.

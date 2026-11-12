@@ -2,6 +2,8 @@
 
 ![critter-stunt: The critter, painted in a pane.](preview.png)
 
+**Companion** pillar: something alive beside the work. One of thirteen [sovereign-critters](../../README.md#what-is-here) mods.
+
 A card stunt in the terminal: the critter painted cell by cell in a pane, blinking while it is up, a card for each of the last 40 tool calls beneath it, and the count of every call in words.
 
 ## What it does

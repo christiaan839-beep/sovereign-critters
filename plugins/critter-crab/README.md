@@ -2,6 +2,8 @@
 
 ![critter-crab: it holds your place.](preview.png)
 
+**Companion** pillar: something alive beside the work. One of thirteen [sovereign-critters](../../README.md#what-is-here) mods.
+
 A small pixel crab that holds a note for you. Tell it where you stopped, and it is there again when you come back to the folder, in a new session, after a restart.
 
 ```

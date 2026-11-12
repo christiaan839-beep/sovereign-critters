@@ -13,15 +13,15 @@ Eight gates. The lead mods (the first three) must meet all eight before release.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | critter-buddy | met | met | met | stale | stale | stale | stale | open | Not ready: 5 of 8 open |
 | critter-mods | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
-| critter-ward | met | met | met | met | stale | met | stale | open | Not ready: 3 of 8 open |
+| critter-ward | met | met | met | stale | stale | stale | stale | open | Not ready: 5 of 8 open |
 | critter-diary | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | critter-bell | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | critter-crab | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | critter-stunt | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | critter-tally | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
 | critter-measure | met | met | met | open | stale | open | stale | open | Not ready: 5 of 8 open |
-| critter-clock | met | met | met | open | open | met | open | open | Not ready: 4 of 8 open |
-| critter-ledger | met | met | met | open | open | met | open | open | Not ready: 4 of 8 open |
+| critter-clock | met | met | met | open | open | stale | open | open | Not ready: 5 of 8 open |
+| critter-ledger | met | met | met | open | open | stale | open | open | Not ready: 5 of 8 open |
 | critter-latch | met | met | met | met | stale | met | open | open | Not ready: 3 of 8 open |
 | critter-seal | met | met | met | stale | stale | met | open | open | Not ready: 4 of 8 open |
 
@@ -35,7 +35,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The lead mods
 
-### critter-buddy 0.30.5
+### critter-buddy 0.30.6
 
 | | |
 | --- | --- |
@@ -69,7 +69,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - the corner and the stage have not been seen in the real app
 - the cat overlapping Pip when a side panel opens was seen once and not reproduced
 
-### critter-mods 0.7.3
+### critter-mods 0.7.4
 
 | | |
 | --- | --- |
@@ -101,7 +101,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the index cards have not been photographed in the real app
 
-### critter-ward 0.3.4
+### critter-ward 0.3.5
 
 | | |
 | --- | --- |
@@ -109,7 +109,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
-| Verdict | Not ready: 3 of 8 open |
+| Verdict | Not ready: 5 of 8 open |
 
 **Independent reviews**
 
@@ -137,7 +137,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The others
 
-### critter-diary 0.6.4
+### critter-diary 0.6.5
 
 | | |
 | --- | --- |
@@ -173,7 +173,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - /diary clear does not clear the week
 - never seen in the real app
 
-### critter-bell 0.6.4
+### critter-bell 0.6.5
 
 | | |
 | --- | --- |
@@ -207,7 +207,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never heard or seen in the real app
 
-### critter-crab 0.4.2
+### critter-crab 0.4.3
 
 | | |
 | --- | --- |
@@ -240,7 +240,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app
 
-### critter-stunt 0.2.4
+### critter-stunt 0.2.5
 
 | | |
 | --- | --- |
@@ -273,7 +273,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app
 
-### critter-tally 0.2.4
+### critter-tally 0.2.5
 
 | | |
 | --- | --- |
@@ -305,7 +305,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app
 
-### critter-measure 0.2.4
+### critter-measure 0.2.5
 
 | | |
 | --- | --- |
@@ -337,7 +337,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never called by the model in the real app
 
-### critter-clock 0.1.4
+### critter-clock 0.1.5
 
 | | |
 | --- | --- |
@@ -345,7 +345,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | any surface that runs hooks (it draws nothing) |
-| Verdict | Not ready: 4 of 8 open |
+| Verdict | Not ready: 5 of 8 open |
 
 **Independent reviews**
 
@@ -367,7 +367,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the hourly toast has not been seen in the real app
 
-### critter-ledger 0.1.4
+### critter-ledger 0.1.5
 
 | | |
 | --- | --- |
@@ -375,7 +375,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | any surface that runs hooks (it draws nothing) |
-| Verdict | Not ready: 4 of 8 open |
+| Verdict | Not ready: 5 of 8 open |
 
 **Independent reviews**
 
@@ -398,7 +398,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - never seen in the real app; token counts come from the engine's per-turn usage, not checked against a bill
 - the toast for passing a limit has not been seen in the real app
 
-### critter-latch 0.1.5
+### critter-latch 0.1.6
 
 | | |
 | --- | --- |
@@ -430,7 +430,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the fixes after the review have not been reviewed again
 
-### critter-seal 0.1.5
+### critter-seal 0.1.6
 
 | | |
 | --- | --- |
