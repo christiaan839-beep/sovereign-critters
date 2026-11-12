@@ -1,7 +1,7 @@
 import type { Register } from 'claude-code'
 
 import { cardSvg, dividerSvg } from './card-svg'
-import { DEFAULT_STEPS, DIALS, HUB, MODS, STEPS, SYMBOL, actionFor, cellsOf, fit, installArgv, listLine, parseList, parseTopEntry, restartNeeded, stateOf, statusWord, titleOf, toggleArgv, wrap , STAMP_WORD, orderMods, tierOf} from './catalog'
+import { DEFAULT_STEPS, DIALS, HUB, MODS, STEPS, SYMBOL, actionFor, cellsOf, fit, installArgv, listLine, parseList, parseTopEntry, restartNeeded, stateOf, statusWord, titleOf, toggleArgv, wrap , STAMP_WORD, listDue, orderMods, tierOf} from './catalog'
 import type { Installed, Mod, Notes, State, Tier } from './catalog'
 
 const PANE = 'mods'
@@ -22,7 +22,7 @@ const redraw = ($: any) => {
 }
 const readList = async ($: any): Promise<Installed[] | undefined> => {
   try {
-    const r = await $.process.run(['claude', 'plugin', 'list', '--json'], { timeoutMs: 20_000 })
+    const r = await $.process.run(['claude', 'plugin', 'list', '--json'], { timeoutMs: 8000 })
     return r.exitCode === 0 ? parseList(String(r.stdout)) : undefined
   } catch {
     return undefined // no plugin manager here (a cloud session, a sandbox): the control room says so and carries on
@@ -43,16 +43,31 @@ const seed = (list: Installed[] | undefined) => {
 }
 const loadedHas = (id: string): boolean => S.loaded?.has(id) ?? false // unseeded means no list either (they are seeded together), so no state is shown
 const STALE = 'The plugin manager did not answer, so this is the last list it gave.'
-/** Reads the plugin manager again; true when it answered, false when the pane is showing the last good list (or none). */
+// A card's notes come from the mod's own CHANGELOG in its install folder, whose path carries the version: they are read once per path.
+const noteCache = new Map<string, Notes | undefined>()
+let freshAt = 0 // when the plugin manager last gave a good list
+let inflight: Promise<boolean> | undefined
+/** Reads the plugin manager again, once at a time; true when it answered, false when the pane is showing the last good list (or none). */
+const refreshList = ($: any): Promise<boolean> => {
+  inflight ??= (async () => {
+    const fresh = await readList($)
+    if (fresh) { S.list = fresh; freshAt = Date.now() } // one flaky read does not wipe the last good list
+    seed(fresh)
+    return fresh !== undefined
+  })().finally(() => { inflight = undefined })
+  return inflight
+}
+/** Fills in the notes of any mod whose install path has not been read yet. */
+const loadNotes = async ($: any): Promise<void> => {
+  const todo = MODS.map(m => [m.id, S.list?.find(x => x.id === `${m.id}@sovereign-critters`)?.installPath] as const)
+  await Promise.all(todo.map(async ([, path]) => { if (path && !noteCache.has(path)) noteCache.set(path, await readNotes($, path)) }))
+  S.notes = Object.fromEntries(todo.map(([id, path]) => [id, path ? noteCache.get(path) : undefined] as const))
+}
 const refresh = async ($: any): Promise<boolean> => {
-  const fresh = await readList($)
-  if (fresh) S.list = fresh // one flaky read does not wipe the last good list
-  seed(fresh)
-  const found = await Promise.all(MODS.map(async m => [m.id, S.list?.find(x => x.id === `${m.id}@sovereign-critters`)?.installPath] as const))
-  const notes = await Promise.all(found.map(async ([id, path]) => [id, path ? await readNotes($, path) : undefined] as const))
-  S.notes = Object.fromEntries(notes)
+  const answered = await refreshList($)
+  await loadNotes($)
   redraw($)
-  return fresh !== undefined
+  return answered
 }
 const stateNow = (mod: Mod) => stateOf(mod, S.list ?? [])
 const onCount = () => MODS.filter(m => stateNow(m).state === 'on').length
@@ -157,13 +172,7 @@ export const register: Register = on => {
     // What this session loaded is what was on when it began, so only the first answer says it.
     S.loaded = undefined
     S.list = undefined
-    const began: Promise<void> = Promise.resolve(readList($)).then(list => {
-      if (!list) return
-      S.list = S.list ?? list
-      seed(list)
-      redraw($)
-    }).catch(() => undefined)
-    void began
+    void refreshList($).then(() => redraw($)).catch(() => undefined)
     try {
       await $.command.register({ name: HUB, description: 'The control room: /mods opens one pane for every mod, with a switch for each. /mods list, on <mod>, off <mod>, install <mod|all>, open <mod> [label].' })
     } catch {
@@ -177,7 +186,10 @@ export const register: Register = on => {
       const words = String(e.args ?? '').trim().split(/\s+/).filter(Boolean)
       const sub = words[0] ?? ''
       if (sub === '') {
-        await refresh($)
+        // The pane opens on the list it has. The plugin manager is asked first only when there is nothing to show, and in the background when the list is old.
+        if (!S.list) await refresh($)
+        else if (listDue(freshAt, Date.now())) void refresh($).catch(() => undefined)
+        else void loadNotes($).then(() => redraw($)).catch(() => undefined)
         const opened = await $.ui.open({ id: PANE, title: 'Mods', focus: true, closeOnEscape: true, columns: 80, rows: 80 })
         return say(opened?.isPlaced === false ? `The control room could not open a pane here, so here is the list.\n${lines().join('\n')}` : `The control room is open: ${onCount()} of ${MODS.length} mods on.`)
       }
@@ -186,7 +198,7 @@ export const register: Register = on => {
         return say(S.list ? `${answered ? '' : `${STALE}\n`}${lines().join('\n')}` : CANNOT)
       }
       if ((sub === 'on' || sub === 'off') && words.length === 2) {
-        if (words[1]!.toLowerCase() === HUB) return say('The control room cannot switch itself off: use `claude plugin disable` for that.')
+        if (words[1]!.toLowerCase() === HUB) return say('The control room cannot switch itself off: run `claude plugin disable critter-mods` in a terminal for that.')
         const mod = actionFor(words[1]!)
         return say(mod ? await setMod($, mod, sub) : `No mod is called "${fit(words[1]!, 24)}". ${USAGE}`)
       }

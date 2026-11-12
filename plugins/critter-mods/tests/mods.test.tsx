@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { DIALS, HUB, MARKET, MODS, actionFor, cellsOf, fit, idOf, installArgv, listLine, parseList, parseTopEntry, restartNeeded, stateOf, toggleArgv, wrap } from '../hooks/catalog'
+import { DIALS, HUB, listDue, MARKET, MODS, actionFor, cellsOf, fit, idOf, installArgv, listLine, parseList, parseTopEntry, restartNeeded, stateOf, toggleArgv, wrap } from '../hooks/catalog'
 import { cardSvg } from '../hooks/card-svg'
 import type { Installed } from '../hooks/catalog'
 
@@ -391,12 +391,12 @@ test('a terminal card has a border in the pair\'s clay when on and dim when off,
 // ---- the release notes on a card ---------------------------------------------
 
 const CACHE = '/srv/u/.claude/plugins/cache/sovereign-critters'
-const withPaths = (extra: Record<string, string> = {}) => JSON.stringify([
+const listWithPaths = (extra: Record<string, string> = {}) => JSON.stringify([
   ...MODS.map(m => ({ id: `${m.id}@${MARKET}`, version: '1.0.0', enabled: true, installPath: extra[m.id] ?? `${CACHE}/${m.id}/1.0.0` })),
 ])
 
 test('each card shows the top entry of that mod\'s own CHANGELOG, read from its install folder with head and no shell', async ($, on) => {
-  const { ran } = setup($, on, withPaths(), undefined, argv => argv[0] === 'head' ? { value: { ...PROCESS_OK, stdout: `# Changelog\n\n## 2.5.0\n\n- **${argv[3]!.split('/').at(-3)} got better.** A second sentence.\n- Another change.\n- Left out.\n\n## 2.4.0\n\n- Old.\n` } } : undefined)
+  const { ran } = setup($, on, listWithPaths(), undefined, argv => argv[0] === 'head' ? { value: { ...PROCESS_OK, stdout: `# Changelog\n\n## 2.5.0\n\n- **${argv[3]!.split('/').at(-3)} got better.** A second sentence.\n- Another change.\n- Left out.\n\n## 2.4.0\n\n- Old.\n` } } : undefined)
   await begin($)
   await run($, '') // opening the control room reads the notes
   const heads = ran.filter(a => a[0] === 'head')
@@ -415,7 +415,7 @@ test('each card shows the top entry of that mod\'s own CHANGELOG, read from its 
 })
 
 test('a changelog that cannot be read, and a path the plugin manager gave that is not a cache folder, give "No release notes found" and never a command', async ($, on) => {
-  const { ran } = setup($, on, withPaths({ 'critter-measure': '/etc', 'critter-crab': `${CACHE}/critter-crab/1.0.0/../../../..` }), undefined, argv => argv[0] === 'head' ? { value: { exitCode: 1, stdout: '', stderr: 'no such file', isStdoutTruncated: false, isStderrTruncated: false } } : undefined)
+  const { ran } = setup($, on, listWithPaths({ 'critter-measure': '/etc', 'critter-crab': `${CACHE}/critter-crab/1.0.0/../../../..` }), undefined, argv => argv[0] === 'head' ? { value: { exitCode: 1, stdout: '', stderr: 'no such file', isStdoutTruncated: false, isStderrTruncated: false } } : undefined)
   await begin($)
   await run($, '')
   expect(ran.filter(a => a[0] === 'head')).toHaveLength(10) // critter-measure and crab were never read: their paths are not trusted
@@ -426,7 +426,7 @@ test('a changelog that cannot be read, and a path the plugin manager gave that i
 })
 
 test('refresh reads the plugin manager and the notes again', async ($, on) => {
-  const { ran } = setup($, on, withPaths())
+  const { ran } = setup($, on, listWithPaths())
   await begin($)
   const ui = await $.ui.mount({ plugin: 'critter-mods', component: 'Pane', requestId: 'mods', surface: 'terminal', props: { bodyColumns: 80 } } as never)
   const before = ran.filter(a => a.includes('list')).length
@@ -586,4 +586,41 @@ test('a read that fails after a good one says the list is the last one, in /mods
   const ui = await $.ui.mount({ plugin: 'critter-mods', component: 'Pane', requestId: 'mods', surface: 'terminal', props: { bodyColumns: 80 } } as never)
   await ui.press({ plugin: 'critter-mods', key: 'refresh' } as never)
   await ui.unmount()
+})
+
+// ---- smoothness: the pane opens on what it has, and asks the plugin manager no more than it must ----
+
+const kinds = (ran: string[][]) => ({ list: ran.filter(a => a.includes('list')).length, head: ran.filter(a => a[0] === 'head').length })
+
+test('opening the control room twice in a row asks the plugin manager once and reads each mod\'s notes once', async ($, on) => {
+  const { ran } = setup($, on, listWithPaths(), undefined, argv => (argv[0] === 'head' ? { value: { ...PROCESS_OK, stdout: '## 1.0.0\n- a change\n' } } : undefined))
+  await begin($)
+  await new Promise(r => setTimeout(r, 20)) // the session's own first read arrives
+  await run($, '')
+  await run($, '')
+  await new Promise(r => setTimeout(r, 20))
+  expect(kinds(ran)).toEqual({ list: 1, head: MODS.length })
+})
+
+test('a list is asked for again only once it is a few seconds old, and a list never read is always due', () => {
+  expect(listDue(1000, 1000 + 4999)).toBe(false)
+  expect(listDue(1000, 1000 + 5000)).toBe(true)
+  expect(listDue(Number.NaN, 1000)).toBe(true)
+  expect(listDue(0, 100)).toBe(false) // a list read a moment after the epoch is fresh too: 0 is a time, not "never"
+})
+
+test('with no claude command the control room says so at once and does not try the notes', async ($, on) => {
+  const ran: string[][] = []
+  on('command.register', () => ({ value: { command: 'mods' } }))
+  on('session.start', (_: unknown, e: { cwd: string }) => ({ cwd: e.cwd }))
+  on('process.run', (_: unknown, e: { argv: string[] }) => { ran.push(e.argv); throw new Error('spawn claude ENOENT') })
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  await begin($)
+  const began = Date.now()
+  expect(await run($, '')).toMatch(/could not open|control room is open/i)
+  const ui = await $.ui.mount({ plugin: 'critter-mods', component: 'Pane', requestId: 'mods', surface: 'terminal', props: { bodyColumns: 56 } } as never)
+  expect(await ui.find({ type: 'Text', text: /cannot reach the plugin manager/i })).toBeDefined()
+  await ui.unmount()
+  expect(Date.now() - began).toBeLessThan(300)
+  expect(ran.every(a => a[0] === 'claude')).toBe(true) // no head, no second program
 })

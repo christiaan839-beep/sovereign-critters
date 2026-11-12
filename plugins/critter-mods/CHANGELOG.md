@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.5
+
+- **Smoother: the control room opens on the list it has.** It used to ask the plugin manager and read all eight changelogs every time it opened (3 list calls and 16 file reads for two opens); it now asks once, reads each changelog once per version, opens at once on the last list, and refreshes in the background when that list is a few seconds old. A missing `claude` command still says so straight away.
+- **Changed:** the plugin manager is given 8 seconds, not 20. The ward card says what it stops; its steps and the line about switching the control room off name the right plugin.
+
 ## 0.7.4
 
 - Docs: the README names the mod's pillar (Workshop) in the sovereign-critters family, and the marketplace lists it under that tag. No behaviour change.

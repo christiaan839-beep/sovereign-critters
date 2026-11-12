@@ -16,7 +16,7 @@ export const MODS: Mod[] = [
   { id: 'critter-diary', names: ['diary', 'session-diary'], line: 'Keeps a diary of everything Claude did, so you can look back at your day.',
     opens: [{ label: 'pane', command: 'diary', args: '' }, { label: 'week', command: 'diary', args: 'week' }, { label: 'postcard', command: 'diary', args: 'postcard' }] },
   { id: 'critter-bell', names: ['bell', 'build-bell'], line: 'Rings a bell when something long finishes, so you can look away.', opens: [] },
-  { id: 'critter-ward', names: ['guard'], line: 'Stops Claude pushing code in a risky way before it happens.', opens: [] },
+  { id: 'critter-ward', names: ['guard'], line: 'Holds back a force-push, or a push to main or master, before the Bash tool runs it.', opens: [] },
   { id: 'critter-stunt', names: ['stunt'], line: 'Draws the critter big, with a little card for each thing Claude does.', opens: [{ label: 'pane', command: 'stunt', args: '' }] },
   { id: 'critter-crab', names: ['crab'], line: 'A small crab that remembers one note for each folder you work in.', opens: [{ label: 'note', command: 'crab', args: '' }] },
   { id: 'critter-measure', names: ['forge'], line: 'Lets Claude count words, letters and lines exactly instead of guessing.', opens: [] },
@@ -73,7 +73,7 @@ export const STEPS: Record<string, string[]> = {
   'critter-buddy': ['Switch it on here, then start a new session.', 'Type /critter to see what you can do.', 'Press pet, feed or the corner above the prompt.'],
   'critter-diary': ['Switch it on here, then start a new session.', 'Work as usual, then type /diary.', 'Type /diary week to see the whole week.'],
   'critter-bell': ['Switch it on here, then start a new session.', 'Run something slow and look away: it rings when done.'],
-  'critter-ward': ['Switch it on here, then start a new session.', 'Nothing else to do: it works in the background.'],
+  'critter-ward': ['Switch it on here, then start a new session.', 'Nothing to press: it speaks only when a push has to wait.'],
   'critter-stunt': ['Switch it on here, then start a new session.', 'Type /stunt to open it.'],
   'critter-crab': ['Switch it on here, then start a new session.', 'Type /crab hold and a note to leave one.', 'Come back to the folder later: the crab has it.'],
   'critter-measure': ['Switch it on here, then start a new session.', 'Ask Claude to count a text exactly.'],
@@ -191,3 +191,6 @@ export const statusWord = (state: State, restart: boolean): string =>
 /** One mod as a plain line: a symbol (not colour) says the state, then the words. */
 export const listLine = (mod: Mod, s: { state: State; version: string }, loaded: ReadonlySet<string>, width: number): string =>
   fit(`${SYMBOL[s.state]} ${mod.id.padEnd(15)} ${s.version.padEnd(6)} ${statusWord(s.state, restartNeeded(s.state, loaded.has(mod.id)))}`.replace(/ +$/, ''), width)
+
+/** Whether the plugin manager's last good list is old enough to ask again: a pane opened twice in a few seconds is drawn from the list it has. */
+export const listDue = (freshAt: number, now: number, windowMs = 5000): boolean => !Number.isFinite(freshAt) || now - freshAt >= windowMs
