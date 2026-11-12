@@ -1,6 +1,6 @@
 {
   "name": "sovereign-critters",
-  "description": "Claude Code mods from Sovereign Matrix: a wizard critter and an orange cat, a build bell, a session diary, a crab that holds your place, and a few small mods that show what a mod can do.",
+  "description": "Thirteen Claude Code mods from Sovereign Matrix in four pillars: Companion (a wizard critter, a cat, a crab that holds your place), Guard (stops a force-push, a delete you cannot take back, a secret leaving), Witness (a diary, a clock, a token ledger, a bell) and Workshop (the control room).",
   "owner": {
     "name": "Sovereign Matrix"
   },
@@ -8,67 +8,119 @@
     {
       "name": "critter-buddy",
       "source": "./plugins/critter-buddy",
-      "description": "The wizard, the cat, a stage, names, a cast chime and a purr, a diary the model can read, and a Day and Night backdrop."
+      "description": "The wizard, the cat, a stage, names, a cast chime and a purr, a diary the model can read, and a Day and Night backdrop.",
+      "category": "design",
+      "tags": [
+        "companion"
+      ]
     },
     {
       "name": "critter-mods",
       "source": "./plugins/critter-mods",
-      "description": "/mods: the control room. One pane lists every mod, switches each on or off, installs the missing ones, and opens each mod's own panes."
+      "description": "/mods: the control room. One pane lists every mod, switches each on or off, installs the missing ones, and opens each mod's own panes.",
+      "category": "development",
+      "tags": [
+        "workshop"
+      ]
     },
     {
       "name": "critter-bell",
       "source": "./plugins/critter-bell",
-      "description": "A counter-bell strike and a toast when a long command or a long turn finishes."
+      "description": "A counter-bell strike and a toast when a long command or a long turn finishes.",
+      "category": "monitoring",
+      "tags": [
+        "witness"
+      ]
     },
     {
       "name": "critter-diary",
       "source": "./plugins/critter-diary",
-      "description": "/diary: every tool call with its time, a line for each turn, and a copy-as-markdown button. Names and times only."
+      "description": "/diary: every tool call with its time, a line for each turn, and a copy-as-markdown button. Names and times only.",
+      "category": "monitoring",
+      "tags": [
+        "witness"
+      ]
     },
     {
       "name": "critter-measure",
       "source": "./plugins/critter-measure",
-      "description": "A tool that counts text exactly: characters, words, lines and UTF-8 bytes."
+      "description": "A tool that counts text exactly: characters, words, lines and UTF-8 bytes.",
+      "category": "monitoring",
+      "tags": [
+        "witness"
+      ]
     },
     {
       "name": "critter-stunt",
       "source": "./plugins/critter-stunt",
-      "description": "/stunt: the critter painted in a pane, with a card for each of the last 40 tool calls."
+      "description": "/stunt: the critter painted in a pane, with a card for each of the last 40 tool calls.",
+      "category": "design",
+      "tags": [
+        "companion"
+      ]
     },
     {
       "name": "critter-crab",
       "source": "./plugins/critter-crab",
-      "description": "/crab hold <text>: a small crab carries a note for this folder, and has it for you when you come back."
+      "description": "/crab hold <text>: a small crab carries a note for this folder, and has it for you when you come back.",
+      "category": "design",
+      "tags": [
+        "companion"
+      ]
     },
     {
       "name": "critter-ward",
       "source": "./plugins/critter-ward",
-      "description": "Stops a git push that forces or writes main or master, before Bash runs it. Best effort."
+      "description": "Stops a git push that forces or writes main or master, before Bash runs it. Best effort.",
+      "category": "security",
+      "tags": [
+        "guard"
+      ]
     },
     {
       "name": "critter-tally",
       "source": "./plugins/critter-tally",
-      "description": "/everywhere: a pane of your three most-used tools, drawn by each app its own way."
+      "description": "/everywhere: a pane of your three most-used tools, drawn by each app its own way.",
+      "category": "monitoring",
+      "tags": [
+        "witness"
+      ]
     },
     {
       "name": "critter-clock",
       "source": "./plugins/critter-clock",
-      "description": "/clock: how long the session has run and how much of it Claude spent working. Times only."
+      "description": "/clock: how long the session has run and how much of it Claude spent working. Times only.",
+      "category": "monitoring",
+      "tags": [
+        "witness"
+      ]
     },
     {
       "name": "critter-ledger",
       "source": "./plugins/critter-ledger",
-      "description": "/ledger: tokens used this session, with a limit of your own. Silent until you ask."
+      "description": "/ledger: tokens used this session, with a limit of your own. Silent until you ask.",
+      "category": "monitoring",
+      "tags": [
+        "witness"
+      ]
     },
     {
       "name": "critter-latch",
       "source": "./plugins/critter-latch",
-      "description": "Opt-in: stops recursive deletes outside your folder, git reset --hard, git clean -f and checkout over the whole tree."
+      "description": "Opt-in: stops recursive deletes outside your folder, git reset --hard, git clean -f and checkout over the whole tree.",
+      "category": "security",
+      "tags": [
+        "guard"
+      ]
     },
     {
       "name": "critter-seal",
       "source": "./plugins/critter-seal",
-      "description": "Opt-in: holds back a command that sends a secret to a host you have not listed."
+      "description": "Opt-in: holds back a command that sends a secret to a host you have not listed.",
+      "category": "security",
+      "tags": [
+        "guard"
+      ]
     }
   ]
 }

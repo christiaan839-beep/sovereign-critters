@@ -2,6 +2,8 @@
 
 ![critter-seal: Keeps your secrets on your machine.](preview.png)
 
+**Guard** pillar: stops the one thing you cannot take back. One of thirteen [sovereign-critters](../../README.md#what-is-here) mods.
+
 An opt-in guard that keeps secrets on your machine. It holds back a command that sends a secret to a host you have not listed.
 
 ```

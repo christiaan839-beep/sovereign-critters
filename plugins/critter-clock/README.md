@@ -2,6 +2,8 @@
 
 ![critter-clock: Time here, and time Claude worked.](preview.png)
 
+**Witness** pillar: says what happened, honestly. One of thirteen [sovereign-critters](../../README.md#what-is-here) mods.
+
 How long this session has run, and how much of it Claude spent working. Type `/clock`. It also says so once on each full hour, if you leave that on.
 
 ```

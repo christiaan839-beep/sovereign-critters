@@ -1,5 +1,7 @@
 # critter-buddy
 
+**Companion** pillar: something alive beside the work. One of thirteen [sovereign-critters](../../README.md#what-is-here) mods.
+
 The Sovereign Matrix critter, a wizard version of it, and a tabby cat, living in Claude Code's own interface: above the prompt, beside the thinking orb, on every tool row, and behind the conversation on the desktop app.
 
 ![The critter's day: reading, cooking a build, casting, done](demo.gif)

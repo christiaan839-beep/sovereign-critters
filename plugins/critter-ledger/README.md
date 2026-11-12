@@ -2,6 +2,8 @@
 
 ![critter-ledger: The tokens you used, when you ask.](preview.png)
 
+**Witness** pillar: says what happened, honestly. One of thirteen [sovereign-critters](../../README.md#what-is-here) mods.
+
 The tokens this session has used, when you ask. Type `/ledger`.
 
 ```

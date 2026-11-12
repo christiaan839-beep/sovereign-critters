@@ -2,6 +2,29 @@
 
 Kept so a long run survives a context summary. Newest state first. Update it in the same commit as the work.
 
+## The plan (agreed 2026-11-12): polish, then launch, then grow
+
+Four pillars in one repo (`VOICE.md`), and the Guard pillar also shipped on its own as **sovereign-guard** (name to confirm). Business: free core (Apache-2.0), a paid team edition, services, sponsors.
+
+**Phase 1, polish**
+- [x] The ontology: `VOICE.md`, the root README by pillar, each README and marketplace entry tagged with its pillar.
+- [ ] A threat model in each guard's README (what it stops, what it cannot read, where it does not run, how it fails, its review record).
+- [ ] A fourth independent review round on latch and seal (ward too); every finding fixed with a test that failed first.
+- [ ] `examples/hot-reload-demo` as a "write your first mod" guide, the code annotated.
+- [ ] High-contrast palette, from the founder's screenshots of the real window. Needs the founder.
+- [ ] The stage, the corner and the sky seen in the desktop app. Needs the founder.
+
+**Phase 2, launch**
+- [ ] A demo GIF or short video: the script and stills here, the recording by the founder.
+- [ ] Two or more outside testers through RELEASE.md 4b; fix what they hit.
+- [ ] The listing texts for Anthropic's plugin directory; the founder submits.
+- [ ] Tag v1.0.0 and write the launch post.
+
+**Phase 3, grow**
+- [ ] sovereign-guard and the team edition. A mod counts as an organization's only when installed from a folder on the machine (Claude Code's docs, Manage mods for your organization), so the product is an installer that places the guards' folder and writes the managed settings, plus support.
+- [ ] Services page (custom mods and guardrails for teams) and `FUNDING.yml`.
+- [ ] New mods, picked by pillar from what testers and directory users ask for.
+
 ## Done and on main
 
 - [x] critter-ward 0.3.0: round two of the independent review (641 lines against real git, 50 past the guard); the spellings the header promised to read are fixed, each with a test that failed first. The README says plainly that it stops accidents and is not a security boundary.
