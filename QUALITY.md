@@ -101,11 +101,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the index cards have not been photographed in the real app
 
-### critter-ward 0.3.6
+### critter-ward 0.3.7
 
 | | |
 | --- | --- |
-| Tests passing | 85 |
+| Tests passing | 86 |
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
@@ -138,7 +138,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The others
 
-### critter-diary 0.6.5
+### critter-diary 0.6.6
 
 | | |
 | --- | --- |
