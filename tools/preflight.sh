@@ -69,7 +69,8 @@ scan 'email addresses' '[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za
 scan 'event text in a workflow expression' '\$\{\{[^}]*(github\.event|github\.head_ref|github\.actor)' 
 scan 'merge markers' '^(<<<<<<< |>>>>>>> |=======$)'
 scan 'personal names in code' '(Christiaan|Tiaan)([^a-z]|$)' 'christiaan839-beep'
-scan 'old plugin names used as ids' '(plugins/(guard|mods|forge|crab|stunt|everywhere|session-diary|build-bell)([^a-zA-Z0-9-]|$)|(^|[^a-zA-Z0-9-])(guard|mods|forge|crab|stunt|everywhere|session-diary|build-bell)@sovereign-critters|mcp__(guard|mods|forge|crab|stunt|everywhere|session-diary|build-bell)__)'
+# a repo path to an old plugin, not Claude Code's docs (code.claude.com/docs/en/plugins/mods/...)
+scan 'old plugin names used as ids' '((^|[^n]/|[^/])plugins/(guard|mods|forge|crab|stunt|everywhere|session-diary|build-bell)([^a-zA-Z0-9-]|$)|(^|[^a-zA-Z0-9-])(guard|mods|forge|crab|stunt|everywhere|session-diary|build-bell)@sovereign-critters|mcp__(guard|mods|forge|crab|stunt|everywhere|session-diary|build-bell)__)'
 
 # 5. secrets in the whole git history, when gitleaks is installed (settings in .gitleaks.toml)
 if command -v gitleaks >/dev/null 2>&1 && git rev-parse --git-dir >/dev/null 2>&1; then
