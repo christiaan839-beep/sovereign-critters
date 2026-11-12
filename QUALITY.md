@@ -35,11 +35,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The lead mods
 
-### critter-buddy 0.30.6
+### critter-buddy 0.30.7
 
 | | |
 | --- | --- |
-| Tests passing | 180 |
+| Tests passing | 182 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -69,11 +69,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - the corner and the stage have not been seen in the real app
 - the cat overlapping Pip when a side panel opens was seen once and not reproduced
 
-### critter-mods 0.7.4
+### critter-mods 0.7.5
 
 | | |
 | --- | --- |
-| Tests passing | 64 |
+| Tests passing | 67 |
 | Strict validation | passes |
 | Tool-path hooks fail open | yes, checked by preflight |
 | Surfaces | Claude desktop app, terminal |
@@ -101,11 +101,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the index cards have not been photographed in the real app
 
-### critter-ward 0.3.5
+### critter-ward 0.3.6
 
 | | |
 | --- | --- |
-| Tests passing | 79 |
+| Tests passing | 85 |
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
@@ -117,6 +117,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - 2026-11-11 (at 1fbc7d5): second independent red-team round, run by the audit session (about 280 spellings of pushes to main and of force pushes). Found: no bypass.
 - 2026-11-11 (at 5a3a16d): documentation audit against the code. Found: the claim of no network and nothing read outside the session was corrected to say that guard runs git locally.
 - 2026-11-11 (at d2ecd7d): closing the alias gap the second red-team round left open. Found: a git alias in a config file ran unjudged; now read from git config and judged, with a test that failed first.
+- 2026-11-12 (at 22572aa): third independent round, 641 spellings run against real git and a bare remote. Found: a core.hooksPath hook, and scripts and written files the guard could not follow, ran without a question; each is now asked about, with a test that failed first.
 
 **New tests watched failing first**
 
