@@ -8,7 +8,8 @@ Four pillars in one repo (`VOICE.md`), and the Guard pillar also shipped on its 
 
 **Phase 1, polish**
 - [x] The ontology: `VOICE.md`, the root README by pillar, each README and marketplace entry tagged with its pillar.
-- [ ] A threat model in each guard's README (what it stops, what it cannot read, where it does not run, how it fails, its review record).
+- [x] A threat model in each guard's README: who it protects against and who not, where it looks, how it fails, where it does not run, its review record, the real control, how to report a bypass.
+- [ ] critter-ward's refusals begin `guard:`, its old name; `VOICE.md` says a mod leads with its own name. Change to `critter-ward:` with the tests, as a minor version (a person or a script may match the old prefix).
 - [ ] A fourth independent review round on latch and seal (ward too); every finding fixed with a test that failed first.
 - [ ] `examples/hot-reload-demo` as a "write your first mod" guide, the code annotated.
 - [ ] High-contrast palette, from the founder's screenshots of the real window. Needs the founder.

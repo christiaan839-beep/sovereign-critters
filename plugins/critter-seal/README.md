@@ -38,6 +38,19 @@ It is best effort and no substitute for keeping secrets out of reach.
 - A host it cannot read (`$URL`) when a secret goes with it is put to you as a question instead of refused; a host it read and found unlisted is refused. In a permission mode that answers questions for you (auto mode), the question may be answered without reaching you; that was seen with critter-latch on 2026-11-11. It stays a question on purpose: refusing would stop every send whose address is a variable. Hosts in the settings may be written as `github.com`, `*.github.com` or `https://github.com`.
 - It fails closed for a line that names a sender and that it cannot read; any other command goes on as if the mod were not there.
 
+## Threat model
+
+| | |
+| --- | --- |
+| **Protects against** | Claude, or you through Claude, sending a secret to a host you have not listed, by accident: `.env` in a `curl -d @`, a token pasted into a URL, a key file in an `scp`. |
+| **Not against** | Someone who means to get past it: a secret encoded or split in a separate step, a program or install script that reads and sends it on its own, a language one-liner (`python -c`, `node -e`). A prompt injection that does any of these is outside it too. |
+| **Where it looks** | The command line of Claude's Bash tool and the address of a `WebFetch`, before they run (`tool.call`). Not the traffic, not your own terminal, not another mod's `$.http` or `$.process` calls. |
+| **How it fails** | Closed, for its one promise: a line that names a sender and that it cannot read is held; a send whose host it cannot read is put to you as a question; a host it read and found unlisted is refused. |
+| **Where it does not run** | Where it does not run at all: on a machine whose organization sets `allowManagedModsOnly` (no mod a person installs runs its hooks), in a `claude --safe-mode` session, under `disableAllHooks`, and in a folder before you answer its trust prompt. Check `/plugin` before counting on it on a managed machine. In auto mode a question may be answered without reaching you. |
+| **Review record** | Two independent adversarial rounds (2026-11-11; about 330 commands; high gaps found in both rounds, all fixed with a test that failed first). Seen holding back `curl -d @.env` to an unlisted host with the README's message, word for word. Open high findings: none. Known gap: the fixes after the second round have not been reviewed again. `QUALITY.md` has the full record. |
+| **The real control** | Keeping secrets out of reach: a secret store, short-lived tokens, nothing in the working folder. |
+| **Found a way past it?** | That counts as a vulnerability: report it privately, as [`SECURITY.md`](../../SECURITY.md) says. |
+
 ## Early access
 
 Mods are on by default from Claude Code 2.1.286. An organization can keep installed mods from running (`allowManagedModsOnly` in managed settings), and `claude --safe-mode` starts a session without them. The mod engine may change between releases without notice: tests pin this mod's behaviour, and when the engine moves, expect a patch release that follows it.

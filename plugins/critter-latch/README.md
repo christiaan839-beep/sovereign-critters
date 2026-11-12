@@ -35,6 +35,19 @@ It is best effort and no substitute for a backup or for version control.
 
 A command it stopped is refused. A command it could not read (a `$VAR` target, an `eval` of something unknown) is put to you as a question instead, so a false alarm costs one click. In a permission mode that answers questions for you (auto mode), the question may be answered without reaching you: that was seen on 2026-11-11, and it is why only what the guard truly cannot read is a question. To run a refused command anyway, run it yourself in a terminal.
 
+## Threat model
+
+| | |
+| --- | --- |
+| **Protects against** | Claude, or you through Claude, running a delete or a reset that cannot be taken back, by accident: a path that reaches out of the folder, a `cd` that went somewhere else, a `reset --hard` over work not yet committed. |
+| **Not against** | Someone who means to get past it, or a program that deletes on its own (`make clean`, an npm script, `rsync --delete`). A prompt injection that writes such a script is outside it too. |
+| **Where it looks** | The command line of Claude's Bash tool, before it runs (`tool.call`). Not your own terminal, not another mod's `$.process` calls, not what a program does once started. |
+| **How it fails** | Closed, for its one promise: a line that names `rm`, `git` or `xargs` and that it cannot read is put to you as a question; a clear stop is refused outright. |
+| **Where it does not run** | Where it does not run at all: on a machine whose organization sets `allowManagedModsOnly` (no mod a person installs runs its hooks), in a `claude --safe-mode` session, under `disableAllHooks`, and in a folder before you answer its trust prompt. Check `/plugin` before counting on it on a managed machine. In auto mode a question may be answered without reaching you (seen 2026-11-11). |
+| **Review record** | Two independent adversarial rounds (2026-11-11; about 600 commands; 4 high bypasses and about 20 smaller found, all fixed with a test that failed first). Seen in the desktop app refusing `git reset --hard` and, after the 0.1.2 fix, `cd /tmp && rm -rf x`. Open high findings: none. Known gap: the fixes after the second round have not been reviewed again. `QUALITY.md` has the full record. |
+| **The real control** | Version control and a backup. |
+| **Found a way past it?** | That counts as a vulnerability: report it privately, as [`SECURITY.md`](../../SECURITY.md) says. |
+
 ## Early access
 
 Mods are on by default from Claude Code 2.1.286. An organization can keep installed mods from running (`allowManagedModsOnly` in managed settings), and `claude --safe-mode` starts a session without them. The mod engine may change between releases without notice: tests pin this mod's behaviour, and when the engine moves, expect a patch release that follows it.

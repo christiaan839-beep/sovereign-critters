@@ -45,6 +45,19 @@ claude plugin validate . --strict
 claude plugin test .
 ```
 
+## Threat model
+
+| | |
+| --- | --- |
+| **Protects against** | Claude, or you through Claude, pushing to `main` or `master`, or force-pushing, by accident: a wrong branch, a habit, a line written too fast. |
+| **Not against** | Someone who means to get past it: a script, a program that pushes on its own, a spelling no reader has seen yet. A prompt injection that writes such a script is outside it too. |
+| **Where it looks** | The command line of Claude's Bash tool, before it runs (`tool.call`). Not your own terminal, not another mod's `$.process` calls, not what a program does once started. |
+| **How it fails** | Closed, for its one promise: a push it cannot place (git fails or times out, the line cannot be read) waits, and the refusal says to ask the person. A line that runs an expansion it cannot read is put to you as a question, not refused. |
+| **Where it does not run** | Where it does not run at all: on a machine whose organization sets `allowManagedModsOnly` (no mod a person installs runs its hooks), in a `claude --safe-mode` session, under `disableAllHooks`, and in a folder before you answer its trust prompt. Check `/plugin` before counting on it on a managed machine. In auto mode a question may be answered without reaching you. |
+| **Review record** | Two independent red-team rounds (2026-11-11; the second ran about 280 push spellings and found no bypass), a documentation audit, and the alias gap closed. Seen in the desktop app refusing `git push --force origin main`. Open high findings: none. Known gaps: a program that moves `main` earlier on the line is not tracked; the question for an unreadable expansion has not been seen in the real app. `QUALITY.md` has the full record. |
+| **The real control** | Branch protection on the server. |
+| **Found a way past it?** | That counts as a vulnerability: report it privately, as [`SECURITY.md`](../../SECURITY.md) says. |
+
 ## Early access
 
 Mods are on by default from Claude Code 2.1.286. An organization can keep installed mods from running (`allowManagedModsOnly` in managed settings), and `claude --safe-mode` starts a session without them. The mod engine may change between releases without notice: tests pin this mod's behaviour, and when the engine moves, expect a patch release that follows it.

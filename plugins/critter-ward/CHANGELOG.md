@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.6
+
+- Docs: a threat model in the README: who it protects against and who not, where it looks, how it fails, where it does not run, its review record, and how to report a way past it. No behaviour change.
+
 ## 0.3.5
 
 - Docs: the README names the mod's pillar (Guard) in the sovereign-critters family, and the marketplace lists it under that tag. No behaviour change.

@@ -101,7 +101,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the index cards have not been photographed in the real app
 
-### critter-ward 0.3.5
+### critter-ward 0.3.6
 
 | | |
 | --- | --- |
@@ -398,7 +398,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - never seen in the real app; token counts come from the engine's per-turn usage, not checked against a bill
 - the toast for passing a limit has not been seen in the real app
 
-### critter-latch 0.1.6
+### critter-latch 0.1.7
 
 | | |
 | --- | --- |
@@ -430,7 +430,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the fixes after the review have not been reviewed again
 
-### critter-seal 0.1.6
+### critter-seal 0.1.7
 
 | | |
 | --- | --- |
