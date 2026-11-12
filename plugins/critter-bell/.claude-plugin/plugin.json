@@ -1,6 +1,6 @@
 {
   "name": "critter-bell",
-  "version": "0.6.6",
+  "version": "0.6.7",
   "description": "A counter-bell strike and a toast when a long command or a long turn finishes, so you can look away while a build, an install, a test run or Claude goes. It says how long it took and whether it failed. Quiet for anything short.",
   "author": {
     "name": "Sovereign Matrix"
@@ -37,5 +37,9 @@
       "description": "A soft tick when a turn of 5 seconds or more ends without reaching the bell.",
       "default": true
     }
-  }
+  },
+  "privacyPolicyUrl": "https://github.com/christiaan839-beep/sovereign-critters/blob/main/PRIVACY.md",
+  "supportUrl": "https://github.com/christiaan839-beep/sovereign-critters/issues",
+  "documentationUrl": "https://github.com/christiaan839-beep/sovereign-critters/blob/main/plugins/critter-bell/README.md",
+  "termsOfServiceUrl": "https://github.com/christiaan839-beep/sovereign-critters/blob/main/LICENSE"
 }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.30.11
+
+- **Changed: the manifest names its privacy policy, support, documentation and terms pages** (`privacyPolicyUrl`, `supportUrl`, `documentationUrl`, `termsOfServiceUrl`), as the plugin directory's listing step asks. No behaviour changed.
+
 ## 0.30.10
 
 - **The permission hook passes the check on unread, under parameter names of its own.** The plugin directory reads a permission hook only when no variable in the file is spelled like one of the hook's parameters, and only when the hook returns `next(...)` itself. The hook's parameters are now `checked` and `onward`, and it returns `onward(checked)` directly. The cat's line under a risky question is unchanged.

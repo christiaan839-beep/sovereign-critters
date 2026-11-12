@@ -13,4 +13,4 @@ Read from Claude Code's documentation (Manage mods for your organization, 2026-1
 - **Their stops only add.** Where Claude Code's built-in guard loads, an installed mod cannot approve a call that a `deny` rule refuses or an `ask` rule prompts for. Ours never approve a call: they refuse, or put it to you as a question.
 - **They see Claude's tool calls, not other mods.** Another installed mod reaching files or the network through its own `$.fs`, `$.process` or `$.http` calls does not pass through `tool.call`.
 
-To report a problem, use GitHub's private vulnerability reporting on this repository (Security tab, "Report a vulnerability"). Please do not open a public issue for a vulnerability. We aim to reply within a week.
+To report a problem, open an issue at <https://github.com/christiaan839-beep/sovereign-critters/issues> titled "Security: " plus the mod's name. GitHub's private vulnerability reporting is not switched on for this repository, so please describe the kind of bypass (the class of spelling and which guard) without a working exploit or any secret; we will reply in the issue and ask for details only if needed. We aim to reply within a week.

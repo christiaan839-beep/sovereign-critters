@@ -1,6 +1,6 @@
 {
   "name": "critter-clock",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "license": "Apache-2.0",
   "icon": "./.claude-plugin/icon.png",
   "description": "Shows how long the session has run and how much of it Claude spent working. Ask with /clock; it speaks unasked once an hour, if you leave that on. It never blocks a tool.",
@@ -24,5 +24,9 @@
       "description": "One quiet toast each full hour of the session. Off keeps it silent until you type /clock.",
       "default": true
     }
-  }
+  },
+  "privacyPolicyUrl": "https://github.com/christiaan839-beep/sovereign-critters/blob/main/PRIVACY.md",
+  "supportUrl": "https://github.com/christiaan839-beep/sovereign-critters/issues",
+  "documentationUrl": "https://github.com/christiaan839-beep/sovereign-critters/blob/main/plugins/critter-clock/README.md",
+  "termsOfServiceUrl": "https://github.com/christiaan839-beep/sovereign-critters/blob/main/LICENSE"
 }
