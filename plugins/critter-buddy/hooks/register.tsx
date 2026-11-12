@@ -62,7 +62,13 @@ let turnStartedAt = 0
 let ticker: { cancel: () => void } | undefined
 // What the clock needs on every beat, kept here so a beat does not ask the engine for it. Only this plugin writes these
 // (the /critter command, and session.start); the clock re-reads them from the engine every 40 beats in case something else did.
-const live = { hidden: false, names: NAMES_DEFAULT as Names, feel: 'warm' as Feel, world: 'day' as 'day' | 'night' }
+const live = { synced: false, hidden: false, detail: 'party' as Detail, names: NAMES_DEFAULT as Names, feel: 'warm' as Feel, world: 'day' as 'day' | 'night' }
+// Once the session has started the mirrors are the truth for a row or a keystroke; before that (a test, a host that skips session.start) the engine is asked.
+const hiddenOf = async ($: any): Promise<boolean> => (live.synced ? live.hidden : (await read($, isHidden)) === true)
+const detailOf = async ($: any): Promise<Detail> => (live.synced ? live.detail : await read($, detail))
+const namesOf = async ($: any): Promise<Names> => (live.synced ? live.names : await read($, names))
+/** Work the tool or the prompt must not wait for: started now, never awaited, and a failure is no loss. */
+const aside = (work: () => unknown) => { void Promise.resolve().then(work).catch(() => undefined) }
 let lastCadence: 1 | 4 = 1 // 1: the scene was moving at the last step, so the next beat steps it without looking first
 let probe = newProbe()
 let postcardOffered = false // the postcard is offered once a session
@@ -170,10 +176,12 @@ export const register: Register = on => {
     on('tool.call', { tool } as never, async ($, e, next) => {
       const asked = String((e as { command?: unknown }).command ?? '')
       const [look, label] = tool === 'Bash' && BUILD.test(asked) ? (['chef', 'cooking a build'] as [Look, string]) : (LOOKS[tool] ?? (['coder', 'working'] as [Look, string]))
-      await update($, scene, (s: Scene): Scene => ({ ...s, look, label, idle: 0, tools: s.tools + 1, skills: s.skills + (tool === 'Skill' ? 1 : 0), ...(tool === 'Skill' ? { jt: 1 } : {}) }))
-      $.ui.status(label)
+      aside(() => update($, scene, (s: Scene): Scene => ({ ...s, look, label, idle: 0, tools: s.tools + 1, skills: s.skills + (tool === 'Skill' ? 1 : 0), ...(tool === 'Skill' ? { jt: 1 } : {}) })))
+      aside(() => $.ui.status(label))
       const mine = ++flightId
-      flights.set(mine, { since: await $.clock.now(), waiting: false })
+      const flight: Flight = { since: Number.NaN, waiting: false } // the clock is asked in the background; a call with no start yet is never "long"
+      flights.set(mine, flight)
+      aside(async () => { flight.since = await $.clock.now() })
       const ran = await next(e).finally(() => { flights.delete(mine) })
       const command = String((e as { command?: unknown }).command ?? '')
       let ev: Reaction | null = null
@@ -182,14 +190,15 @@ export const register: Register = on => {
       else if (tool === 'Skill') ev = 'spell' // a skill ran: the wizard casts, sparks round the orb
       else if (tool === 'Bash' && COMMIT.test(command)) ev = 'commit'
       else if (tool === 'Bash' && TEST.test(command)) ev = 'test'
-      if (ev) await update($, scene, (s: Scene): Scene => react(s, ev as Reaction))
-      if (ev === 'spell') await ring($, 'cast')
-      try {
-        const nm = await read($, names)
-        if (ev === 'commit') $.ui.toast(named('A commit. {pip} drew a star in the history.', nm), { timeoutMs: 3500 })
-        if (ev === 'test') $.ui.toast(named('Green. {cat} allows it.', nm), { timeoutMs: 3000 })
-      } catch {
-        // a toast that cannot show is no loss
+      if (ev) {
+        const reaction = ev
+        aside(async () => { // the cat reacts after the result has gone back: nothing here is on the tool's path
+          await update($, scene, (s: Scene): Scene => react(s, reaction))
+          if (reaction === 'spell') await ring($, 'cast')
+          const nm = await namesOf($)
+          if (reaction === 'commit') $.ui.toast(named('A commit. {pip} drew a star in the history.', nm), { timeoutMs: 3500 })
+          if (reaction === 'test') $.ui.toast(named('Green. {cat} allows it.', nm), { timeoutMs: 3000 })
+        })
       }
       return ran
     }).catch(($, e, next) => next(e)) // a decorative mod never stands in the way of a tool call
@@ -213,12 +222,12 @@ export const register: Register = on => {
     try {
       // a call worth a second read gets the cat's line under its question
       const line = riskLine(e.tool, e.input)
-      if (line && e.tool_use_id) $.ui.notice(e.tool_use_id, named(line, await read($, names)))
+      if (line && e.tool_use_id) $.ui.notice(e.tool_use_id, named(line, await namesOf($)))
     } catch {
       // a notice that cannot be shown is no loss
     }
     const r = await next(e)
-    if (r.decision === 'ask') await update($, scene, (s: Scene): Scene => react(s, 'ask'))
+    if (r.decision === 'ask') aside(() => update($, scene, (s: Scene): Scene => react(s, 'ask')))
     return r
   }).catch(($, e, next) => next(e))
 
@@ -235,37 +244,35 @@ export const register: Register = on => {
   })
 
   on('prompt.submit', async ($, e, next) => {
-    turnStartedAt = await $.clock.now()
-    try {
-      // the nudge counts as taken when the person sends the very line it offered (Tab, then Enter), not when it was merely shown
-      if (offeredNudge !== undefined && String(e.text ?? '').trim() === offeredNudge) {
-        offeredNudge = undefined // one stamp per offer; anything else sent leaves the dim line standing
-        await $.store.set('nudged', dayKey(turnStartedAt))
+    // Nothing here is on the prompt's path: the line goes to the model while the cat is told about it.
+    aside(async () => {
+      turnStartedAt = await $.clock.now()
+      try {
+        // the nudge counts as taken when the person sends the very line it offered (Tab, then Enter), not when it was merely shown
+        if (offeredNudge !== undefined && String(e.text ?? '').trim() === offeredNudge) {
+          offeredNudge = undefined // one stamp per offer; anything else sent leaves the dim line standing
+          await $.store.set('nudged', dayKey(turnStartedAt))
+        }
+      } catch {
+        // a stamp that cannot be written means the nudge may come once more; no harm
       }
-    } catch {
-      // a stamp that cannot be written means the nudge may come once more; no harm
-    }
-    await update($, scene, (s: Scene): Scene => ({ ...s, look: 'wizard', wt: 0, label: 'thinking', tools: 0, idle: 0 })) // the wizard takes the bar for the whole turn: the hat builds while Claude thinks
-    try {
+      await update($, scene, (s: Scene): Scene => ({ ...s, look: 'wizard', wt: 0, label: 'thinking', tools: 0, idle: 0 })) // the wizard takes the bar for the whole turn: the hat builds while Claude thinks
       await syncSky($, turnStartedAt, await read($, scene)) // the sky warms the moment a prompt goes in
-    } catch {
-      // a sky that cannot warm is no loss
-    }
+    })
     return next(e)
   }).catch(($, e, next) => next(e))
 
   // The pair watch you type: the cat looks up and the critter wakes, once per burst of typing, not on every key.
   on('prompt.edit', async ($, e, next) => {
-    try {
+    // Waking the pair is not on the keystroke's path; the scene is only asked about when the engine has to be.
+    aside(async () => {
       const s = await read($, scene)
       if (s.mode === 'loaf' || s.idle > 0) await update($, scene, (x: Scene): Scene => ({ ...(x.mode === 'loaf' ? poke(x, 'alert') : x), idle: 0 }))
-    } catch {
-      // a decorative reaction never holds up the prompt
-    }
+    })
     const r = await next(e)
     // the draft is painted in the answer itself, so the colours always sit on the characters they were made for
     try {
-      const runs = draftRuns(r.text, await read($, names))
+      const runs = draftRuns(r.text, await namesOf($))
       return runs.length ? { ...r, decorations: [...(r.decorations ?? []), ...runs] } : r
     } catch {
       return r // a colour that cannot be worked out is no loss
@@ -343,7 +350,7 @@ export const register: Register = on => {
       }
     }
     // The cat's line for the turn stays in the transcript, as a row of its own.
-    if (line && !(await read($, isHidden)) && (await read($, detail)) !== 'lite') {
+    if (line && !(await hiddenOf($)) && (await detailOf($)) !== 'lite') {
       const id = `diary-${n}`
       notes.set(id, `${hhmm(now)}  ${named(line, await read($, names))}`)
       try {
@@ -378,7 +385,7 @@ export const register: Register = on => {
     if (Array.isArray(kept)) await update($, diary, (d: string[]) => [...kept.filter(l => typeof l === 'string'), ...d].slice(-200))
     live.world = isNight(now) ? 'night' : 'day'
     await update($, world, () => live.world)
-    live.hidden = (await read($, isHidden)) === true; live.names = await read($, names); live.feel = await read($, feel); lastCadence = 1; probe = newProbe()
+    live.hidden = (await read($, isHidden)) === true; live.names = await read($, names); live.feel = await read($, feel); live.detail = await read($, detail); live.synced = true; lastCadence = 1; probe = newProbe()
     try {
       streak = cleanStreak(await Promise.resolve($.store.get('streak')).catch(() => undefined))
       const days = streakAlive(streak, dayKey(now))
@@ -554,6 +561,7 @@ export const register: Register = on => {
     }
     if (sub === 'lite' || sub === 'full' || sub === 'party') {
       await update($, detail, () => sub as Detail)
+      live.detail = sub as Detail
       return {
         text:
           sub === 'lite' ? 'Lite: the band, the wizard and the orb, the pane and the backdrop.'
@@ -587,9 +595,9 @@ export const register: Register = on => {
     const cols = Math.min(96, e.props.bodyColumns || e.viewport?.columns || 80) // a wide desktop window would spread the pair thin across it: the bar stops at 96 cells, like the film's frame
     liveCols = cols
     windowCols = windowWidth(e.props.bodyColumns, e.viewport?.columns)
-    if (e.props.hasSurvey || (await read($, isHidden))) return next(e)
+    if (e.props.hasSurvey || (await hiddenOf($))) return next(e)
     const s = await read($, scene)
-    const nm = await read($, names)
+    const nm = await namesOf($)
     const usageText = await read($, usage)
     const { Box, Text, Button, face, vector, svg } = kit($.ui.resolve(e), e.surface)
     // Other mods draw here too (usage-line, snoozing-pet): keep their rows beneath ours.
@@ -628,7 +636,7 @@ export const register: Register = on => {
 
   // ---- the thinking orb: the wizard stands to its left, the Sovereign Matrix orb beside him ----
   on('ui.render', { component: 'Spinner' }, async ($, e, next) => {
-    if (await read($, isHidden)) return next(e)
+    if (await hiddenOf($)) return next(e)
     const orbLine = await next(e) // the engine's own line: the orb, its word, the time and the tokens
     const s = await read($, scene)
     const { Box, Text, face, vector, svg } = kit($.ui.resolve(e), e.surface)
@@ -644,7 +652,7 @@ export const register: Register = on => {
   // ---- the rows of the transcript: a face on each tool call, what it did in its eyes ----
   on('ui.render', { component: 'ToolUse' }, async ($, e, next) => {
     const base = await next(e)
-    if ((await read($, isHidden)) || (await read($, detail)) === 'lite') return base
+    if ((await hiddenOf($)) || (await detailOf($)) === 'lite') return base
     const kind: FaceKind = e.props.isErrored || e.props.isInterrupted ? 'err' : e.props.isRunning ? 'run' : 'ok'
     const { Box, Text, face, vector, svg } = kit($.ui.resolve(e), e.surface)
     return (
@@ -657,7 +665,7 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'ToolResult' }, async ($, e, next) => {
     const base = await next(e)
-    if (!e.props.isErrored || (await read($, isHidden)) || (await read($, detail)) === 'lite') return base
+    if (!e.props.isErrored || (await hiddenOf($)) || (await detailOf($)) === 'lite') return base
     const { Box, Text, face, vector, svg } = kit($.ui.resolve(e), e.surface)
     return (
       <Box flexDirection="column">
@@ -672,7 +680,7 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'ToolGroup' }, async ($, e, next) => {
     const base = await next(e)
-    if ((await read($, isHidden)) || (await read($, detail)) === 'lite' || e.props.isExpanded) return base
+    if ((await hiddenOf($)) || (await detailOf($)) === 'lite' || e.props.isExpanded) return base
     const { Box, Text, face, vector, svg } = kit($.ui.resolve(e), e.surface)
     return (
       <Box flexDirection="row" gap={1}>
@@ -683,13 +691,13 @@ export const register: Register = on => {
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'ToolProgress' }, async ($, e, next) => {
-    if ((await read($, isHidden)) || (await read($, detail)) === 'lite' || e.props.hint === '') return next(e)
+    if ((await hiddenOf($)) || (await detailOf($)) === 'lite' || e.props.hint === '') return next(e)
     return next({ ...e, props: { ...e.props, hint: `${e.props.hint} · the cat is watching` } })
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'TurnDuration' }, async ($, e, next) => {
     const base = await next(e)
-    if ((await read($, isHidden)) || (await read($, detail)) === 'lite' || e.props.waitingFor) return base
+    if ((await hiddenOf($)) || (await detailOf($)) === 'lite' || e.props.waitingFor) return base
     const line = named(quip('turn', await read($, scene), hourOf(Date.now()), e.props.durationMs), await read($, names))
     const { Box, Text, face, vector, svg } = kit($.ui.resolve(e), e.surface)
     // under the engine's line, not beside it: its row already runs the width of the terminal
@@ -704,7 +712,7 @@ export const register: Register = on => {
   // ---- what the person and the model say: a face only in party mode ----
   on('ui.render', { component: 'UserMessage' }, async ($, e, next) => {
     const base = await next(e)
-    if ((await read($, isHidden)) || (await read($, detail)) !== 'party') return base
+    if ((await hiddenOf($)) || (await detailOf($)) !== 'party') return base
     const { Box, Text, face, vector, svg } = kit($.ui.resolve(e), e.surface)
     // the mail brought in by a background task or another session gets a happy face
     if (e.props.origin.kind === 'composer') return base
@@ -719,7 +727,7 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'AssistantMessage' }, async ($, e, next) => {
     const base = await next(e)
-    if (!e.props.isFirstOfReply || (await read($, isHidden)) || (await read($, detail)) !== 'party') return base
+    if (!e.props.isFirstOfReply || (await hiddenOf($)) || (await detailOf($)) !== 'party') return base
     const { Box, Text, face, vector, svg } = kit($.ui.resolve(e), e.surface)
     return (
       <Box flexDirection="column">
@@ -732,7 +740,7 @@ export const register: Register = on => {
   // ---- the questions it asks, and what the command printed ----
   on('ui.render', { component: 'AskUserQuestion' }, async ($, e, next) => {
     const base = await next(e)
-    if ((await read($, isHidden)) || (await read($, detail)) === 'lite') return base
+    if ((await hiddenOf($)) || (await detailOf($)) === 'lite') return base
     const { Box, Text, face, vector, svg } = kit($.ui.resolve(e), e.surface)
     return (
       <Box flexDirection="column">
@@ -746,7 +754,7 @@ export const register: Register = on => {
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'CommandOutput', props: { command: 'critter' } }, async ($, e, next) => {
-    if ((await read($, isHidden)) || e.props.isErrored) return next(e)
+    if ((await hiddenOf($)) || e.props.isErrored) return next(e)
     const s = await read($, scene)
     const { Box, Text, face, vector, svg } = kit($.ui.resolve(e), e.surface)
     const pose = wizardPoseFor(String(e.props.text ?? ''), !!vector)
@@ -760,20 +768,20 @@ export const register: Register = on => {
 
   // ---- the footer: the cat's mood among the modes, a hint under the prompt, a greeting under the logo ----
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
-    if ((await read($, isHidden)) || (await read($, detail)) === 'lite') return next(e)
+    if ((await hiddenOf($)) || (await detailOf($)) === 'lite') return next(e)
     const s = await read($, scene)
     return next({ ...e, props: { ...e.props, modes: [...e.props.modes, `cat ${moodOf(s)}`] } })
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
-    if ((await read($, isHidden)) || (await read($, detail)) === 'lite' || e.props.isDraft) return next(e)
+    if ((await hiddenOf($)) || (await detailOf($)) === 'lite' || e.props.isDraft) return next(e)
     const tail = ` · ${named(quip('hint', await read($, scene), hourOf(Date.now())), await read($, names))}`
     return next({ ...e, props: { ...e.props, tail } })
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'InfoNotice' }, async ($, e, next) => {
     const base = await next(e)
-    if (await read($, isHidden)) return base
+    if (await hiddenOf($)) return base
     greeted ??= e.requestId
     if (greeted !== e.requestId) return base
     const { Box, Text, face, vector, svg } = kit($.ui.resolve(e), e.surface)

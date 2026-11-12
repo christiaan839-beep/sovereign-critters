@@ -14,7 +14,7 @@ test('the permission check asks about a line that runs an unread expansion', asy
   for (const command of ['eval "$(direnv hook zsh)"', 'echo Z2l0IHB1c2g= | base64 -d | sh', 'C=$(echo git push origin main); eval "$C"', '$(echo git push origin main)']) {
     const check = await $.tool.check({ tool: 'Bash', input: { command } })
     expect(check.decision, command).toBe('ask')
-    expect(check.reason, command).toMatch(/^guard: it runs .+, so the guard cannot read ahead whether it pushes\.$/)
+    expect(check.reason, command).toMatch(/^guard: it runs .+, so the guard cannot read what it runs\. Allow it if you know what it does\.$/)
     const out = await $.tool.call({ tool: 'Bash', command })
     expect(out.deny, command).toBeUndefined()
   }

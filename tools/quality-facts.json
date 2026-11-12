@@ -140,6 +140,14 @@
           "at": "d2ecd7d",
           "kind": "security",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-12",
+          "what": "third independent round, 641 spellings run against real git and a bare remote",
+          "found": "a core.hooksPath hook, and scripts and written files the guard could not follow, ran without a question; each is now asked about, with a test that failed first",
+          "at": "22572aa",
+          "kind": "security",
+          "openHigh": 0
         }
       ],
       "seen": [
