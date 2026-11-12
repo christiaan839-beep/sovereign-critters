@@ -1,17 +1,5 @@
 {
-  "compilerOptions": {
-    "target": "es2023",
-    "lib": ["es2023"],
-    "types": [],
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "noEmit": true,
-    "skipLibCheck": true,
-    "jsx": "react",
-    "jsxFactory": "h",
-    "jsxFragmentFactory": "Fragment"
-  },
-  "include": [".claude-plugin/types", "hooks", "types", "tests"]
+  "//": "Extends the types Claude Code writes into .claude-plugin/types when it loads this folder with --plugin-dir (they are not committed). The MCP list is left out: it holds whatever servers the writer's session had connected.",
+  "extends": "./.claude-plugin/types/tsconfig.json",
+  "compilerOptions": { "types": ["claude-code", "claude-code-tools"] }
 }

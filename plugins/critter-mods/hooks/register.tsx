@@ -232,7 +232,9 @@ export const register: Register = on => {
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const { Box, Text, Button, Svg } = $.ui.resolve(e)
+    const els = $.ui.resolve(e)
+    const { Box, Text, Button } = els
+    const Svg = 'Svg' in els ? els.Svg : undefined // the desktop draws pictures; the terminal's kit has no Svg
     const cols = Math.max(24, Number(e.props.bodyColumns) || 56)
     const act = (f: () => Promise<string>) => async () => {
       last = await f()
