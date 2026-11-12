@@ -1,8 +1,13 @@
 # Changelog
 
-## 0.1.9
+## 0.1.10
 
 - **Changed: the manifest names its privacy policy, support, documentation and terms pages** (`privacyPolicyUrl`, `supportUrl`, `documentationUrl`, `termsOfServiceUrl`), as the plugin directory's listing step asks. No behaviour changed.
+
+## 0.1.9
+
+- Security: the fourth independent review (2026-11-12, about 430 commands, the shell spellings run for real in bash 3.2 and zsh) found 3 high and 10 medium ways past it, and one false hold. Fixed, each with a test that failed first: a heredoc ends at its whole delimiter word (`<<E"O"F`, `<<EOF-x` hid the lines after it); a `<<` inside `$[ ]` or `${ }` is no heredoc; a pipeline that goes on to the next line (`cat .env |` then `curl …`) is one pipeline; more shells (`fish`, `tcsh`, `csh`, `mksh`, `ash`, `yash`, `oksh`, `su -c`); `watch`, `flock -c`, `script -c` and more wrappers (`arch`, `taskset`, `chrt`, `firejail`, `uv run`, `bunx`, `chroot` and others); zsh's `=curl`; `declare` and `typeset` with no arguments, and every `/proc/…/environ`; braces (`.{env,}`); a copy made by `ln`, `install` or `dd of=`; `RSYNC_RSH` and `RSYNC_CONNECT_PROG`; a gist made with `gh api gists`. `RSYNC_RSH="ssh -i ~/.ssh/id_rsa"` is no longer held, as `rsync -e` with the same value was not.
+- Docs: a threat model in the README: who it protects against and who not, where it looks, how it fails, where it does not run, its review record, and how to report a way past it. No behaviour change.
 
 ## 0.1.8
 

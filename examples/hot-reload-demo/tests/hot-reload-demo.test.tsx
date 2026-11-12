@@ -18,7 +18,7 @@ test('the count rides in $.state and the band reads it on both surfaces that rai
   }
 })
 
-test('a prompt dropped beneath crab never entered, so it is not counted', async ($, on) => {
+test('a prompt dropped beneath this mod never entered, so it is not counted', async ($, on) => {
   on('prompt.submit', ($, e) => (e.text === 'blocked' ? { drop: 'policy' } : { text: e.text }))
   for (const text of ['one', 'blocked', 'two']) await $.prompt.submit({ text, wait: false, origin: { kind: 'composer' } })
   const ui = await $.ui.mount({ plugin: 'hot-reload-demo', surface: 'terminal', ...BAND })

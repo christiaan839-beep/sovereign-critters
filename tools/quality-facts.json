@@ -148,6 +148,14 @@
           "at": "22572aa",
           "kind": "security",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-12",
+          "what": "fourth independent red-team round, on the 0.3.6 reader (about 650 spellings through its reader and judge asking real git; the suspects run against a throwaway bare remote)",
+          "found": "1 high (zsh chdir) and 3 medium (tcsh -c and other shells, zsh =git, MAIN on a case-insensitive remote); all fixed with a test that failed first, and each fix broken in a temp copy to prove a test notices (5 of 5)",
+          "at": "85cf687",
+          "kind": "security",
+          "openHigh": 0
         }
       ],
       "seen": [
@@ -163,9 +171,9 @@
         "the question for a line that runs an expansion has not been seen in the real app"
       ],
       "failFirst": {
-        "date": "2026-11-11",
-        "at": "22572aa",
-        "what": "the permission check asking about a line that runs an unread expansion: the test was watched failing on the old hook, then passing (the nine earlier lines were watched at cf08b68)"
+        "date": "2026-11-12",
+        "at": "85cf687",
+        "what": "the fourth red-team findings: each spelling that got past 0.3.6 has a test that was watched failing, then passing; each fix was then undone in a temp copy and a test went red. Earlier: the permission check asking about a line that runs an unread expansion was watched failing on the old hook, then passing"
       },
       "coldInstall": []
     },
@@ -482,6 +490,14 @@
           "at": "cf375f3",
           "kind": "security",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-12",
+          "what": "fourth independent adversarial review, on 0.1.7 (about 350 commands through its judge; git flags checked against git 2.54 in a throwaway repository, shell spellings against bash 3.2 and zsh)",
+          "found": "8 high (env -C, sudo -D and chroot; zsh chdir and two-word cd; --no-dry-run and --no-patch; a letter in an option value; ~+, $PWD/ and exclude-only pathspecs; source /dev/stdin and bash <(…); find options before its folders and an unread folder; a heredoc misread that hid a line) and 8 medium; all fixed with a test that failed first, and each fix broken in a temp copy to prove a test notices (32 of 32)",
+          "at": "85cf687",
+          "kind": "security",
+          "openHigh": 0
         }
       ],
       "seen": [
@@ -499,12 +515,12 @@
         }
       ],
       "gaps": [
-        "the fixes after the review have not been reviewed again"
+        "the fourth round's fixes were checked again only by the session that made them (106 more commands), not by another reviewer"
       ],
       "failFirst": {
-        "date": "2026-11-11",
-        "at": "6b1d64a",
-        "what": "a delete after a cd to a folder outside, and a cd out and back in: both tests were watched failing on 0.1.1, then passing"
+        "date": "2026-11-12",
+        "at": "85cf687",
+        "what": "the fourth review findings: each spelling that got past 0.1.7 has a test that was watched failing, then passing; each fix was then undone in a temp copy and a test went red"
       },
       "coldInstall": []
     },
@@ -526,6 +542,14 @@
           "at": "cf375f3",
           "kind": "security",
           "openHigh": 0
+        },
+        {
+          "date": "2026-11-12",
+          "what": "fourth independent adversarial review, on 0.1.7 (about 430 commands through its judge; shell spellings checked against bash 3.2 and zsh)",
+          "found": "3 high (a heredoc delimiter read short of its whole word, a << inside $[ ] or ${ }, a pipeline split over two lines) and 10 medium (more shells and wrappers, zsh =curl, declare and /proc environ dumps, braces, ln/install/dd copies, RSYNC_RSH, gh api gists) and one false hold; all fixed with a test that failed first, and each fix broken in a temp copy to prove a test notices (18 of 18)",
+          "at": "85cf687",
+          "kind": "security",
+          "openHigh": 0
         }
       ],
       "seen": [
@@ -537,12 +561,12 @@
         }
       ],
       "gaps": [
-        "the fixes after the review have not been reviewed again"
+        "the fourth round's fixes were checked again only by the session that made them (106 more commands), not by another reviewer"
       ],
       "failFirst": {
-        "date": "2026-11-11",
-        "at": "cf375f3",
-        "what": "the review findings: each command that got past it has a test that failed on the first version, then passed"
+        "date": "2026-11-12",
+        "at": "85cf687",
+        "what": "the fourth review findings: each spelling that got past 0.1.7 has a test that was watched failing, then passing; each fix was then undone in a temp copy and a test went red"
       },
       "coldInstall": []
     }

@@ -2,11 +2,11 @@ import { atom, read, update } from 'claude-code'
 import type { PluginState, Register } from 'claude-code'
 
 // The state's shape, written once in the contract (types/index.d.ts).
-type Crab = PluginState['hot-reload-demo']
+type Demo = PluginState['hot-reload-demo']
 
 // The counter: a value the host holds for the session. A reload never touches it.
 const prompts = atom({ plugin: 'hot-reload-demo', key: 'prompts' } as const,
-  0 as Crab['prompts'])
+  0 as Demo['prompts'])
 
 export const register: Register = on => {
   // The shell: the module's own variable. Save this file and the module loads again, so it starts over.

@@ -39,6 +39,6 @@ Disable or uninstall any mod with `claude plugin disable <name>` or `claude plug
 
 ## Questions and concerns
 
-Open an issue at <https://github.com/christiaan839-beep/sovereign-critters/issues>. For a security problem, follow [SECURITY.md](SECURITY.md) rather than a public issue. If this document ever says something the code does not do, that is a bug: please report it.
+Open an issue at <https://github.com/christiaan839-beep/sovereign-critters/issues>. For a security problem, follow [SECURITY.md](SECURITY.md), which says what to put in the issue and what to leave out. If this document ever says something the code does not do, that is a bug: please report it.
 
 *Last checked against the code: 2026-11-12.*

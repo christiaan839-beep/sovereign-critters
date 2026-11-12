@@ -101,11 +101,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the index cards have not been photographed in the real app
 
-### critter-ward 0.3.10
+### critter-ward 0.3.11
 
 | | |
 | --- | --- |
-| Tests passing | 86 |
+| Tests passing | 90 |
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
@@ -118,10 +118,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - 2026-11-11 (at 5a3a16d): documentation audit against the code. Found: the claim of no network and nothing read outside the session was corrected to say that guard runs git locally.
 - 2026-11-11 (at d2ecd7d): closing the alias gap the second red-team round left open. Found: a git alias in a config file ran unjudged; now read from git config and judged, with a test that failed first.
 - 2026-11-12 (at 22572aa): third independent round, 641 spellings run against real git and a bare remote. Found: a core.hooksPath hook, and scripts and written files the guard could not follow, ran without a question; each is now asked about, with a test that failed first.
+- 2026-11-12 (at 85cf687): fourth independent red-team round, on the 0.3.6 reader (about 650 spellings through its reader and judge asking real git; the suspects run against a throwaway bare remote). Found: 1 high (zsh chdir) and 3 medium (tcsh -c and other shells, zsh =git, MAIN on a case-insensitive remote); all fixed with a test that failed first, and each fix broken in a temp copy to prove a test notices (5 of 5).
 
 **New tests watched failing first**
 
-- 2026-11-11 (at 22572aa): the permission check asking about a line that runs an unread expansion: the test was watched failing on the old hook, then passing (the nine earlier lines were watched at cf08b68).
+- 2026-11-12 (at 85cf687): the fourth red-team findings: each spelling that got past 0.3.6 has a test that was watched failing, then passing; each fix was then undone in a temp copy and a test went red. Earlier: the permission check asking about a line that runs an unread expansion was watched failing on the old hook, then passing.
 
 **Seen working in the real app**
 
@@ -399,11 +400,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - never seen in the real app; token counts come from the engine's per-turn usage, not checked against a bill
 - the toast for passing a limit has not been seen in the real app
 
-### critter-latch 0.1.9
+### critter-latch 0.1.10
 
 | | |
 | --- | --- |
-| Tests passing | 64 |
+| Tests passing | 77 |
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
@@ -413,10 +414,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - 2026-11-11 (at 6d0101c): independent adversarial review for ways past it and false stops (about 600 commands run through it). Found: 4 high bypasses (cd leaking out of a subshell, pushd/popd, a leading redirect, find -exec) and about 8 smaller, plus false stops on redirects and heredoc bodies; all fixed with a test that failed first.
 - 2026-11-11 (at cf375f3): second independent adversarial review, on the code that fixed the first. Found: 12 smaller bypasses on the first fixes and one common false stop; all fixed with a test that failed first.
+- 2026-11-12 (at 85cf687): fourth independent adversarial review, on 0.1.7 (about 350 commands through its judge; git flags checked against git 2.54 in a throwaway repository, shell spellings against bash 3.2 and zsh). Found: 8 high (env -C, sudo -D and chroot; zsh chdir and two-word cd; --no-dry-run and --no-patch; a letter in an option value; ~+, $PWD/ and exclude-only pathspecs; source /dev/stdin and bash <(…); find options before its folders and an unread folder; a heredoc misread that hid a line) and 8 medium; all fixed with a test that failed first, and each fix broken in a temp copy to prove a test notices (32 of 32).
 
 **New tests watched failing first**
 
-- 2026-11-11 (at 6b1d64a): a delete after a cd to a folder outside, and a cd out and back in: both tests were watched failing on 0.1.1, then passing.
+- 2026-11-12 (at 85cf687): the fourth review findings: each spelling that got past 0.1.7 has a test that was watched failing, then passing; each fix was then undone in a temp copy and a test went red.
 
 **Seen working in the real app**
 
@@ -429,13 +431,13 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 **Known gaps**
 
-- the fixes after the review have not been reviewed again
+- the fourth round's fixes were checked again only by the session that made them (106 more commands), not by another reviewer
 
-### critter-seal 0.1.9
+### critter-seal 0.1.10
 
 | | |
 | --- | --- |
-| Tests passing | 59 |
+| Tests passing | 70 |
 | Strict validation | passes |
 | Tool-path hooks | fails closed on purpose: when it cannot tell, the thing it guards waits |
 | Surfaces | any surface that runs hooks (it draws nothing) |
@@ -445,10 +447,11 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - 2026-11-11 (at 6d0101c): independent adversarial review for ways past it and false holds (about 330 commands run through it). Found: high gaps (a sender after a bracket or keyword, a secret in a variable or a copied file, the environment dump, wrappers, globbed names, directories) and a proxy/connect-to blind spot, plus false holds on key options and download URLs; all fixed with a test that failed first.
 - 2026-11-11 (at cf375f3): second independent adversarial review, on the code that fixed the first. Found: 8 high gaps on the first fixes plus medium ones; all fixed with a test that failed first.
+- 2026-11-12 (at 85cf687): fourth independent adversarial review, on 0.1.7 (about 430 commands through its judge; shell spellings checked against bash 3.2 and zsh). Found: 3 high (a heredoc delimiter read short of its whole word, a << inside $[ ] or ${ }, a pipeline split over two lines) and 10 medium (more shells and wrappers, zsh =curl, declare and /proc environ dumps, braces, ln/install/dd copies, RSYNC_RSH, gh api gists) and one false hold; all fixed with a test that failed first, and each fix broken in a temp copy to prove a test notices (18 of 18).
 
 **New tests watched failing first**
 
-- 2026-11-11 (at cf375f3): the review findings: each command that got past it has a test that failed on the first version, then passed.
+- 2026-11-12 (at 85cf687): the fourth review findings: each spelling that got past 0.1.7 has a test that was watched failing, then passing; each fix was then undone in a temp copy and a test went red.
 
 **Seen working in the real app**
 
@@ -460,4 +463,4 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 **Known gaps**
 
-- the fixes after the review have not been reviewed again
+- the fourth round's fixes were checked again only by the session that made them (106 more commands), not by another reviewer
