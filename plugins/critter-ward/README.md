@@ -10,7 +10,7 @@ Stops a git push that forces, or that writes main or master, before the Bash too
 
 Before the Bash tool runs a command, `critter-ward` reads it. It stops a `git push` that **forces**, or that **writes `main` or `master`**: by name, as `HEAD`, with `--all`, `--mirror` or `:`, as a delete, or where git's own settings send a branch named on the line.
 
-It reads the common spellings of a command line (quotes, `cd`, `VAR=` words, wrappers such as `env`, `timeout` and `sudo`, `bash -c`, heredocs), and it asks git where each push really goes.
+It reads the common spellings of a command line (quotes, `cd` and zsh's `chdir`, `VAR=` words, wrappers such as `env`, `timeout` and `sudo`, `bash -c`, heredocs), and it asks git where each push really goes.
 
 ## It fails closed
 
@@ -54,7 +54,7 @@ claude plugin test .
 | **Where it looks** | The command line of Claude's Bash tool, before it runs (`tool.call`). Not your own terminal, not another mod's `$.process` calls, not what a program does once started. |
 | **How it fails** | Closed, for its one promise: a push it cannot place (git fails or times out, the line cannot be read) waits, and the refusal says to ask the person. A line that runs an expansion it cannot read is put to you as a question, not refused. |
 | **Where it does not run** | Where it does not run at all: on a machine whose organization sets `allowManagedModsOnly` (no mod a person installs runs its hooks), in a `claude --safe-mode` session, under `disableAllHooks`, and in a folder before you answer its trust prompt. Check `/plugin` before counting on it on a managed machine. In auto mode a question may be answered without reaching you. |
-| **Review record** | Two independent red-team rounds (2026-11-11; the second ran about 280 push spellings and found no bypass), a documentation audit, and the alias gap closed. Seen in the desktop app refusing `git push --force origin main`. Open high findings: none. Known gaps: a program that moves `main` earlier on the line is not tracked; the question for an unreadable expansion has not been seen in the real app. `QUALITY.md` has the full record. |
+| **Review record** | Three independent red-team rounds (2026-11-11 and 2026-11-12), a documentation audit, and the alias gap closed. The third, on 0.3.6, ran about 650 spellings through its reader and judge against real git and found 1 high (zsh's `chdir`) and 3 medium (`tcsh -c` and other shells, zsh's `=git`, `MAIN` on a case-insensitive remote), all fixed in 0.3.7 with a test that failed first. Seen in the desktop app refusing `git push --force origin main`. Open high findings: none. Known gaps: a program that moves `main` earlier on the line is not tracked; the question for an unreadable expansion has not been seen in the real app. `QUALITY.md` has the full record. |
 | **The real control** | Branch protection on the server. |
 | **Found a way past it?** | That counts as a vulnerability: report it privately, as [`SECURITY.md`](../../SECURITY.md) says. |
 

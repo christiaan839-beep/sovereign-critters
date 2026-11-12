@@ -12,7 +12,7 @@ seal: this sends .env to paste.example, which is not on your list. Add it under 
 
 ## What it looks for
 
-A **sender** (`curl`, `wget`, `http`, `nc`, `scp`, `sftp`, `rsync`, `ssh`, `ftp`) in the same pipeline as a **secret**:
+A **sender** (`curl`, `wget`, `http`, `nc`, `scp`, `sftp`, `rsync`, `ssh`, `ftp`) in the same pipeline as a **secret**, read past wrappers (`sudo`, `env`, `timeout`, `watch`, `xargs`, `find -exec` and the like) and through `bash -c`, `eval`, heredocs and pipelines that go on to the next line:
 
 - a secret file: `.env` (not `.env.example`), a private key, `*.pem`, `*.key`, `.npmrc`, `.netrc`, `.aws/credentials`, `.git-credentials` and the like;
 - a key-shaped value: an AWS access key, a GitHub token, an API key, a Slack or npm token, a private key block;
@@ -31,7 +31,8 @@ It matches shapes and forgets them. It never prints a secret (the message names 
 It is best effort and no substitute for keeping secrets out of reach.
 
 - It reads the command, not the traffic. A program that reads a secret and sends it on its own, a script, a package install script, and a browser are invisible to it.
-- It sees only the senders listed above, plus `socat`, `openssl s_client`, `/dev/tcp`, `dig` and `gh gist`. `python -c`, `node -e`, `perl`, `git push` to a remote and the like are not read.
+- It sees only the senders listed above, plus `xh`, `ncat`, `telnet`, `socat`, `openssl s_client`, `/dev/tcp`, `aria2c`, `dig`, `mail`, `lftp`, `rclone`, `gsutil`, `aws s3`, `gh gist` and `gh api gists`. `python -c`, `node -e`, `perl`, `git push` to a remote and the like are not read.
+- A secret printed by a program (`gh auth token`, `security find-generic-password`, `aws configure get`) is not a shape it knows. A send to a listed host goes through whatever it does there: `curl` to GitHub's API can make an issue, a release asset or a gist.
 - It follows a secret through a variable or a copied file only within one command line. A secret that is encoded (`base64` in a separate step), split in pieces, or held in a variable other than the names above gets past it.
 - `curl -L` can be sent on to a host you did not list by a redirect. It reads the address on the line, a proxy, a `--connect-to` and a `Host:` header, not where the server sends you next.
 - It can hold back a download it should not: a command that fetches a remote secret file to your machine (`scp host.example:/app/.env .`) looks like a send. It keeps a file open by `exec 3<>/dev/tcp/...` and writes to it later only if both are on one line piece. It does not read the text of a remote command (`ssh host 'cat .env'` is held).
@@ -47,7 +48,7 @@ It is best effort and no substitute for keeping secrets out of reach.
 | **Where it looks** | The command line of Claude's Bash tool and the address of a `WebFetch`, before they run (`tool.call`). Not the traffic, not your own terminal, not another mod's `$.http` or `$.process` calls. |
 | **How it fails** | Closed, for its one promise: a line that names a sender and that it cannot read is held; a send whose host it cannot read is put to you as a question; a host it read and found unlisted is refused. |
 | **Where it does not run** | Where it does not run at all: on a machine whose organization sets `allowManagedModsOnly` (no mod a person installs runs its hooks), in a `claude --safe-mode` session, under `disableAllHooks`, and in a folder before you answer its trust prompt. Check `/plugin` before counting on it on a managed machine. In auto mode a question may be answered without reaching you. |
-| **Review record** | Two independent adversarial rounds (2026-11-11; about 330 commands; high gaps found in both rounds, all fixed with a test that failed first). Seen holding back `curl -d @.env` to an unlisted host with the README's message, word for word. Open high findings: none. Known gap: the fixes after the second round have not been reviewed again. `QUALITY.md` has the full record. |
+| **Review record** | Four independent adversarial rounds (2026-11-11 and 2026-11-12; about 760 commands). The fourth, on 0.1.7, ran about 430 and found 3 high and 10 medium ways past it (a heredoc delimiter read short, a pipeline split over two lines, more shells and wrappers), all fixed in 0.1.8 with a test that failed first. Seen holding back `curl -d @.env` to an unlisted host with the README's message, word for word. Open high findings: none. Known gap: the fourth round's fixes were checked again only by the session that made them. `QUALITY.md` has the full record. |
 | **The real control** | Keeping secrets out of reach: a secret store, short-lived tokens, nothing in the working folder. |
 | **Found a way past it?** | That counts as a vulnerability: report it privately, as [`SECURITY.md`](../../SECURITY.md) says. |
 
