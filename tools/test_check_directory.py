@@ -18,5 +18,19 @@ class JsxNames(unittest.TestCase):
             self.assertEqual(cd.jsx_name_findings(line + '\n'), [], line)
 
 
+class AgentLiteral(unittest.TestCase):
+    def test_flags_an_agent_registered_from_a_name_the_directory_cannot_read_through(self):
+        for line in ['await $.agent.register(LOOKS_AGENT)', 'await Promise.resolve($.agent.register(spec)).catch(() => 1)', 'await $.agent.register({ ...base })']:
+            self.assertTrue(cd.agent_findings(line + '\n'), line)
+
+    def test_accepts_a_literal_spec_with_no_permission_field(self):
+        text = "await Promise.resolve($.agent.register({\n  name: 'x',\n  tools: ['Read'],\n})).catch(() => 1)\n"
+        self.assertEqual(cd.agent_findings(text), [])
+
+    def test_flags_a_literal_that_sets_a_permission_field(self):
+        self.assertTrue(cd.agent_findings("$.agent.register({ name: 'x', permissionMode: 'default' })\n"))
+        self.assertTrue(cd.agent_findings("$.agent.register({\n name: 'x',\n bypass: 1,\n permissionMode: 'plan',\n})\n"))
+
+
 if __name__ == '__main__':
     unittest.main()

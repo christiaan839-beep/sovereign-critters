@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.30.9
+
+- **The reading agent is registered from a spec written out at the call, with no permission mode of its own.** The directory could not confirm from a named constant (or from a mode set on it) that the mod leaves permission decisions with you. `biscuit-looks` is unchanged: Read, Grep and Glob only, same words. `tools/check-directory.py` now checks the spec is a literal.
+
 ## 0.30.8
 
 - **Written to pass the plugin directory's checks; the pair behave as before, with one loss.** Three working variables named `h` (which the JSX compiles to) are renamed. The reading agent `biscuit-looks` now states its permission mode (`default`), so her asks reach you whatever mode the session is in; she still has only Read, Grep and Glob. The README gains a "What it does and sends" section.

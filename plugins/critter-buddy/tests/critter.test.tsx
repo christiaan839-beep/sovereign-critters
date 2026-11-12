@@ -1368,6 +1368,7 @@ test('the cat offers a reading agent that can look but not touch', async ($, on)
   const a = made[0] as { name: string; description: string; prompt: string; tools: string[] }
   expect(a.name).toBe('biscuit-looks')
   expect(a.tools).toEqual(['Read', 'Grep', 'Glob'])
+  expect('permissionMode' in a).toBe(false) // the session's own mode applies, and her tools cannot change anything
   for (const hands of ['Edit', 'Write', 'Bash', 'NotebookEdit']) expect(a.tools).not.toContain(hands)
   expect(a.description).toMatch(/never edits/)
   expect(a.prompt).toMatch(/cannot edit anything/)
