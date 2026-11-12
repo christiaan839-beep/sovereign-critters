@@ -12,11 +12,13 @@ A soft bell and a toast when a long command finishes, so you can look away while
 - The bell is a service-desk strike, synthesised for this plugin (`sounds/bell.wav`): a hammer on brass with an inharmonic ring, and a lighter second tap. It plays through the app's own audio, and not at all where there is no player. Set `sound` to `false` for the toast alone.
 - It reads nothing from the command and sends nothing anywhere.
 
-## What it never does
+## What it does and sends
 
-- It reads nothing from the command, the file or the prompt: only whether a call ran long and whether it failed.
-- It makes no network request and sends no telemetry.
-- It keeps no state of its own; its three settings (`minSeconds`, `sound`, `shortTurns`) are yours.
+- **Plays a sound and shows a toast** when a Bash command, or a turn, runs `minSeconds` or longer (20 by default), and a soft tick after a turn of 5 seconds or more that stays under it. A command you or a hook refused never rings.
+- **Sound files:** two, both bundled with the mod and made for it: `sounds/bell.wav` and `sounds/tick.wav`. They are played through the app's own audio; nothing is fetched or recorded. Set `sound` to `false` for the toast alone.
+- **Reads** only how long a call or turn took and whether it failed. Not the command, the file, the prompt or the output.
+- **Keeps** nothing: no store, no log. Its three settings (`minSeconds`, `sound`, `shortTurns`) are yours.
+- **Sends** nothing: no network request, no telemetry. It runs no program and asks for no credential.
 
 ## Install
 
@@ -36,5 +38,4 @@ claude plugin test .
 
 Mods are on by default from Claude Code 2.1.286. An organization can keep installed mods from running (`allowManagedModsOnly` in managed settings), and `claude --safe-mode` starts a session without them. The mod engine may change between releases without notice: tests pin this mod's behaviour, and when the engine moves, expect a patch release that follows it.
 
-
-Apache-2.0.
+Apache-2.0. Not affiliated with Anthropic.

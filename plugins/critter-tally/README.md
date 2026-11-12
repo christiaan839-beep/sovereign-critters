@@ -14,10 +14,12 @@
 
 Only the terminal and the desktop app draw a mod's panes. The VS Code chat panel and `claude -p` run its hooks and draw nothing, so there `/everywhere` answers with the tally in words.
 
-## What it never does
+## What it does and sends
 
-- It records the name of each tool, never its input or output, and counts them in the plugin's own `$.state`.
-- It makes no network request and sends no telemetry.
+- **Counts tool calls by name:** how many times the session called each tool, held in the plugin's own session state. Never a tool's input or output, a path, a prompt or a file.
+- **Draws** a pane on `/everywhere` with the three most-used tools, in each app's own way (natively on the desktop app, as bars in a terminal), with a **Hide** button. Where no app draws panes, it answers with the tally in words.
+- **Keeps** the counts for the session only. It uses no on-disk store ($.store) and writes no file of its own.
+- **Sends** nothing: no network request, no telemetry, no sound files, no credentials, no program run. Its hook on tool calls counts after the tool has run and never holds one up.
 
 ## Install
 
@@ -38,6 +40,5 @@ claude plugin test .
 ## Early access
 
 Mods are on by default from Claude Code 2.1.286. An organization can keep installed mods from running (`allowManagedModsOnly` in managed settings), and `claude --safe-mode` starts a session without them. The mod engine may change between releases without notice: tests pin this mod's behaviour, and when the engine moves, expect a patch release that follows it.
-
 
 Apache-2.0. Not affiliated with Anthropic.

@@ -38,12 +38,14 @@ A small chip, `mods 12/12`, shows how many mods are on.
 
 When critter-buddy is on, the pane also holds its dials: feel (calm, warm, playful, still), reach (lite, full, party), the pair (show, hide) and sound (on, off). Each button runs that mod's own `/critter` command.
 
-## What it never does
+## What it does and sends
 
-- It makes no network request of its own and sends no telemetry. It reads the first 4,000 bytes of each installed mod's own `CHANGELOG.md` for its cards (with `head`, no shell). It starts the `claude plugin` command on your own machine (`list`, `enable`, `disable`, and `install --scope user`, which downloads a mod through that command), and runs other mods' own slash commands for the `open` buttons, and only with a fixed command line built from its list of twelve mods: nothing you type is ever passed to a command line, and a name that is not on the list is refused.
-- It cannot switch itself off (use `claude plugin disable critter-mods` for that).
-- It keeps nothing of its own across sessions: the plugin manager is the truth. Within a session it holds the last list it read and re-reads it when you press refresh, or switch a mod, or open the pane.
-- Where there is no plugin manager (a cloud or chat session without the CLI), it says so and draws nothing that could do nothing.
+- **Runs programs, with fixed command lines.** `claude plugin list --json`, `claude plugin enable` / `disable <mod> --scope user`, `claude plugin install <mod>@sovereign-critters --scope user` (this downloads the mod, through Claude Code's own plugin manager), and `head -c 4000` on an installed mod's `CHANGELOG.md`. The mod name comes from a list of twelve; nothing you type is passed to a command line, and a name not on the list is refused.
+- **Runs other mods' slash commands** (`/critter corner`, `/diary` and the like) for the `open` buttons and the look-and-feel dials.
+- **Reads** the plugin manager's list of installed mods and the first 4,000 bytes of each installed mod's changelog. Nothing else: no prompt, no file of yours, no tool output.
+- **Keeps** nothing across sessions. Within a session it holds the last list it read.
+- **Sends** nothing of its own: no network request, no telemetry, no sound files, no credentials. The only download is the one `claude plugin install` makes when you press install.
+- It cannot switch itself off (use `claude plugin disable critter-mods`). Where there is no plugin manager (a cloud or chat session without the CLI), it says so and draws nothing that could do nothing.
 
 ## Install
 
@@ -64,6 +66,5 @@ claude plugin test .
 ## Early access
 
 Mods are on by default from Claude Code 2.1.286. An organization can keep installed mods from running (`allowManagedModsOnly` in managed settings), and `claude --safe-mode` starts a session without them. The mod engine may change between releases without notice: tests pin this mod's behaviour, and when the engine moves, expect a patch release that follows it.
-
 
 Apache-2.0. Not affiliated with Anthropic.

@@ -6,7 +6,7 @@ body:
     id: plugin
     attributes:
       label: Which plugin?
-      options: [critter-buddy, critter-mods, critter-diary, critter-bell, critter-ward, critter-crab, critter-stunt, critter-tally, critter-measure, not sure]
+      options: [critter-buddy, critter-mods, critter-diary, critter-bell, critter-ward, critter-crab, critter-stunt, critter-tally, critter-measure, critter-clock, critter-ledger, critter-latch, critter-seal, not sure]
     validations:
       required: true
   - type: input

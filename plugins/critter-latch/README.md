@@ -35,6 +35,25 @@ It is best effort and no substitute for a backup or for version control.
 
 A command it stopped is refused. A command it could not read (a `$VAR` target, an `eval` of something unknown) is put to you as a question instead, so a false alarm costs one click. In a permission mode that answers questions for you (auto mode), the question may be answered without reaching you: that was seen on 2026-11-11, and it is why only what the guard truly cannot read is a question. To run a refused command anyway, run it yourself in a terminal.
 
+## What it does and sends
+
+- **Reads the command line** of each Bash call before it runs, and decides whether it is a recursive delete outside the folder you opened, `git reset --hard`, `git clean -f`, or a `git checkout` / `restore` / `switch -f` over the whole tree. It follows `cd`, `sudo`, `xargs`, `bash -c` and the like within the one line. It looks up `HOME` and the folder the session was opened in. It never reads file contents.
+- **Stops, or asks.** A command it can read and that is dangerous is refused, with the reason. A line that names `rm`, `git` or `xargs` and that it cannot read is put to you as a question. Every other command goes on as if the mod were not there.
+- **Fails closed** for that one promise only. It is opt-in: install it to turn it on.
+- **Keeps** nothing and **sends** nothing: no network request, no telemetry, no sound files, no credentials, no program run.
+- It is best effort and reads how a command is spelled, not what a script does. It is not a security boundary, and an organization can turn it off (see [SECURITY.md](../../SECURITY.md)).
+
+## Install
+
+```
+/plugin marketplace add christiaan839-beep/sovereign-critters
+/plugin install critter-latch@sovereign-critters
+```
+
+Plugins load in a new session. To try it from this folder instead: `claude --plugin-dir .`
+
 ## Early access
 
 Mods are on by default from Claude Code 2.1.286. An organization can keep installed mods from running (`allowManagedModsOnly` in managed settings), and `claude --safe-mode` starts a session without them. The mod engine may change between releases without notice: tests pin this mod's behaviour, and when the engine moves, expect a patch release that follows it.
+
+Apache-2.0. Not affiliated with Anthropic.
