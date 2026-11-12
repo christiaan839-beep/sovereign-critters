@@ -11,7 +11,7 @@ import type { Register } from 'claude-code'
 // ---- what sends, and what is secret ----------------------------------------------------------------------------------
 
 const SENDERS = new Set(['curl', 'wget', 'http', 'https', 'xh', 'nc', 'ncat', 'netcat', 'scp', 'sftp', 'rsync', 'ssh', 'ftp', 'telnet', 'socat', 'aria2c', 'dig', 'nslookup', 'host', 'drill', 'mail', 'mailx', 'sendmail', 'lftp', 'rclone', 'gsutil'])
-const SHELLS = new Set(['bash', 'sh', 'zsh', 'dash', 'ksh'])
+const SHELLS = new Set(['bash', 'sh', 'zsh', 'dash', 'ksh', 'fish', 'mksh', 'oksh', 'ash', 'yash', 'posh', 'rbash', 'csh', 'tcsh', 'su'])
 const KEYWORDS = new Set(['then', 'do', 'else', 'elif', 'if', 'while', 'until', '!', '{', '}', 'time'])
 const FILE_WORDS = new Set(['pem', 'key', 'env', 'json', 'txt', 'md', 'tgz', 'gz', 'zip', 'sh', 'js', 'ts', 'py', 'log', 'conf', 'cfg', 'yml', 'yaml', 'p12', 'pfx', 'pub', 'crt', 'cer', 'csv', 'xml', 'html', 'toml', 'lock', 'bak', 'rc'])
 const NAMES = ['.env', '.envrc', 'id_rsa', 'id_ed25519', 'id_ecdsa', 'id_dsa', '.npmrc', '.netrc', '.pypirc', '.git-credentials', 'credentials', 'credentials.json', 'secrets.yml', 'secrets.json', 'server.pem', 'server.key', 'private.key']
@@ -29,7 +29,7 @@ const SECRET_FILE = new RegExp(
       '\\.ssh\\/(?!known_hosts\\b|config\\b|authorized_keys\\b)[\\w.*-]+(?<!\\.pub)',
       'application_default_credentials\\.json|service[-_]?account[\\w.-]*\\.json',
       'credentials(?:\\.json)?|secrets?\\.(?:ya?ml|json|toml)',
-      '\\/proc\\/(?:self|\\d+|\\$\\$)\\/environ',
+      '\\/proc\\/[^\\/\\s]+\\/(?:task\\/[^\\/\\s]+\\/)?environ',
       '\\.(?:ssh|aws|gnupg|kube)(?=\\/?(?:\\s|$|[\'"|;&)>*]))',
     ].join('|') +
     ')(?![\\w.-])',
@@ -68,7 +68,7 @@ const USES: Record<string, string[]> = {
   curl: ['-E', '--cert', '--key', '--cacert', '--capath', '-o', '--output'],
   wget: ['--certificate', '--private-key', '--ca-certificate', '-O', '--output-document', '-o'],
   ssh: ['-i', '--identity'], scp: ['-i'], sftp: ['-i'],
-  rsync: ['--exclude', '--exclude-from', '--filter', '-e', '--rsh'],
+  rsync: ['--exclude', '--exclude-from', '--filter', '-e', '--rsh', 'RSYNC_RSH'], // RSYNC_RSH= is -e set in the environment
   openssl: ['-cert', '-key', '-CAfile', '-CApath'],
 }
 function scrubOf(sender: string): RegExp | undefined {
@@ -99,6 +99,7 @@ export function secretIn(text: string, senders: ReadonlySet<string> = new Set())
   }
   files = files.replace(URL_PATH, (all, head: string, rest: string) => (/\$\(|`/.test(rest) ? all : head))
   files = files.replace(/\$(?:''|"")/g, '').replace(/['"]/g, '')
+  files = files.split(/(\s+)/).map(w => braces(w).join(' ')).join('') // .{env,} is .env
   const file = SECRET_FILE.exec(files)
   if (file) return file[1]
   for (const w of files.split(/\s+/)) {
@@ -108,6 +109,13 @@ export function secretIn(text: string, senders: ReadonlySet<string> = new Set())
   for (const v of text.matchAll(/\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?/g)) if (secretName(v[1]!)) return `the variable $${v[1]}`
   for (const v of text.matchAll(/SendEnv[= ]+([A-Za-z_][A-Za-z0-9_]*)/g)) if (secretName(v[1]!)) return `the variable $${v[1]}`
   return undefined
+}
+
+// A word with its braces expanded as the shell does ({a,b} and nested ones), up to a few dozen words.
+function braces(word: string, depth = 0): string[] {
+  const m = /^(.*?)\{([^{}]*,[^{}]*)\}(.*)$/s.exec(word)
+  if (!m || depth > 4) return [word]
+  return m[2]!.split(',').flatMap(alt => braces(m[1]! + alt + m[3]!, depth + 1)).slice(0, 64)
 }
 
 // A word with a wildcard that could name a secret file: .en*, .e[n]v, id_*. It needs two literal characters, so `*` is no secret.
@@ -340,6 +348,20 @@ function bodies(text: string): string[] {
   return out
 }
 
+// From a [ or { at i, the index just past the bracket that closes it, quotes skipped.
+function skipBracket(t: string, i: number): number {
+  const open = t[i]!
+  const close = open === '[' ? ']' : '}'
+  let depth = 0
+  for (let j = i; j < t.length; j++) {
+    if (t[j] === '\\') j++
+    else if (quoteStart(t, j)) j = span(t, j) - 1
+    else if (t[j] === open) depth++
+    else if (t[j] === close && --depth === 0) return j + 1
+  }
+  return t.length
+}
+
 // The heredoc operators on a line that the shell would really read: not inside a quote, not in a comment, not <<<, not an
 // arithmetic shift. `end` is where the delimiter word ends.
 function markers(l: string): { id: string; dash: boolean; end: number }[] {
@@ -348,13 +370,29 @@ function markers(l: string): { id: string; dash: boolean; end: number }[] {
     const c = l[i]!
     if (c === '\\') i++
     else if (quoteStart(l, i)) i = span(l, i) - 1
+    else if (c === '$' && (l[i + 1] === '[' || l[i + 1] === '{')) i = skipBracket(l, i + 1) - 1 // $[1<<n], ${x:-<<y}
     else if (c === '#' && (i === 0 || /\s/.test(l[i - 1]!))) break
     else if (c === '<' && l[i + 1] === '<' && l[i + 2] !== '<' && l[i - 1] !== '<') {
       const before = l.slice(0, i)
       if ((before.match(/\(\(/g) ?? []).length > (before.match(/\)\)/g) ?? []).length) continue // $((1<<n))
-      const m = /^(-?)\s*(['"]?)([A-Za-z_]\w*)\2/.exec(l.slice(i + 2))
-      if (m) out.push({ id: m[3]!, dash: m[1] === '-', end: i + 2 + m[0].length })
-      i += 1
+      // The delimiter is a whole shell word, quotes and backslashes taken out: <<E"O"F ends at EOF, <<EOF-x at EOF-x.
+      let k = i + 2
+      const dash = l[k] === '-'
+      if (dash) k++
+      while (l[k] === ' ' || l[k] === '\t') k++
+      let id = ''
+      while (k < l.length && !/[\s;|&<>()]/.test(l[k]!)) {
+        if (l[k] === '\\') {
+          id += l[k + 1] ?? ''
+          k += 2
+        } else if (l[k] === "'" || l[k] === '"') {
+          const e = l.indexOf(l[k]!, k + 1)
+          id += l.slice(k + 1, e < 0 ? l.length : e)
+          k = e < 0 ? l.length : e + 1
+        } else id += l[k++]
+      }
+      if (id) out.push({ id, dash, end: k })
+      i = k - 1
     }
   }
   return out
@@ -465,9 +503,12 @@ const WRAP_VALUES: Record<string, RegExp> = {
   sudo: /^-[ughpCDRTU]$/, doas: /^-[uC]$/, env: /^-[uC]$/, timeout: /^-[sk]$/, nice: /^-n$/, ionice: /^-[cnp]$/, watch: /^-[ndw]$/,
   xargs: /^-[IPnLdEsaiJS]$/, command: /^$/, builtin: /^$/, exec: /^-a$/, nohup: /^$/, time: /^$/, stdbuf: /^$/, setsid: /^$/, caffeinate: /^-[tuw]$/,
   parallel: /^-[jNnaS]$/, proxychains: /^-[fq]$/, proxychains4: /^-[fq]$/, torsocks: /^-[aipP]$/, unbuffer: /^$/, strace: /^-[eoPsEp]$/, ltrace: /^-[eoPsp]$/,
-  npx: /^$/, busybox: /^$/, flock: /^-[wE]$/,
+  npx: /^$/, busybox: /^$/, flock: /^-[wE]$/, script: /^$/, arch: /^$/, taskset: /^$/, chrt: /^$/, fakeroot: /^$/, firejail: /^$/,
+  unshare: /^$/, numactl: /^-[NmCpiP]$/, uv: /^$/, bunx: /^$/, faketime: /^$/, 'xvfb-run': /^-[ans]$/, chroot: /^$/, runuser: /^-[ugl]$/,
 }
-const POSITIONAL: Record<string, number> = { timeout: 1, flock: 1 }
+const POSITIONAL: Record<string, number> = { timeout: 1, flock: 1, taskset: 1, chrt: 1, uv: 1, faketime: 1, chroot: 1 }
+// The option of a wrapper whose value is a script it hands to a shell (flock -c, script -c).
+const SCRIPT_OPTION: Record<string, RegExp> = { flock: /^(?:-c|--command)$/, script: /^(?:-[A-Za-z]*c|--command)$/ }
 
 type Command = { name: string; args: string[]; assigns: string[]; scripts: string[]; dumps: boolean }
 
@@ -480,6 +521,7 @@ function command(ws0: string[]): Command {
   const assigns: string[] = []
   const scripts: string[] = []
   for (let guard = 0; guard < 16 && w.length; guard++) {
+    if (/^=[A-Za-z]/.test(w[0]!)) w = [w[0]!.slice(1), ...w.slice(1)] // zsh's =name runs the program name stands for
     const head = nameOf(w[0]!)
     if (isAssign(w[0]!)) assigns.push(w.shift()!)
     else if (KEYWORDS.has(head) || head === '&') w = w.slice(1)
@@ -499,11 +541,25 @@ function command(ws0: string[]): Command {
           scripts.push(w[k + 1] ?? '')
           return { name: 'env', args: [], assigns, scripts, dumps: false }
         }
+        if (SCRIPT_OPTION[head]?.test(a)) {
+          scripts.push(w[k + 1] ?? '')
+          return { name: head, args: [], assigns, scripts, dumps: false }
+        }
         if (head === 'env' && isAssign(a)) assigns.push(a)
         if (a.startsWith('-') || isAssign(a)) k += takes.test(a) ? 2 : 1
         else break
       }
       k += POSITIONAL[head] ?? 0
+      if (SCRIPT_OPTION[head]?.test(w[k] ?? '')) {
+        // flock FILE -c '…'
+        scripts.push(w[k + 1] ?? '')
+        return { name: head, args: [], assigns, scripts, dumps: false }
+      }
+      if (head === 'watch') {
+        // watch hands its words to sh -c as one script
+        scripts.push(w.slice(k).join(' '))
+        return { name: 'watch', args: [], assigns, scripts, dumps: false }
+      }
       if (head === 'parallel') {
         const i = w.findIndex(a => a === ':::' || a === '::::')
         w = w.slice(k, i < 0 ? undefined : i)
@@ -525,7 +581,7 @@ function command(ws0: string[]): Command {
     }
   }
   if (name === 'trap') scripts.push(args.find(a => !a.startsWith('-')) ?? '')
-  const dumps = name === 'printenv' || (name === 'set' && !args.length) || (name === 'export' && !args.length) || (/^(?:export|declare|typeset)$/.test(name) && args.some(a => /^-[a-z]*[px][a-z]*$/.test(a)) && !args.some(a => a.includes('=')))
+  const dumps = name === 'printenv' || (/^(?:set|export|declare|typeset)$/.test(name) && !args.length) || (/^(?:export|declare|typeset)$/.test(name) && args.some(a => /^-[a-z]*[px][a-z]*$/.test(a)) && !args.some(a => a.includes('=')))
   return { name, args, assigns, scripts, dumps }
 }
 
@@ -546,7 +602,8 @@ export function judge(line: string, list: readonly string[], depth = 0): string 
     return undefined
   }
 
-  const whole = tidy(inline(line)).replace(/\|&/g, '|').replace(/\|\|/g, ';')
+  // A line that ends in | (or && or ||) goes on to the next one, so that pipeline is one command.
+  const whole = tidy(inline(line)).replace(/(\|&?|&&)[ \t]*\n/g, '$1 ').replace(/\|&/g, '|').replace(/\|\|/g, ';')
   for (const raw of compounds(split(whole, ';&\n'))) {
     const text = plain(raw)
     // Every command in the chunk: its pipe parts, what sits in ( ) and backticks, and what a wrapper hands to a shell.
@@ -590,9 +647,14 @@ export function judge(line: string, list: readonly string[], depth = 0): string 
           const value = e >= 0 ? c.args[e + 1] : c.args.find(a => a.startsWith('--rsh='))?.slice(6)
           if (value) hosts.push(...redirectHosts(words(value)), ...hostsOf(words(value)))
         }
+        // a connection program set for this one command (RSYNC_RSH="ssh -o HostName=…")
+        for (const a of c.assigns) {
+          const m = /^(?:RSYNC_RSH|RSYNC_CONNECT_PROG)=(.*)$/s.exec(a)
+          if (m) hosts.push(...redirectHosts(words(m[1]!)), ...hostsOf(words(m[1]!)))
+        }
         if (c.name === 'curl' && c.args.some(a => /^(?:--netrc(?:-optional)?|-[A-Za-z]*n)$/.test(a))) netrc = true
         hosts.push(...proxies)
-      } else if (c.name === 'gh' && c.args[0] === 'gist') gist = true
+      } else if (c.name === 'gh' && (c.args[0] === 'gist' || (c.args[0] === 'api' && c.args.some(a => /^\/?gists(?:\/|$)/.test(a))))) gist = true
     }
     for (const m of text.matchAll(/\/dev\/(?:tcp|udp)\/([^/\s]+)/g)) {
       senders.add('dev-tcp')
@@ -624,6 +686,10 @@ export function judge(line: string, list: readonly string[], depth = 0): string 
       if (secretish(raw.slice(m.index! + m[0].length))) vars.add(m[1]!)
     }
     for (const m of raw.matchAll(/(?:^|[\s;])(?:export\s+)?((?:[A-Za-z]+_)?proxy)=("[^"]*"|'[^']*'|\S+)/gi)) if (!sender) proxies.push(...pieces(m[2]!.replace(/^["']|["']$/g, '')))
+    for (const m of raw.matchAll(/(?:^|[\s;])export\s+(?:RSYNC_RSH|RSYNC_CONNECT_PROG)=("[^"]*"|'[^']*'|\S+)/g)) {
+      const value = words(unquote(m[1]!))
+      proxies.push(...redirectHosts(value), ...hostsOf(value))
+    }
     const read = /(?:^|[\s;|&(])(?:read|mapfile|readarray)\s+((?:-\w+\s+)*)((?:[A-Za-z_]\w*\s*)+)/.exec(raw)
     if (read && secretIn(raw)) for (const v of read[2]!.trim().split(/\s+/)) vars.add(v)
     if ((/(?:^|[\s;|&(])(?:source|\.)\s+\S/.test(raw) || /\bexport\s+\$\(/.test(raw) || /\beval\b/.test(raw)) && secretIn(raw)) loaded = true
@@ -632,7 +698,9 @@ export function judge(line: string, list: readonly string[], depth = 0): string 
         const f = norm(m[1]!.replace(/^["']|["']$/g, ''))
         if (!f.startsWith('/dev/') && !f.startsWith('&')) files.add(f)
       }
-      const cp = /\b(?:cp|mv)\s+(?:-\S+\s+)*(?:\S+\s+)+?("[^"]+"|'[^']+'|[^\s;|&<>()]+)\s*(?:$|[;&|])/.exec(raw)
+      const dd = /\bof=("[^"]+"|'[^']+'|[^\s;|&<>()]+)/.exec(raw)
+      if (dd) files.add(norm(dd[1]!.replace(/^["']|["']$/g, '')))
+      const cp = /\b(?:cp|mv|ln|install)\s+(?:-\S+\s+)*(?:\S+\s+)+?("[^"]+"|'[^']+'|[^\s;|&<>()]+)\s*(?:$|[;&|])/.exec(raw)
       if (cp) files.add(norm(cp[1]!.replace(/^["']|["']$/g, '')))
       if (/\b(?:tar|zip|7z|gzip|bzip2|xz)\b/.test(raw)) for (const w of raw.split(/\s+/)) if (/\.(?:tgz|tar|zip|gz|7z|bz2|xz)$/.test(w)) files.add(norm(w))
     }

@@ -10,7 +10,7 @@ Four pillars in one repo (`VOICE.md`), and the Guard pillar also shipped on its 
 - [x] The ontology: `VOICE.md`, the root README by pillar, each README and marketplace entry tagged with its pillar.
 - [x] A threat model in each guard's README: who it protects against and who not, where it looks, how it fails, where it does not run, its review record, the real control, how to report a bypass.
 - [ ] critter-ward's refusals begin `guard:`, its old name; `VOICE.md` says a mod leads with its own name. Change to `critter-ward:` with the tests, as a minor version (a person or a script may match the old prefix).
-- [ ] A fourth independent review round on latch and seal (ward too); every finding fixed with a test that failed first.
+- [x] A fourth independent review round on latch and seal (ward too); every finding fixed with a test that failed first (2026-11-12: latch 8 high, seal 3 high, ward 1 high, plus mediums; latch 0.1.8, seal 0.1.8, ward 0.3.7). Its fixes have been checked again only by the session that made them.
 - [x] `examples/hot-reload-demo` as a "write your first mod" guide: the five files, the code read in seven steps each tied to its test, the loop, three exercises, the rules.
 - [ ] High-contrast palette, from the founder's screenshots of the real window. Needs the founder.
 - [ ] The stage, the corner and the sky seen in the desktop app. Needs the founder.
@@ -37,7 +37,7 @@ Four pillars in one repo (`VOICE.md`), and the Guard pillar also shipped on its 
 ## Open
 
 - [x] In auto mode a guard's question was answered without reaching the person (seen with latch, 2026-11-11). Decided by the founder the same day: seal and ward keep asking about what they cannot read, and all three READMEs say what auto mode does with the question (seal 0.1.2, ward 0.3.1).
-- [ ] A fourth review round on latch and seal only if the founder wants one: each round found fewer and smaller holes, but spelling-based guards will keep missing things (scripts, aliases, multi-step encoding). The READMEs say so instead of promising a clean bill.
+- [x] A fourth review round on latch and seal: run on 2026-11-12. It still found high holes (latch 8, seal 3, ward 1), so spelling-based guards keep missing things (scripts, aliases, multi-step encoding, zsh's own spellings). The READMEs say so instead of promising a clean bill.
 - [x] critter-ward puts a line that runs an expansion (`eval "$(…)"`) to the person through `tool.check`, the way latch and seal ask (in 0.3.0, three tests, the first watched failing).
 
 ## Needs the founder
