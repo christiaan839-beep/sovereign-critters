@@ -2,7 +2,7 @@
 """Writing rules the plugin directory's validation applies to a hooks module (.jsx/.tsx).
 
 A .tsx file compiles to h(...) and Fragment, so a file that declares either name (a variable, a parameter, a
-loop variable, an import) can shadow them, and the directory refuses it. Usage: check-directory.py <plugin folder>...
+loop variable, an import) can shadow them, and the directory refuses it. Also: an agent is registered from a literal spec that leaves permissionMode out. Usage: check-directory.py <plugin folder>...
 Reads every .tsx/.jsx file under each folder's hooks/. Exits 1 and names file:line for each finding."""
 import pathlib
 import re
@@ -44,6 +44,33 @@ def jsx_name_findings(text):
     return [(n, raw.strip()) for n, raw in enumerate(text.splitlines(), 1) if any(p.search(strip(raw)) for p in DECLARES)]
 
 
+AGENT_CALL = re.compile(r'\$\.agent\.register\(\s*(\{)?')
+
+
+def agent_findings(text):
+    """(line number, why) for each $.agent.register not given an object literal, or whose literal sets permissionMode.
+    The directory reads the spec where it is written: a name it cannot see through leaves it unable to confirm the agent
+    leaves permission decisions with the person, and the session's own mode is what applies when the field is left out."""
+    found = []
+    for m in AGENT_CALL.finditer(text):
+        line = text.count('\n', 0, m.start()) + 1
+        if not m.group(1):
+            found.append((line, '$.agent.register is not given an object literal'))
+            continue
+        depth, i = 0, m.end(1) - 1
+        while i < len(text):
+            depth += {'{': 1, '}': -1}.get(text[i], 0)
+            i += 1
+            if depth == 0:
+                break
+        body = text[m.start():i]
+        if re.search(r'\bpermissionMode\b', body):
+            found.append((line, 'the agent spec sets permissionMode'))
+        if '...' in body:
+            found.append((line, 'the agent spec spreads another object into it'))
+    return found
+
+
 def main(argv):
     if not argv:
         print(__doc__)
@@ -56,6 +83,9 @@ def main(argv):
             for n, line in jsx_name_findings(path.read_text(encoding='utf8')):
                 bad += 1
                 print(f'{path}:{n}: declares a name the JSX compiles to: {line}')
+            for n, why in agent_findings(path.read_text(encoding='utf8')):
+                bad += 1
+                print(f'{path}:{n}: {why}')
     return 1 if bad else 0
 
 
