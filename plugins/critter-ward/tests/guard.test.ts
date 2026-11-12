@@ -1070,3 +1070,38 @@ test('a push the guard can read is refused by the call, and an ask beside it doe
   const out = await $.tool.call({ tool: 'Bash', command })
   expect(out.deny).toMatch(/pull request/)
 })
+
+// ---- smoothness: the guard's cost grows in step with the line, never faster ----
+// The bounds are loose on purpose (a slow machine must not fail them) and far under what a quadratic reader costs.
+const ms = (f: () => unknown) => { const t = performance.now(); f(); return performance.now() - t }
+
+test('a very long benign command is read fast, finds no push and goes through', async ($, on) => {
+  on('tool.call', () => ran)
+  const line = [
+    `echo ${'word '.repeat(4000)}`,
+    Array.from({ length: 1500 }, (_, i) => `cat file${i}.txt`).join(' | '),
+    Array.from({ length: 1500 }, (_, i) => `ls dir${i}`).join(' && '),
+    `printf '%s' "${'a b c '.repeat(3000)}"`,
+    `FOO=${'x'.repeat(5000)} env | grep -c y`,
+  ].join('; ')
+  expect(line.length).toBeGreaterThan(60_000)
+  expect(ms(() => pushes(line))).toBeLessThan(600)
+  expect(pushes(line)).toEqual([])
+  const began = performance.now()
+  const out = await $.tool.call({ tool: 'Bash', command: line })
+  expect(performance.now() - began).toBeLessThan(1000)
+  expect(out.deny).toBeUndefined()
+  expect(out).toEqual(ran)
+})
+
+test('a push at the end of a very long line is still found, and found fast', () => {
+  const line = `${'echo word; '.repeat(6000)}git push origin main`
+  let found: ReturnType<typeof pushes> = []
+  expect(ms(() => { found = pushes(line) })).toBeLessThan(600)
+  expect(found).toHaveLength(1)
+})
+
+test('a line of unclosed ${ is read in step with its length, not by its square', () => {
+  for (const n of [8000, 16000]) expect(ms(() => pushes('echo ${x '.repeat(n)))).toBeLessThan(400)
+  for (const n of [8000, 16000]) expect(ms(() => pushes('echo $[x '.repeat(n)))).toBeLessThan(400)
+})

@@ -46,8 +46,10 @@ export function split(s: string, text = false): Part[] {
     return j
   }
   // From just inside a bracket, the index of the `close` that ends it (nested pairs and quotes skipped), or -1.
+  const lastClose: Record<string, number> = {} // where each closer last stands in the line, found once: asking again for every opener would cost as much as the walk it saves
   const matching = (j: number, open: string, close: string) => {
-    for (let depth = 0; j < s.length; j++) {
+    const last = (lastClose[close] ??= s.lastIndexOf(close)) // no closer after this point means none can match: say so without walking the rest of the line
+    for (let depth = 0; j <= last; j++) {
       if (s[j] === '\\') j++
       else if (s[j] === "'" || s[j] === '"') j = closing(j)
       else if (s[j] === open) depth++
