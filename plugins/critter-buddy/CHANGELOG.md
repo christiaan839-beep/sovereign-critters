@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.30.10
+
+- **The permission hook passes the check on unread, under parameter names of its own.** The plugin directory reads a permission hook only when no variable in the file is spelled like one of the hook's parameters, and only when the hook returns `next(...)` itself. The hook's parameters are now `checked` and `onward`, and it returns `onward(checked)` directly. The cat's line under a risky question is unchanged.
+- **Removed: the pair looking up when a permission question is asked.** That reaction read the verdict before returning it, which the directory cannot confirm leaves the decision with you.
+
 ## 0.30.9
 
 - **The reading agent is registered from a spec written out at the call, with no permission mode of its own.** The directory could not confirm from a named constant (or from a mode set on it) that the mod leaves permission decisions with you. `biscuit-looks` is unchanged: Read, Grep and Glob only, same words. `tools/check-directory.py` now checks the spec is a literal.

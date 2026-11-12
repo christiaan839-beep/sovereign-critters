@@ -1007,10 +1007,12 @@ export const register: Register = on => {
   // guard could not read ahead (an unread expansion run as a script or a command, a hook or a file the line writes and
   // runs, an interpreter given a git push) is put to the person there, never refused: eval "$(direnv hook zsh)" is common.
   // A push the guard can read is still refused by the call above.
-  on('tool.check', { tool: 'Bash' }, ($, e, next) => {
-    const why = unreadAhead(e.input)
+  // The names checked and onward are this hook's alone: the plugin directory reads a permission hook only when no
+  // variable in the file is spelled like one of its parameters.
+  on('tool.check', { tool: 'Bash' }, ($, checked, onward) => {
+    const why = unreadAhead(checked.input)
     if (why) return { decision: 'ask', reason: `guard: ${why}, so the guard cannot read what it runs. Allow it if you know what it does.` }
-    return next(e)
+    return onward(checked)
   })
     // A check that breaks still gives a verdict of its own: it asks the person, never passing the call on unconfirmed.
     // It asks and does not refuse: the call's own guard above already fails closed on a push, so this costs a click.

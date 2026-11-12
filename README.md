@@ -35,7 +35,7 @@ Thirteen mods in four pillars. Take one, take a pillar, or take them all; each i
 
 | Mod | What it is |
 | --- | --- |
-| [`critter-buddy`](plugins/critter-buddy) `0.30.8` | The wizard Pip, the tabby Biscuit, faces on every tool row, a prompt box that colours `/critter` as you type, a stage, a diary the model can read, and a Day and Night sky. |
+| [`critter-buddy`](plugins/critter-buddy) `0.30.10` | The wizard Pip, the tabby Biscuit, faces on every tool row, a prompt box that colours `/critter` as you type, a stage, a diary the model can read, and a Day and Night sky. |
 | [`critter-crab`](plugins/critter-crab) `0.4.4` | `/crab hold <text>`: a small crab carries one note for this folder and has it for you when you come back. |
 | [`critter-stunt`](plugins/critter-stunt) `0.2.6` | `/stunt`: the critter painted in a pane, with a card for each of the last 40 tool calls. |
 
@@ -45,9 +45,9 @@ Each guard fails closed for its one promise, says what it stopped and why, and i
 
 | Mod | What it stops |
 | --- | --- |
-| [`critter-ward`](plugins/critter-ward) `0.3.7` | A git push that forces, or writes main or master, before Bash runs it. |
-| [`critter-latch`](plugins/critter-latch) `0.1.7` | Opt-in. A recursive delete outside your folder, `git reset --hard`, `git clean -f` and checkout over the whole tree. |
-| [`critter-seal`](plugins/critter-seal) `0.1.7` | Opt-in. A command that sends a secret file or key to a host you have not listed. |
+| [`critter-ward`](plugins/critter-ward) `0.3.9` | A git push that forces, or writes main or master, before Bash runs it. |
+| [`critter-latch`](plugins/critter-latch) `0.1.8` | Opt-in. A recursive delete outside your folder, `git reset --hard`, `git clean -f` and checkout over the whole tree. |
+| [`critter-seal`](plugins/critter-seal) `0.1.8` | Opt-in. A command that sends a secret file or key to a host you have not listed. |
 
 ### Witness: says what happened, honestly
 

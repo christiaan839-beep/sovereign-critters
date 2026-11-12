@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.9
+
+- **Changed: the permission hook's parameters have names of their own (`checked`, `onward`).** The plugin directory reads a permission hook only when no variable in the file is spelled like one of the hook's parameters; the file used `e` and `next` elsewhere. What the guard asks about, and what it refuses, is unchanged: all 86 tests pass.
+
 ## 0.3.8
 
 - **Changed: the permission check is restructured so its verdict can be read at a glance.** The work of deciding whether a line is one the guard cannot read ahead moved into a small helper (`unreadAhead`). The `tool.check` hook itself now only does one of three things: ask with a fixed `decision: 'ask'`, pass the call on with `next(e)`, or (if the check breaks) ask with a fixed reason. The plugin directory's portal could not confirm the earlier shape leaves the decision with you. What the guard asks about, and what it refuses, is unchanged: all 86 tests pass, and breaking the helper on purpose fails two of them.
