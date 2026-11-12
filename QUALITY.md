@@ -69,7 +69,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - the corner and the stage have not been seen in the real app
 - the cat overlapping Pip when a side panel opens was seen once and not reproduced
 
-### critter-mods 0.7.5
+### critter-mods 0.7.6
 
 | | |
 | --- | --- |
@@ -174,7 +174,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - /diary clear does not clear the week
 - never seen in the real app
 
-### critter-bell 0.6.5
+### critter-bell 0.6.6
 
 | | |
 | --- | --- |
@@ -208,7 +208,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never heard or seen in the real app
 
-### critter-crab 0.4.3
+### critter-crab 0.4.4
 
 | | |
 | --- | --- |
@@ -241,7 +241,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app
 
-### critter-stunt 0.2.5
+### critter-stunt 0.2.6
 
 | | |
 | --- | --- |
@@ -274,7 +274,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app
 
-### critter-tally 0.2.5
+### critter-tally 0.2.6
 
 | | |
 | --- | --- |
@@ -306,7 +306,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never seen in the real app
 
-### critter-measure 0.2.5
+### critter-measure 0.2.6
 
 | | |
 | --- | --- |
@@ -338,7 +338,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - never called by the model in the real app
 
-### critter-clock 0.1.5
+### critter-clock 0.1.6
 
 | | |
 | --- | --- |
@@ -368,7 +368,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the hourly toast has not been seen in the real app
 
-### critter-ledger 0.1.5
+### critter-ledger 0.1.6
 
 | | |
 | --- | --- |
@@ -399,7 +399,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - never seen in the real app; token counts come from the engine's per-turn usage, not checked against a bill
 - the toast for passing a limit has not been seen in the real app
 
-### critter-latch 0.1.6
+### critter-latch 0.1.7
 
 | | |
 | --- | --- |
@@ -431,7 +431,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the fixes after the review have not been reviewed again
 
-### critter-seal 0.1.6
+### critter-seal 0.1.7
 
 | | |
 | --- | --- |
