@@ -35,11 +35,14 @@ else bad "root test exited $rc for a reason other than the expected one"; sed 's
 # 2b. every hook on the tool path fails open (the guard fails closed on purpose and is left out)
 if python3 tools/check-hooks.py >"$TMP/h.log" 2>&1; then ok 'every tool-path hook ends in .catch'; else bad 'a tool-path hook has no .catch'; sed 's/^/      /' "$TMP/h.log"; fi
 
+# 2b2. the writing rules the plugin directory applies to a hooks module (so far critter-buddy only; each mod is added as it is made to pass)
+if python3 tools/check-directory.py plugins/critter-buddy >"$TMP/d.log" 2>&1; then ok 'critter-buddy follows the directory writing rules'; else bad 'critter-buddy breaks a directory writing rule'; sed 's/^/      /' "$TMP/d.log"; fi
+
 # 2c. QUALITY.md is a table of facts: it says when it has fallen behind, and does not fail the commit for it
 if python3 tools/quality.py --check --counts "$TMP/counts.tsv" >"$TMP/q.log" 2>&1; then ok 'QUALITY.md is current'; else note "warn  $(cat "$TMP/q.log")"; fi
 
 # 2d. the tools that check the project are themselves tested
-if python3 -m unittest tools.test_quality >"$TMP/u.log" 2>&1; then ok 'tools/quality.py tests'; else bad 'tools/quality.py tests'; sed 's/^/      /' "$TMP/u.log"; fi
+if python3 -m unittest tools.test_quality tools.test_check_directory >"$TMP/u.log" 2>&1; then ok 'tools/quality.py tests'; else bad 'tools/quality.py tests'; sed 's/^/      /' "$TMP/u.log"; fi
 
 # 3. every sound
 for s in plugins/*/sounds; do

@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Look, Scene } from '../types'
-import { windowWidth, fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, wizardPoseFor, isQuiet, motionTick, welcomeLine, ERR_LINES, cleanMemory, cleanStreak, doctorLines, paneColumns, withSky, backdropFailure, backdropOutcome, surfaceOf, newProbe, noteBeat, perfLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, suggest, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
+import { windowWidth, fitControls, statusParts, cleanHabits, recordSession, foldDiary, returnTrust, wizardFor, wizardPoseFor, isQuiet, motionTick, welcomeLine, ERR_LINES, cleanMemory, cleanStreak, doctorLines, paneColumns, withSky, backdropFailure, backdropOutcome, surfaceOf, newProbe, noteBeat, perfLines, NAMES_DEFAULT, FEELS, moodLine, FULL_MARK, cleanVoice, riskLine, stepLine, usageLine, stepFeel, cadence, controlLabels, draftRuns, diaryMarkdown, diaryParts, catchIn, cleanName, named, faceRuns, faceSvg, initial, weekdayOf, paint, paintBig, paintBigSvg, paintOrb, paintOrbSvg, paintSvg, paintWizard, paintWizardSvg, poke, quip, react, startGame, step, stopGame } from './scene'
 import { TINTS, tintOf, tintFor, SKY_CHOICES, hourSast, dayKey, dueForWait, glassOf, holidayOf, nextProp, nudgeFor, RIDGE, RIDGE_FAR, thinkingOf, skyArgsOf, skyFor, streakAlive, streakNext } from './world'
 import type { Flight, SkyChoice, Streak } from './world'
 import type { SoundName, Feel, Names, FaceKind, Reaction, Run, Svgd } from './scene'
@@ -83,9 +83,9 @@ const hhmm = (ms: number) => `${String(hourOf(ms)).padStart(2, '0')}:${String(Ma
 
 const moodOf = (s: Scene) => (s.trust < 30 ? 'sulking' : s.trust > 80 ? 'devoted' : s.joy > 75 ? 'pleased' : 'unbothered')
 const pick = <T,>(list: readonly T[], key: string): T => {
-  let h = 7
-  for (const c of key) h = (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0
-  return list[h % list.length]!
+  let hash = 7
+  for (const c of key) hash = (Math.imul(hash, 31) + c.charCodeAt(0)) >>> 0
+  return list[hash % list.length]!
 }
 
 // Pixel rows and the five-cell face, drawn with whichever Text the surface resolved.
@@ -155,6 +155,7 @@ export const LOOKS_AGENT = {
     'Quote the file and the line when you can. Say nothing you did not see. If the change is sound, say so in one line and stop; a short answer is a kindness.',
   ].join('\n\n'),
   tools: ['Read', 'Grep', 'Glob'],
+  permissionMode: 'default', // her asks go to the person, whatever mode the session around her is in
   omitClaudeMd: true,
 } as const
 
@@ -467,17 +468,6 @@ export const register: Register = on => {
     return next(e)
   }).catch(($, e, next) => next(e))
 
-  // As you type /critter, the typeahead offers what it can do, in the cat's voice.
-  on('prompt.autocomplete', async ($, e, next) => {
-    const base = await next(e)
-    try {
-      const rows = suggest(e.text, e.cursor, await read($, names))
-      return rows.length ? { suggestions: [...base.suggestions, ...rows] } : base
-    } catch {
-      return base // a typeahead that fails shows only the engine's own rows
-    }
-  })
-
   on('command.run', { command: 'critter' }, async ($, e) => {
     const [sub = '', arg = ''] = e.args.trim().split(/\s+/)
     const reactions: Record<string, [Reaction, string]> = {
@@ -581,7 +571,7 @@ export const register: Register = on => {
       return { text: `The tabby is now ${v}.` }
     }
     if (sub === '' || sub === 'hide' || sub === 'show') {
-      const hidden = await update($, isHidden, h => (sub === 'hide' ? true : sub === 'show' ? false : !h))
+      const hidden = await update($, isHidden, was => (sub === 'hide' ? true : sub === 'show' ? false : !was))
       live.hidden = hidden === true; lastCadence = 1
       if (hidden) { lastSky = ''; await drawBackdrop($, undefined) } else { lastSky = ''; await syncSky($, await $.clock.now(), await read($, scene)) }
       return { text: hidden ? 'The pair are hidden.' : 'The pair are back.' }
@@ -984,8 +974,8 @@ let folderTint: number | undefined // the colour of this session's folder, kept 
 const skyArgs = (now: number, joy: number, fails = 0, glow = false) => skyArgsOf(now, joy, fails, glow, skyPickLive, skyTintLive)
 const stageWord = (now: number, joy: number, fails = 0) => {
   const a = skyArgs(now, joy, fails)
-  const h = holidayOf(now)
-  return [a.phase, a.season, a.weather === 'clear' ? undefined : a.weather, h?.name].filter(Boolean).join(' · ')
+  const holiday = holidayOf(now)
+  return [a.phase, a.season, a.weather === 'clear' ? undefined : a.weather, holiday?.name].filter(Boolean).join(' · ')
 }
 // Draw the backdrop again only when something it is made of changed; the desktop draws it, every other surface answers that it did not.
 const syncSky = async ($: any, now: number, s: { joy: number; fails?: number; look: string; label: string }) => {

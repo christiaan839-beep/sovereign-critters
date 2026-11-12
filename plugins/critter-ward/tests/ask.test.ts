@@ -33,3 +33,14 @@ test('a check the guard cannot finish leaves the decision to the host', async ($
   const check = await $.tool.check({ tool: 'Bash', input: { command: 42 } })
   expect(check.decision).toBe('allow')
 })
+
+// A permission check that breaks must not fall through to whatever the host would have said: the person is asked.
+test('a permission check that breaks asks the person instead of passing the call through', async ($, on) => {
+  on('tool.call', () => ({ result: 'ran' }))
+  on('tool.check', () => {
+    throw new Error('the engine verdict beneath broke')
+  })
+  const check = await $.tool.check({ tool: 'Bash', input: { command: 'git status' } })
+  expect(check.decision).toBe('ask')
+  expect(check.reason).toMatch(/^guard: the check could not finish/)
+})

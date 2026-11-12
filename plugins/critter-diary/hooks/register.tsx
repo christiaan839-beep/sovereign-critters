@@ -122,9 +122,9 @@ export const postcardOf = (list: readonly Entry[], md = false): string => {
   const turns = list.filter((x): x is Extract<Entry, { kind: 'turn' }> => x.kind === 'turn')
   const failed = calls.filter(x => !x.ok).length
   const hours = new Map<string, number>() // by the Johannesburg hour of the day, in the order the hours first appeared
-  for (const x of [...calls].sort((a, b) => a.at - b.at)) { const h = clock(x.at).slice(0, 2); hours.set(h, (hours.get(h) ?? 0) + 1) }
+  for (const x of [...calls].sort((a, b) => a.at - b.at)) { const hour = clock(x.at).slice(0, 2); hours.set(hour, (hours.get(hour) ?? 0) + 1) }
   let busy: [string, number] | undefined
-  for (const [h, n] of hours) if (!busy || n > busy[1]) busy = [h, n]
+  for (const [hour, n] of hours) if (!busy || n > busy[1]) busy = [hour, n]
   const by: Record<string, number> = Object.create(null) // no prototype, so a tool named __proto__ is a key like the rest
   for (const x of calls) by[x.tool] = (Object.hasOwn(by, x.tool) ? by[x.tool]! : 0) + 1
   const top = Object.entries(by).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, 3).map(([t, n]) => `${md ? mdName(t) : t} ${n}`)
@@ -145,22 +145,22 @@ const DAYS = 'days'
 let queue: Promise<unknown> = Promise.resolve()
 /** A store step that gives up after five seconds, so one that never answers cannot stop the queue for good. */
 const STORE_GIVES_UP_MS = 5000
-const patient = <T,>($: any, step: Promise<T> | T): Promise<T> => {
+const patient = <T,>(api: any, step: Promise<T> | T): Promise<T> => {
   let timer: { cancel?: () => void } | undefined
   const late = new Promise<never>((_, no) => {
-    try { timer = $.clock.after(STORE_GIVES_UP_MS, () => no(new Error('the store did not answer'))) } catch { /* no timer here: the step is simply not timed */ }
+    try { timer = api.clock.after(STORE_GIVES_UP_MS, () => no(new Error('the store did not answer'))) } catch { /* no timer here: the step is simply not timed */ }
   })
   return Promise.race([Promise.resolve(step), late]).then(v => { timer?.cancel?.(); return v }, e => { timer?.cancel?.(); throw e }) // a step that answered leaves no timer behind
 }
-const bump = ($: any, f: (list: Day[]) => Day[]): void => {
-  queue = queue.then(async () => { await patient($, $.store.set(DAYS, f(cleanDays(await patient($, $.store.get(DAYS)))))) }).catch(() => undefined)
+const bump = (api: any, f: (list: Day[]) => Day[]): void => {
+  queue = queue.then(async () => { await patient(api, api.store.set(DAYS, f(cleanDays(await patient(api, api.store.get(DAYS)))))) }).catch(() => undefined)
 }
 // The session's lines are written the same way: started and left, so a tool never waits on them either.
 let writing: Promise<unknown> = Promise.resolve()
 const leave = (step: Promise<unknown>): void => { writing = Promise.all([writing, step.catch(() => undefined)]) }
 /** Resolves when every write to the week and to the session's lines so far has settled. A tool never waits on it: a store that hangs must not hold up a result. */
 export const idle = (): Promise<unknown> => Promise.all([queue, writing])
-const week = async ($: any): Promise<Day[]> => cleanDays(await Promise.resolve($.store.get(DAYS)).catch(() => undefined))
+const week = async (api: any): Promise<Day[]> => cleanDays(await Promise.resolve(api.store.get(DAYS)).catch(() => undefined))
 
 export const register: Register = on => {
   let turnStart = 0

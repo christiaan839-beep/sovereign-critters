@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.30.8
+
+- **Written to pass the plugin directory's checks; the pair behave as before, with one loss.** Three working variables named `h` (which the JSX compiles to) are renamed. The reading agent `biscuit-looks` now states its permission mode (`default`), so her asks reach you whatever mode the session is in; she still has only Read, Grep and Glob. The README gains a "What it does and sends" section.
+- **Removed: the typeahead rows for `/critter`.** The hook that offered subcommand and coat names as you typed (`prompt.autocomplete`) is gone, because the directory does not recognise that event. Typing `/critter ` still colours the words and shows the dim hint line; every command works as before.
+- `tools/check-directory.py` (run by `tools/preflight.sh`) keeps the JSX-name rule from coming back.
+
 ## 0.30.7
 
 - **Smoother: the pair never hold up a tool or a keystroke.** The tool hook used to wait for the store, the clock and a scene write before the tool ran; it now starts them on the side and goes straight on. The same for the prompt being sent and each key typed. Transcript rows read whether the pair are hidden and how much to show from a copy kept in memory, so a row costs the engine no questions (5 rows used to cost 10). Tests hang the store and the clock and check the tool still returns.
