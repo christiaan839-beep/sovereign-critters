@@ -22,9 +22,13 @@ It also holds back a `WebFetch` whose address carries a key-shaped value.
 
 The same send to a host on your list goes through. The list is **Hosts you trust** in the mod's settings (a host and its subdomains; the default is GitHub, npm, PyPI, localhost). A lookalike (`github.com.evil.example`, `evilgithub.com`, or a trusted name placed before an at sign in the address) is not trusted.
 
-## What it never does
+## What it does and sends
 
-It matches shapes and forgets them. It never prints a secret (the message names the file or the kind, and the host), never stores one and never sends one anywhere. It reads no file contents.
+- **Reads the command line** of each Bash call (and the address of each `WebFetch`) before it runs, looking for a sender (`curl`, `wget`, `scp`, `ssh` and the like) in the same pipeline as a secret: a secret file name, a key-shaped value, or a secret variable name. It matches shapes and forgets them; it never reads file contents.
+- **Holds back** a send to a host that is not on your list. The list is **Hosts you trust** in the mod's settings (default: GitHub, npm, PyPI, localhost). A host it cannot read, when a secret goes with it, is put to you as a question; one it read and found unlisted is refused. The message names the file or the kind of secret and the host, never the secret.
+- **Fails closed** for that one promise only. It is opt-in: install it to turn it on.
+- **Keeps** nothing and **sends** nothing: no network request, no telemetry, no sound files, no program run. Its one setting is a list of host names you type yourself. It asks for no credential and never stores or prints one.
+- It is best effort and reads the command, not the traffic. It is not a security boundary, and an organization can turn it off (see [SECURITY.md](../../SECURITY.md)).
 
 ## Limits
 
@@ -38,6 +42,17 @@ It is best effort and no substitute for keeping secrets out of reach.
 - A host it cannot read (`$URL`) when a secret goes with it is put to you as a question instead of refused; a host it read and found unlisted is refused. In a permission mode that answers questions for you (auto mode), the question may be answered without reaching you; that was seen with critter-latch on 2026-11-11. It stays a question on purpose: refusing would stop every send whose address is a variable. Hosts in the settings may be written as `github.com`, `*.github.com` or `https://github.com`.
 - It fails closed for a line that names a sender and that it cannot read; any other command goes on as if the mod were not there.
 
+## Install
+
+```
+/plugin marketplace add christiaan839-beep/sovereign-critters
+/plugin install critter-seal@sovereign-critters
+```
+
+Plugins load in a new session. To try it from this folder instead: `claude --plugin-dir .`
+
 ## Early access
 
 Mods are on by default from Claude Code 2.1.286. An organization can keep installed mods from running (`allowManagedModsOnly` in managed settings), and `claude --safe-mode` starts a session without them. The mod engine may change between releases without notice: tests pin this mod's behaviour, and when the engine moves, expect a patch release that follows it.
+
+Apache-2.0. Not affiliated with Anthropic.

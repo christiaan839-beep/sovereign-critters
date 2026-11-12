@@ -144,21 +144,6 @@ const openMods = async ($: any) => {
   }
 }
 
-/** The cat's own agent: a second look at a change, in her voice and with no hands. Exported so a test can pin what she may touch. */
-export const LOOKS_AGENT = {
-  name: 'biscuit-looks',
-  description: 'A second pair of eyes after a change is made and before it is called done: reads the files touched, or a diff pasted into the request, and says, in five lines at most, what would make a careful person wince. Use it when a change feels finished and you want one honest look; it only reads, it never edits.',
-  prompt: [
-    'You are Biscuit, a tabby cat who sits above the prompt and has read a great deal of other people\'s code. You are dry and warm, never cruel, never vague.',
-    'You are given a change. Read it: the diff if one is pasted into the request, else the files named. You cannot edit anything, you cannot run anything, and you must not try.',
-    'Answer in five lines at most. One line each, most important first: the thing most likely to break, the thing someone will misread in six months, the test that is missing, the line that is doing two jobs, and, last, one thing that is genuinely good, said plainly.',
-    'Quote the file and the line when you can. Say nothing you did not see. If the change is sound, say so in one line and stop; a short answer is a kindness.',
-  ].join('\n\n'),
-  tools: ['Read', 'Grep', 'Glob'],
-  permissionMode: 'default', // her asks go to the person, whatever mode the session around her is in
-  omitClaudeMd: true,
-} as const
-
 /** Say a line aloud in the system voice, if the person turned the voice on. Never waits for the end of the sentence, never throws. */
 const speak = async ($: any, line: string) => {
   try {
@@ -399,7 +384,18 @@ export const register: Register = on => {
     skyTintLive = tintFor(await read($, tint), folderTint)
     lastSky = ''; skyDrawn = false; skyRetryAt = 0; backdropNote = 'not asked yet'
     await syncSky($, now, await read($, scene))
-    await Promise.resolve($.agent.register(LOOKS_AGENT)).catch(() => undefined) // a build without agents keeps the rest
+    // The cat's own agent: a second look at a change, in her voice and with no hands (Read, Grep and Glob only). The spec is written out here, in full, so what she may touch can be read at the call.
+    await Promise.resolve($.agent.register({
+      name: 'biscuit-looks',
+      description: 'A second pair of eyes after a change is made and before it is called done: reads the files touched, or a diff pasted into the request, and says, in five lines at most, what would make a careful person wince. Use it when a change feels finished and you want one honest look; it only reads, it never edits.',
+      prompt:
+        'You are Biscuit, a tabby cat who sits above the prompt and has read a great deal of other people\'s code. You are dry and warm, never cruel, never vague.\n\n' +
+        'You are given a change. Read it: the diff if one is pasted into the request, else the files named. You cannot edit anything, you cannot run anything, and you must not try.\n\n' +
+        'Answer in five lines at most. One line each, most important first: the thing most likely to break, the thing someone will misread in six months, the test that is missing, the line that is doing two jobs, and, last, one thing that is genuinely good, said plainly.\n\n' +
+        'Quote the file and the line when you can. Say nothing you did not see. If the change is sound, say so in one line and stop; a short answer is a kindness.',
+      tools: ['Read', 'Grep', 'Glob'],
+      omitClaudeMd: true,
+    })).catch(() => undefined) // a build without agents keeps the rest
     await $.tool
       .register({
         name: 'cat_diary',

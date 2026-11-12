@@ -18,10 +18,12 @@ Under it, the words count every call; the total is kept in `$.state`.
 - **Desktop app:** it has no `Raster`, so it gets the words alone.
 - **Nowhere that draws panes:** `/stunt` answers with the count.
 
-## What it never does
+## What it does and sends
 
-- It keeps the name and count of tool calls in the plugin's own `$.state`, never a command, a path or a prompt.
-- It makes no network request and sends no telemetry.
+- **Counts tool calls:** the name of each tool, for the last 40 as cards and a running total, held in the plugin's own session state. Never a command, a path, a prompt or any output.
+- **Draws** a pane on `/stunt`: the critter, blinking every four seconds while the pane is up in a terminal, and a card for each recent call. The desktop app has no raster, so it gets the words alone; where no app draws panes, `/stunt` answers with the count.
+- **Keeps** the counts for the session only. It uses no on-disk store ($.store) and writes no file of its own.
+- **Sends** nothing: no network request, no telemetry, no sound files, no credentials, no program run. Its hook on tool calls counts after the tool has run and never holds one up.
 
 ## Install
 
@@ -42,6 +44,5 @@ claude plugin test .
 ## Early access
 
 Mods are on by default from Claude Code 2.1.286. An organization can keep installed mods from running (`allowManagedModsOnly` in managed settings), and `claude --safe-mode` starts a session without them. The mod engine may change between releases without notice: tests pin this mod's behaviour, and when the engine moves, expect a patch release that follows it.
-
 
 Apache-2.0. Not affiliated with Anthropic.

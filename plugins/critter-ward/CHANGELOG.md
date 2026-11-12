@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.8
+
+- **Changed: the permission check is restructured so its verdict can be read at a glance.** The work of deciding whether a line is one the guard cannot read ahead moved into a small helper (`unreadAhead`). The `tool.check` hook itself now only does one of three things: ask with a fixed `decision: 'ask'`, pass the call on with `next(e)`, or (if the check breaks) ask with a fixed reason. The plugin directory's portal could not confirm the earlier shape leaves the decision with you. What the guard asks about, and what it refuses, is unchanged: all 86 tests pass, and breaking the helper on purpose fails two of them.
+
 ## 0.3.7
 
 - **Fixed: a permission check that breaks now asks.** If the guard's permission check (`tool.check`) failed inside, it passed the call on to whatever the host would have said, with no decision of its own, and the plugin directory's portal flagged "permission decision not confirmed". It now answers with an ask ("guard: the check could not finish… Allow it if you know what it does."), so you decide. A push the guard can read is still refused by the tool call, which already failed closed; nothing it refused or asked before is looser. A test breaks the check on purpose and failed first.
