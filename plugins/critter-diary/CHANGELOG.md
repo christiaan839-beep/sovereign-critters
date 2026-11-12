@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.7
+
+- Portal: the store and state helpers are plain function declarations that take no `$` (a hook calls `storeOf($)`, `entriesOf($)` or `entriesUpdater($)` and gets back what they use), and every other use of `$` is a `$.noun.method(...)` call, so the plugin directory's reader can follow them. No behaviour change.
+
 ## 0.6.6
 
 - Portal: the postcard's hour variable is no longer named `h` (the JSX factory's name), and the store helpers take the engine handle as `api`, not `$`, so the plugin directory's validator no longer flags them. No behaviour change.

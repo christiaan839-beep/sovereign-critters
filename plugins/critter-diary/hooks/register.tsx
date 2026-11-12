@@ -141,26 +141,37 @@ export const postcardOf = (list: readonly Entry[], md = false): string => {
 
 // The week lives in $.store (one key, `days`), not in the session's state, so it survives a restart. Writes are
 // queued one behind another because the store has no compare-and-set: two tools finishing together must both count.
+// The helpers never see `$`: a hook hands it to storeOf($), entriesOf($) or entriesUpdater($) and gets back what they use.
 const DAYS = 'days'
+const STORE_GIVES_UP_MS = 5000
+type Io = { get: () => unknown; set: (value: Day[]) => unknown; arm: (fire: () => void) => { cancel?: () => void } | undefined }
+function storeOf(ctx: any): Io {
+  return { get: () => ctx.store.get(DAYS), set: value => ctx.store.set(DAYS, value), arm: fire => ctx.clock.after(STORE_GIVES_UP_MS, fire) }
+}
+function entriesOf(ctx: any): () => Promise<Entry[]> {
+  return () => read(ctx, entries)
+}
+function entriesUpdater(ctx: any): (change: (list: Entry[]) => Entry[]) => Promise<unknown> {
+  return change => update(ctx, entries, change)
+}
 let queue: Promise<unknown> = Promise.resolve()
 /** A store step that gives up after five seconds, so one that never answers cannot stop the queue for good. */
-const STORE_GIVES_UP_MS = 5000
-const patient = <T,>(api: any, step: Promise<T> | T): Promise<T> => {
+function patient(io: Io, step: unknown): Promise<unknown> {
   let timer: { cancel?: () => void } | undefined
   const late = new Promise<never>((_, no) => {
-    try { timer = api.clock.after(STORE_GIVES_UP_MS, () => no(new Error('the store did not answer'))) } catch { /* no timer here: the step is simply not timed */ }
+    try { timer = io.arm(() => no(new Error('the store did not answer'))) } catch { /* no timer here: the step is simply not timed */ }
   })
   return Promise.race([Promise.resolve(step), late]).then(v => { timer?.cancel?.(); return v }, e => { timer?.cancel?.(); throw e }) // a step that answered leaves no timer behind
 }
-const bump = (api: any, f: (list: Day[]) => Day[]): void => {
-  queue = queue.then(async () => { await patient(api, api.store.set(DAYS, f(cleanDays(await patient(api, api.store.get(DAYS)))))) }).catch(() => undefined)
+function bump(io: Io, f: (list: Day[]) => Day[]): void {
+  queue = queue.then(async () => { await patient(io, io.set(f(cleanDays(await patient(io, io.get()))))) }).catch(() => undefined)
 }
 // The session's lines are written the same way: started and left, so a tool never waits on them either.
 let writing: Promise<unknown> = Promise.resolve()
-const leave = (step: Promise<unknown>): void => { writing = Promise.all([writing, step.catch(() => undefined)]) }
+function leave(step: Promise<unknown>): void { writing = Promise.all([writing, step.catch(() => undefined)]) }
 /** Resolves when every write to the week and to the session's lines so far has settled. A tool never waits on it: a store that hangs must not hold up a result. */
 export const idle = (): Promise<unknown> => Promise.all([queue, writing])
-const week = async (api: any): Promise<Day[]> => cleanDays(await Promise.resolve(api.store.get(DAYS)).catch(() => undefined))
+async function weekOfStore(io: Io): Promise<Day[]> { return cleanDays(await Promise.resolve(io.get()).catch(() => undefined)) }
 
 export const register: Register = on => {
   let turnStart = 0
@@ -185,8 +196,8 @@ export const register: Register = on => {
       tools += 1
       if (!ok) errors += 1
       const name = String(e.tool).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]+/g, ' ').slice(0, 80)
-      bump($, list => addTool(list, started, name, ok)) // queued and left: the tool's result does not wait on the store
-      leave(update($, entries, (list: Entry[]): Entry[] => [...list, { kind: 'tool', at: started, tool: name, ms, ok } as Entry].slice(-KEEP))) // started and left, like the week's write: a state that hangs must not hold up the result
+      bump(storeOf($), list => addTool(list, started, name, ok)) // queued and left: the tool's result does not wait on the store
+      leave(entriesUpdater($)((list: Entry[]): Entry[] => [...list, { kind: 'tool', at: started, tool: name, ms, ok } as Entry].slice(-KEEP))) // started and left, like the week's write: a state that hangs must not hold up the result
     } catch {
       // a diary that cannot write never holds up the tool
     }
@@ -200,8 +211,8 @@ export const register: Register = on => {
       const ms = turnStart ? Math.max(0, now - turnStart) : 0
       const [t, er] = [tools, errors]
       tools = 0; errors = 0; turnStart = 0
-      bump($, list => addTurn(list, now, ms))
-      leave(update($, entries, (list: Entry[]): Entry[] => [...list, { kind: 'turn', at: now, tools: t, errors: er, ms } as Entry].slice(-KEEP)))
+      bump(storeOf($), list => addTurn(list, now, ms))
+      leave(entriesUpdater($)((list: Entry[]): Entry[] => [...list, { kind: 'turn', at: now, tools: t, errors: er, ms } as Entry].slice(-KEEP)))
     } catch {
       // see above
     }
@@ -220,26 +231,26 @@ export const register: Register = on => {
   on('command.run', { command: 'diary' }, async ($, e) => {
     const sub = e.args.trim()
     if (sub === 'clear') {
-      await patient($, writing).catch(() => undefined) // a line still on its way would otherwise land after the clear
-      await update($, entries, () => [] as Entry[])
+      await patient(storeOf($), writing).catch(() => undefined) // a line still on its way would otherwise land after the clear
+      await entriesUpdater($)(() => [] as Entry[])
       let cleared = true
-      queue = queue.then(() => patient($, $.store.set(DAYS, []))).catch(() => { cleared = false })
+      queue = queue.then(() => patient(storeOf($), $.store.set(DAYS, []))).catch(() => { cleared = false })
       await queue
       if (!cleared) return { text: 'This session is empty, but the week could not be cleared: the store would not take it.' }
       return { text: 'The diary and the week are empty.' }
     }
     if (sub === 'week' || sub === 'week copy') {
-      const text = weekOf(await week($), await $.clock.now(), sub === 'week copy')
+      const text = weekOf(await weekOfStore(storeOf($)), await $.clock.now(), sub === 'week copy')
       if (sub === 'week copy') { await $.ui.copy({ text }); return { text: 'Copied the week as markdown.' } }
       return { text: text.replace(/^# /, '') }
     }
     if (sub === 'postcard' || sub === 'postcard copy') {
-      const text = postcardOf(await read($, entries), sub === 'postcard copy')
+      const text = postcardOf(await entriesOf($)(), sub === 'postcard copy')
       if (sub === 'postcard copy') { await $.ui.copy({ text }); return { text: 'Copied the postcard as markdown.' } }
       return { text: text.replace(/^# /, '') }
     }
     if (sub === 'copy') {
-      const text = markdownOf(await read($, entries))
+      const text = markdownOf(await entriesOf($)())
       await $.ui.copy({ text })
       return { text: 'Copied the diary as markdown.' }
     }
@@ -248,7 +259,7 @@ export const register: Register = on => {
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const list = await read($, entries)
+    const list = await entriesOf($)()
     const { Box, Text, Button } = $.ui.resolve(e)
     const calls = list.filter(x => x.kind === 'tool')
     const failed = calls.filter(x => x.kind === 'tool' && !x.ok).length
@@ -264,9 +275,9 @@ export const register: Register = on => {
           </Text>
         ))}
         <Box flexDirection="row" columnGap={1}>
-          <Button key="copy" label="copy as markdown" hotkey="c" onPress={async () => { await $.ui.copy({ text: markdownOf(await read($, entries)) }) }} />
-          <Button key="postcard" label="postcard" hotkey="p" onPress={async () => { await $.ui.copy({ text: postcardOf(await read($, entries), true) }) }} />
-          <Button key="clear" label="clear" hotkey="x" onPress={() => update($, entries, () => [] as Entry[])} />
+          <Button key="copy" label="copy as markdown" hotkey="c" onPress={async () => { await $.ui.copy({ text: markdownOf(await entriesOf($)()) }) }} />
+          <Button key="postcard" label="postcard" hotkey="p" onPress={async () => { await $.ui.copy({ text: postcardOf(await entriesOf($)(), true) }) }} />
+          <Button key="clear" label="clear" hotkey="x" onPress={() => entriesUpdater($)(() => [] as Entry[])} />
           <Button key="close" label="close" hotkey="q" onPress={() => $.ui.close({ id: PANE })} />
         </Box>
       </Box>

@@ -101,7 +101,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the index cards have not been photographed in the real app
 
-### critter-ward 0.3.7
+### critter-ward 0.3.8
 
 | | |
 | --- | --- |
@@ -138,7 +138,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The others
 
-### critter-diary 0.6.6
+### critter-diary 0.6.7
 
 | | |
 | --- | --- |
