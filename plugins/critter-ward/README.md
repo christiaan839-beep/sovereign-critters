@@ -12,6 +12,17 @@ Before the Bash tool runs a command, `critter-ward` reads it. It stops a `git pu
 
 It reads the common spellings of a command line (quotes, `cd`, `VAR=` words, wrappers such as `env`, `timeout` and `sudo`, `bash -c`, heredocs), and it asks git where each push really goes.
 
+## What it does and sends
+
+It reads the command line the model is about to run, and it sends nothing out: no network request, no telemetry, no file written, no state kept. The only program it starts is `git`, on your machine, in the push's own repository, to ask three things: which branch is checked out, what `git config --list` says about where a push goes, and which branch names are aliases of others. Each answer is held in memory for that one check and dropped. It never runs, evals or executes the command it reads.
+
+The portal lists a few holds on this mod. Here is what each one is, from the code:
+
+- **Decoded code at runtime.** The guard does not decode and run anything. The words `base64`, `xxd`, `openssl`, `gunzip` and the like appear in the source (the `DECODERS` list) only so it can spot a line that pipes a decoder into a shell (`… | base64 -d | sh`), which it cannot read ahead; that line is put to you with an ask.
+- **Credential use.** The guard reads, holds and sends no credentials. `credential` in the source is the name of a git subcommand on a list of commands that do not move a branch. `git config --list` can print settings such as a remote URL or a credential helper name; the guard looks at them to learn where a push would go and keeps none of it. It sets no token, key or password anywhere.
+- **Run-program and send-data items.** Run-program: one call, `git` with fixed arguments (`branch --show-current`, `config --list -z`, `for-each-ref`), no shell, with git's trace output switched off. Send-data: none; there is no network call in the module. The commands it recognises as programs the line starts (`git rebase -x`, `filter-branch --msg-filter`, `-c core.sshCommand=`) are only read, to judge them, never run by the guard.
+- **A permission decision.** For a line it cannot read ahead, the guard answers the host's permission check with an ask, so you are the one who decides. If that check itself breaks, it asks too, and does not pass the call through unconfirmed. It never answers allow of its own.
+
 ## It fails closed
 
 If the check cannot finish (git fails or times out, or the line cannot be read), the command waits and the refusal tells the model to ask the person. It also refuses what it cannot read ahead: an expansion, a glob, a `cd` it cannot be sure of, a push run with `PATH`, `GIT_EXEC_PATH` or an `LD_` or `DYLD_` variable set.

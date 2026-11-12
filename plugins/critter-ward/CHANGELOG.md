@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.7
+
+- **Fixed: a permission check that breaks now asks.** If the guard's permission check (`tool.check`) failed inside, it passed the call on to whatever the host would have said, with no decision of its own, and the plugin directory's portal flagged "permission decision not confirmed". It now answers with an ask ("guard: the check could not finish… Allow it if you know what it does."), so you decide. A push the guard can read is still refused by the tool call, which already failed closed; nothing it refused or asked before is looser. A test breaks the check on purpose and failed first.
+- Docs: the README has a section, "What it does and sends", that says what the guard reads and runs and what it sends (nothing), and explains the portal's holds.
+
 ## 0.3.6
 
 Round three of the independent review ran 641 spellings against real git and a bare remote, on the code of 0.3.0. What it found that was still open is closed here, each with a test that failed first.
