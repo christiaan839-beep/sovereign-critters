@@ -22,6 +22,12 @@ It stores tool names and times only. It never reads the command, the file or the
 
 In the pane: `c` copies, `p` copies the postcard, `x` clears, `q` closes.
 
+## What it does and sends
+
+- **Reads:** the name of each tool Claude calls, when it started and how long it took, whether it failed, and when each of your turns ended. It never reads a tool's input or output, your prompts, or your files; the only text it takes from a command is the `/diary` argument you type.
+- **Keeps:** the last 300 lines of the session in the session's state, and a per-day count (calls, failures, turns, time, calls per tool name) for fourteen days in the plugin's store, both on this machine. `/diary clear` empties both.
+- **Sends:** nothing. It makes no network request, starts no process, calls no model and sends no telemetry. The clipboard is written only when you press copy or run a `copy` command.
+
 ## What it never does
 
 - It makes no network request and sends no telemetry. The session diary stays in the plugin's `$.state` and the week in its `$.store`, both on this machine.
