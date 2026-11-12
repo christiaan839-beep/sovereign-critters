@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.6
+
+- Docs: the README has a "What it does and sends" section, written from the code: what the mod reads, keeps, sends and runs, and whether it plays sound files. It has an install line and a licence line. No behaviour change.
+
 ## 0.7.5
 
 - **Smoother: the control room opens on the list it has.** It used to ask the plugin manager and read all eight changelogs every time it opened (3 list calls and 16 file reads for two opens); it now asks once, reads each changelog once per version, opens at once on the last list, and refreshes in the background when that list is a few seconds old. A missing `claude` command still says so straight away.

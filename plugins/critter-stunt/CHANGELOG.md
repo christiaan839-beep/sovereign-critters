@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.6
+
+- Docs: the README has a "What it does and sends" section, written from the code: what the mod reads, keeps, sends and runs, and whether it plays sound files. It has an install line and a licence line. No behaviour change.
+
 ## 0.2.5
 
 - Docs: the README names the mod's pillar (Companion) in the sovereign-critters family, and the marketplace lists it under that tag. No behaviour change.

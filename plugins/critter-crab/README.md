@@ -24,12 +24,13 @@ A band appears above the prompt: the crab, and your note beside it. In the same 
 
 Nothing, until you give it a note: with no note it draws no band at all and costs no space. With one, it is two lines beside the crab, cut with an ellipsis if the window is narrow, never wrapping. The crab is our own drawing, in the same clay as the pair: half blocks in the terminal, a picture on the desktop.
 
-## What it never does
+## What it does and sends
 
-- It makes no network request and sends no telemetry.
-- It keeps a note per folder in the plugin's own store, under a short hash of the folder's path. The path and the folder's name are never kept. Fifty folders at most; the oldest are let go.
-- It never reads your prompts, your files or the output of a tool, and it never blocks a tool or a prompt: if its store will not read or write, it says so and carries on.
-- A note can be one line of plain text only: colour codes and control characters are stripped.
+- **Keeps one note per folder** in the plugin's own store, under a short hash of the folder's path. The path and the folder's name are never kept. A note is one line of plain text, 120 characters at most (colour codes and control characters are stripped); fifty folders at most, the oldest let go. `/crab drop` removes it.
+- **Reads** the note you give it with `/crab hold`, and the hash of the folder the session was opened in. It never reads your prompts, your files or the output of a tool.
+- **Draws** a band above the prompt only while a note exists. With no note it draws nothing and costs no space.
+- **Sends** nothing: no network request, no telemetry, no sound files, no credentials, no program run. If its store will not read or write, it says so and carries on; it never blocks a tool or a prompt.
+- The note is stored on your machine in plain text. Do not put a secret in one.
 
 ## Install
 
@@ -54,6 +55,5 @@ claude plugin test .
 ## Early access
 
 Mods are on by default from Claude Code 2.1.286. An organization can keep installed mods from running (`allowManagedModsOnly` in managed settings), and `claude --safe-mode` starts a session without them. The mod engine may change between releases without notice: tests pin this mod's behaviour, and when the engine moves, expect a patch release that follows it.
-
 
 Apache-2.0. Not affiliated with Anthropic.

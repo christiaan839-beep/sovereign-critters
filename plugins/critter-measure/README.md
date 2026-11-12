@@ -20,10 +20,12 @@ A model guesses at these. This counts. `héllo` is 5 characters and 6 bytes, bec
 - It counts the text it is handed. It reads no files and runs nothing.
 - Characters are code points, not grapheme clusters: an emoji built from several code points counts as more than one.
 
-## What it never does
+## What it does and sends
 
-- It reads no file, runs no command and makes no network request: it counts the text it is handed.
-- It keeps nothing: no state, no log.
+- **Registers one tool**, `measure` (the model sees it as `mcp__critter-measure__measure`), that counts the text it is handed: characters as Unicode code points, words, lines, the longest line and UTF-8 bytes. A value that is not a string gets a clear message instead of a count.
+- **Reads** only the text Claude passes to the tool. It reads no file, runs no command and looks at nothing else in the session.
+- **Keeps** nothing: no state, no log, no store.
+- **Sends** nothing: no network request, no telemetry, no sound files, no credentials, no program run.
 
 ## Install
 
@@ -44,6 +46,5 @@ claude plugin test .
 ## Early access
 
 Mods are on by default from Claude Code 2.1.286. An organization can keep installed mods from running (`allowManagedModsOnly` in managed settings), and `claude --safe-mode` starts a session without them. The mod engine may change between releases without notice: tests pin this mod's behaviour, and when the engine moves, expect a patch release that follows it.
-
 
 Apache-2.0. Not affiliated with Anthropic.
