@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.10
+
+- Security: the third independent red-team round (2026-11-12, about 650 spellings through its reader and judge, asking real git; the suspects run for real against a throwaway bare remote) found 1 high and 3 medium ways past it. Fixed, each with a test that failed first: zsh's `chdir` moves the shell as `cd` does; more shells that run `-c` (`tcsh`, `csh`, `oksh`, `posh`, `nu`, `xonsh`, `elvish`, `pwsh -Command`); zsh's `=git`; `MAIN` and `Master` count as main and master, since a remote on a case-insensitive disk reads `MAIN` as `main`.
+- Docs: a threat model in the README: who it protects against and who not, where it looks, how it fails, where it does not run, its review record, and how to report a way past it. No behaviour change.
+
 ## 0.3.9
 
 - **Changed: the permission hook's parameters have names of their own (`checked`, `onward`).** The plugin directory reads a permission hook only when no variable in the file is spelled like one of the hook's parameters; the file used `e` and `next` elsewhere. What the guard asks about, and what it refuses, is unchanged: all 86 tests pass.

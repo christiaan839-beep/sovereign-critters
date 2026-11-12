@@ -305,6 +305,8 @@ export function unwrap(words: string[]) {
   let k = 0
   const into = (d: string) => (dir = dir === null || unread(d) ? null : d.startsWith('/') || dir === undefined ? d : `${dir}/${d}`)
   while (k < words.length) {
+    // zsh's =name runs the program name stands for
+    if (/^=[A-Za-z]/.test(words[k]!)) words = [...words.slice(0, k), words[k]!.slice(1), ...words.slice(k + 1)]
     const w = words[k]!
     const assignment = assigns(w)
     const wrapper = WRAPPERS.get(base(w))
@@ -364,7 +366,9 @@ export function pushes(line: string): Push[] {
 }
 
 // Shells, which run a script: their -c words, or what they read on standard input. (eval runs its words.)
-const SHELLS = new Set(['sh', 'bash', 'zsh', 'dash', 'ksh', 'mksh', 'ash', 'yash', 'fish'])
+const SHELLS = new Set(['sh', 'bash', 'zsh', 'dash', 'ksh', 'mksh', 'ash', 'yash', 'fish', 'oksh', 'posh', 'rbash', 'csh', 'tcsh', 'nu', 'xonsh', 'elvish', 'pwsh', 'powershell'])
+// The option that hands a shell its script: -c, alone or in a bundle (-lc), or PowerShell's -Command.
+const SCRIPTED = (w: string) => /^-[A-Za-z]*c[A-Za-z]*$/.test(w) || /^-command$/i.test(w)
 // Commands that set variables, and the variables that may decide which repository and settings git reads.
 const EXPORTS = new Set(['export', 'declare', 'typeset', 'local', 'readonly'])
 const LOCATES = (name: string) => name.startsWith('GIT_') || ['HOME', 'XDG_CONFIG_HOME', 'CDPATH'].includes(name)
@@ -513,7 +517,7 @@ function walk(parts: Part[], start: string | undefined, changes: Changes, outer:
     if (configures(env)) unknown('it sets git settings in its environment (GIT_CONFIG_…)')
 
     if (script !== undefined) found.push(...inside([script, ...words.map(quote)].join(' '), there))
-    else if (['cd', 'pushd', 'popd'].includes(name)) move(target(here, words, env), !process && !piped)
+    else if (['cd', 'pushd', 'popd', 'chdir'].includes(name)) move(target(here, words, env), !process && !piped)
     else if (name === 'eval') {
       const run = walk(split(words.slice(1).join(' ')), here, changes, env)
       found.push(...run.found)
@@ -525,7 +529,7 @@ function walk(parts: Part[], start: string | undefined, changes: Changes, outer:
       for (const s of [...scripts(words, part.stdin), ...feeds(n)]) found.push(...inside(s, there))
       // (sh -c "$(…)" and eval "$(…)" are read as the command named by an expansion, below.) A shell fed by a decoder runs what it prints.
       const maker = parts[n - 1] === '|' ? (parts[n - 2] as Command | undefined) : undefined
-      if (!words.slice(1).some(w => /^-[A-Za-z]*c[A-Za-z]*$/.test(w)) && maker && typeof maker === 'object' && DECODERS.has(base(maker.words[0] ?? '')))
+      if (!words.slice(1).some(SCRIPTED) && maker && typeof maker === 'object' && DECODERS.has(base(maker.words[0] ?? '')))
         asks(`it runs ${name} on what ${base(maker.words[0]!)} prints`)
     }
     else if (name === 'git' || name === 'git-push') found.push(...git(words, there, env, xargs, changes))
@@ -636,7 +640,7 @@ function target(here: string | undefined, words: string[], env: Record<string, s
 // script and its arguments, read alike); else what it reads on standard input.
 function scripts(words: string[], stdin: string[]) {
   const args = words.slice(1)
-  return args.some(w => /^-[A-Za-z]*c[A-Za-z]*$/.test(w)) ? [...args.filter(w => !/^[-+]/.test(w)), ...stdin] : stdin
+  return args.some(SCRIPTED) ? [...args.filter(w => !/^[-+]/.test(w)), ...stdin] : stdin
 }
 
 // git's own options come before its subcommand; these take the next word as their value.
@@ -905,7 +909,7 @@ export async function judge(push: Push, ask: () => Promise<Repo>, depth = 0): Pr
   if (refspecs.includes(':')) return 'the refspec : pushes every branch that matches, main included'
   const targets = refspecs.map(r => (deletes ? r : destination(r)))
   if (targets.some(t => t.includes('*') && !/^refs\/(?!heads\/)[^/*]+\//.test(t))) return 'a pattern refspec can reach main'
-  const named = targets.map(branch).find(b => PROTECTED.has(b))
+  const named = targets.map(branch).find(b => PROTECTED.has(b.toLowerCase())) // a remote on a case-insensitive disk reads MAIN as main
   if (named) return `${named} takes changes through a pull request, not a push`
   const loose = deletes ? [] : refspecs.filter(r => !r.includes(':') && !r.includes('*')) // branches named without a destination
   if (refspecs.length ? !loose.length : options.includes('--tags')) return undefined // where each goes is written out, or tags alone
@@ -933,7 +937,7 @@ export async function judge(push: Push, ask: () => Promise<Repo>, depth = 0): Pr
     ? loose.map(n => lands(n, repo, current))
     : current.map(b => ({ to: [b, ...values(repo.config, `branch.${b}.merge`)], forced: false }))
   if (goes.some(g => g.forced)) return FORCE
-  const hit = goes.flatMap(g => g.to).map(branch).find(b => PROTECTED.has(b))
+  const hit = goes.flatMap(g => g.to).map(branch).find(b => PROTECTED.has(b.toLowerCase()))
   if (hit && heads.length && hit === repo.head && !heads.includes(hit))
     return `${hit} is checked out now, and the guard cannot be sure the line moves off it before this push; name the branch to push`
   if (hit && heads.includes(hit) && !refspecs.some(r => branch(destination(r)) === hit))
