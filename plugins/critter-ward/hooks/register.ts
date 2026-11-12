@@ -962,6 +962,13 @@ const UNANSWERED = 'git could not say where this push goes'
 const waits = (error: { message?: string }) =>
   `guard: the check could not finish, so ${error.message === UNANSWERED ? 'the push' : 'this command'} waits. Ask the person to run it if they meant it.`
 
+// Why the guard cannot read a Bash line ahead, or nothing when it can (or when the input holds no command). The
+// permission check below only asks or passes on; this is where the verdict is worked out.
+const unreadAhead = (input: unknown): string | undefined => {
+  const command = (input as { command?: unknown } | undefined)?.command
+  return typeof command === 'string' && command ? pushes(command).find(p => p.ask)?.ask : undefined
+}
+
 export const register: Register = on => {
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     for (const push of pushes(e.command)) {
@@ -1000,16 +1007,15 @@ export const register: Register = on => {
   // guard could not read ahead (an unread expansion run as a script or a command, a hook or a file the line writes and
   // runs, an interpreter given a git push) is put to the person there, never refused: eval "$(direnv hook zsh)" is common.
   // A push the guard can read is still refused by the call above.
-  on('tool.check', { tool: 'Bash' }, async ($, e, next) => {
-    const command = (e.input as { command?: unknown } | undefined)?.command
-    const why = typeof command === 'string' && command ? pushes(command).find(p => p.ask)?.ask : undefined
-    if (why) return { decision: 'ask' as const, reason: `guard: ${why}, so the guard cannot read what it runs. Allow it if you know what it does.` }
+  on('tool.check', { tool: 'Bash' }, ($, e, next) => {
+    const why = unreadAhead(e.input)
+    if (why) return { decision: 'ask', reason: `guard: ${why}, so the guard cannot read what it runs. Allow it if you know what it does.` }
     return next(e)
   })
     // A check that breaks still gives a verdict of its own: it asks the person, never passing the call on unconfirmed.
     // It asks and does not refuse: the call's own guard above already fails closed on a push, so this costs a click.
     .catch(() => ({
-      decision: 'ask' as const,
+      decision: 'ask',
       reason: 'guard: the check could not finish, so the guard cannot say what this command does. Allow it if you know what it does.',
     }))
 }
