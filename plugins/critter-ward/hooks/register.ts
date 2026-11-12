@@ -385,6 +385,9 @@ const GITFILE = /(^|[\/=])\.git(\/|$)|gitconfig|\.config\/git(\/|$)/
 const GITHOOK = /(^|[\/=])\.git\/hooks(\/|$)/
 // Commands that only read the files they are given (sed, perl and awk write only with -i), so a .git word after one is no write.
 const READERS = new Set(['cat', 'head', 'tail', 'less', 'more', 'bat', 'grep', 'egrep', 'fgrep', 'rg', 'ag', 'ls', 'stat', 'wc', 'diff', 'cmp', 'file', 'test', '[', '[[', 'echo', 'printf', 'find', 'du', 'tree', 'od', 'xxd', 'hexdump', 'strings', 'realpath', 'readlink', 'basename', 'dirname', 'git', 'sort', 'uniq', 'cut', 'tr', 'open', 'code'])
+// Programs that run the script they are given (-c, -e, a file, standard input).
+const INTERPRETERS = new Set(['perl', 'node', 'nodejs', 'ruby', 'awk', 'gawk', 'php', 'lua', 'make', 'gmake', 'osascript', 'deno', 'bun', 'tclsh', 'Rscript'])
+const interpreter = (name: string) => INTERPRETERS.has(name) || /^(python|pypy)[\d.]*$/.test(name)
 const EDITORS = new Set(['sed', 'perl', 'awk', 'gawk', 'ruby'])
 // Commands that put their last word, or the one after of=, where they are told.
 const WRITERS = new Set(['tee', 'cp', 'mv', 'install', 'ln', 'dd', 'touch', 'truncate', 'rsync'])
@@ -497,7 +500,7 @@ function walk(parts: Part[], start: string | undefined, changes: Changes, outer:
     const touches = [...(part.files ?? []), ...(READERS.has(name) || (EDITORS.has(name) && !editing) ? [] : words.slice(1))].filter(w => GITFILE.test(w))
     ;(changes.wrote ??= []).push(...targets)
     if (touches.length) changes.stale ??= 'this line writes into git’s own files (.git, a gitconfig)'
-    if (touches.some(w => GITHOOK.test(w))) unknown('it writes a git hook, and a hook can run git push')
+    if (touches.some(w => GITHOOK.test(w))) asks('it writes a git hook, and a hook can run git push')
     const written = changes.wrote
     if (written.length && (Object.entries(env).some(([key, value]) => (LOCATES(key) || /^GIT_CONFIG_VALUE_\d+$/.test(key)) && written.includes(value)) || (name === 'git' && words.some(w => /include/i.test(w) && written.includes(w.slice(w.indexOf('=') + 1))))))
       changes.stale ??= 'this line points git at a settings file it has just written'
@@ -567,6 +570,18 @@ function walk(parts: Part[], start: string | undefined, changes: Changes, outer:
       unknown(`it runs git push through ${name}, which the guard does not read`)
     } else if (!['echo', 'printf'].includes(name) && words.some((w, j) => j > 0 && (base(w) === 'git' || unread(w)) && words[j + subcommand(words.slice(j))] === 'push'))
       unknown(`it runs git push through ${name}, which the guard does not read`)
+
+    // A script given to an interpreter that names git and push, or a file the line has just written and now runs, or
+    // core.hooksPath set on a line that writes files (a hook the line made runs at the next commit): none can be read ahead.
+    const flat = (w: string) => w.replace(/^\.\//, '')
+    const runner = SHELLS.has(name) || interpreter(name) || name === 'source' || name === '.'
+    const given = [...words.slice(1), ...part.stdin].join('\n')
+    if (interpreter(name) && /git/i.test(given) && /push/i.test(given)) asks(`it runs git push through ${name}, which the guard does not read`)
+    if ((changes.wrote ?? []).some(f => flat(f) === flat(words[0] ?? '') || (runner && words.slice(1).some(w => flat(w) === flat(f)))))
+      asks('it runs a file the line has just written')
+    if (changes.hooks && changes.wrote?.length) {
+      asks('it sets core.hooksPath on a line that writes files, and a hook it writes can run git push')
+    }
 
     // A loop runs its body again, so a push earlier in it runs after what the commands after it change too.
     const loop = open.find(o => LOOPS.has(o.word))
@@ -642,6 +657,7 @@ function git(words: string[], here: string | undefined, env: Record<string, stri
   const sub = words[k] ?? ''
   const options = words.slice(1, k)
   const args = words.slice(k + 1)
+  if (options.some(o => /^core\.hookspath=/i.test(o))) changes.hooks = true
   let unknown: string | undefined
   let aliased: string | undefined // a subcommand git may know as an alias in a config file: judge() looks it up
   // An alias this very line made (git config alias.p "push -f"; git p): read as the command it stands for, so it is judged as one.
@@ -693,7 +709,7 @@ function runs(sub: string, args: string[]) {
 // runs: the branches the line may check out (UNREAD when the guard cannot tell which), the branches whose
 // upstream it may set ('HEAD' for the one checked out), why the settings git reports may be stale by then, and a
 // variable the line sets for the shell that changes the program that runs (PATH=, export LD_PRELOAD=).
-type Changes = { heads: string[]; fresh: string[]; stale?: string; loads?: string; alias?: Record<string, string>; names?: boolean; wrote?: string[]; dyn?: string[] }
+type Changes = { heads: string[]; fresh: string[]; stale?: string; loads?: string; alias?: Record<string, string>; names?: boolean; wrote?: string[]; dyn?: string[]; hooks?: boolean }
 // What a push carries: the changes made so far, as they stand when it is found.
 const seen = (changes: Changes): Changes => ({ heads: [...changes.heads], fresh: [...changes.fresh], stale: changes.stale })
 const UNREAD = WILD
@@ -783,6 +799,7 @@ function note(sub: string, args: string[], changes: Changes) {
     else stale('git symbolic-ref on this line makes one branch a name for another')
   } else if (sub === 'config') {
     const writes = named.length >= 2 || args.some(a => /^(--add|--unset|--unset-all|--replace-all|--rename-section|--remove-section|-e|--edit)$/.test(a))
+    if (writes && named.some(w => /^core\.hookspath$/i.test(w))) changes.hooks = true
     const al = named.findIndex(w => /^alias\./i.test(w))
     if (writes && al >= 0) (changes.alias ??= {})[named[al]!.slice(6).toLowerCase()] = named[al + 1] ?? UNREAD
     if (writes && (args.some(a => /^(-e|--edit)$/.test(a)) || named.some(w => /^(push|branch|remote|alias|include)/i.test(w) || unread(w))))
@@ -946,7 +963,7 @@ const waits = (error: { message?: string }) =>
 export const register: Register = on => {
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     for (const push of pushes(e.command)) {
-      if (push.ask) continue // put to the person by the permission check below, never refused here
+      if (push.ask) continue // put to the person by the permission check below
       const why = await judge(push, async () => {
         // Ask git, in the push's own repository, which branch is checked out (none when detached), where its
         // settings send a push, and which branches are other names for one. Each answer counts only when git exits
@@ -977,13 +994,14 @@ export const register: Register = on => {
       next.called ? next(e) : { deny: waits(next.error) },
     )
 
-  // A line that runs an expansion nobody can read ahead (eval "$(…)", … | base64 -d | sh) may push or may not. A refusal
-  // would strand eval "$(direnv hook zsh)", so the permission check puts it to the person. A push the guard can read on
-  // the same line is still refused above. If this check breaks, the host decides as if the mod were not here.
+  // The tool call answers a result or a refusal only; the host asks the person through the permission check. A line the
+  // guard could not read ahead (an unread expansion run as a script or a command, a hook or a file the line writes and
+  // runs, an interpreter given a git push) is put to the person there, never refused: eval "$(direnv hook zsh)" is common.
+  // A push the guard can read is still refused by the call above.
   on('tool.check', { tool: 'Bash' }, async ($, e, next) => {
     const command = (e.input as { command?: unknown } | undefined)?.command
     const why = typeof command === 'string' && command ? pushes(command).find(p => p.ask)?.ask : undefined
-    if (why) return { decision: 'ask' as const, reason: `guard: ${why}, so the guard cannot read ahead whether it pushes.` }
+    if (why) return { decision: 'ask' as const, reason: `guard: ${why}, so the guard cannot read what it runs. Allow it if you know what it does.` }
     return next(e)
-  }).catch(($, e, next) => next(e))
+  }).catch(($, e, next) => next(e)) // a check that breaks asks nothing: the call's own guard already failed closed
 }

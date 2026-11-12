@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.6
+
+Round three of the independent review ran 641 spellings against real git and a bare remote, on the code of 0.3.0. What it found that was still open is closed here, each with a test that failed first.
+
+- **Fixed: a hook set through `core.hooksPath`.** `git config core.hooksPath hooks && … > hooks/post-commit && git commit` (or `git -c core.hooksPath=hooks commit`) ran a push the guard never read. A line that sets it and writes a file now asks, as does a write into `.git/hooks`, which 0.3.0 refused outright (a refusal would strand a hook installer). `git config core.hooksPath .husky` alone does not ask.
+- **Added: asks for a script the guard cannot follow.** A python, perl, node, ruby, awk or make script that names `git push`, and a file the line writes and then runs (`printf … > s.sh; sh s.sh`, `./s.sh`), ask. Ordinary `python3 -c "print(1)"`, `make test` and `sh build.sh` do not.
+- **Changed: the question says more.** The reason now ends "Allow it if you know what it does."
+
 ## 0.3.5
 
 - Docs: the README names the mod's pillar (Guard) in the sovereign-critters family, and the marketplace lists it under that tag. No behaviour change.

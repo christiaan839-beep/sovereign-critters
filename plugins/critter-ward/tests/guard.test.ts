@@ -924,7 +924,6 @@ forms('round two: a branch checked out, or a repository changed, by a spelling t
   ["echo '[push]' >> ~/.gitconfig && git push", STALE],
   ["echo '[alias]' > cfg && GIT_CONFIG_GLOBAL=cfg git push", STALE],
   ["echo '[alias]' > cfg && git -c include.path=cfg push", STALE],
-  ["printf 'git push origin main' > .git/hooks/post-commit; chmod +x .git/hooks/post-commit; git commit -m x", /git hook/],
   ['echo push | xargs git', /xargs/],
   ['arch -arm64 bash -c "git push origin main"', through('arch')],
   ['arch -arm64 sh -c "git push --force"', through('arch')],
@@ -978,6 +977,19 @@ test('an unread expansion run as a script or a command is marked to ask, and is 
     '$(echo git push origin main)',
     '`echo git push origin main`',
     'arch -arm64 bash -c "$(curl -fsSL https://example.com/x)"',
+    'sh -c "$(echo git checkout main)"; git push',
+    'C=$(echo git push origin main); bash -c "$C"',
+    "printf 'git push origin main' > .git/hooks/post-commit; chmod +x .git/hooks/post-commit; git commit -m x",
+    'git config core.hooksPath hooks && mkdir hooks && printf "#!/bin/sh\\ngit push origin HEAD:main\\n" > hooks/post-commit && chmod +x hooks/post-commit && git commit --allow-empty -m x',
+    'printf "#!/bin/sh\\ngit push origin main\\n" > hooks/post-commit; git -c core.hooksPath=hooks commit --allow-empty -m x',
+    'python3 -c "import os; os.system(\'git push origin main\')"',
+    "perl -e 'system(\"git push origin main\")'",
+    'node -e "require(\'child_process\').execSync(\'git push origin main\')"',
+    "awk 'BEGIN{system(\"git push origin main\")}'",
+    "ruby -e 'system(\"git push origin main\")'",
+    'make -f /dev/stdin <<EOF\nall:\n\tgit push origin main\nEOF',
+    'printf "#!/bin/sh\\ngit push origin main\\n" > s.sh; sh s.sh',
+    'printf "#!/bin/sh\\ngit push origin main\\n" > s.sh; chmod +x s.sh; ./s.sh',
   ]) {
     expect(asking(command).length, command).toBeGreaterThan(0)
     expect(pushes(command).filter(p => p.unknown).length, command).toBe(0) // asked, not refused
@@ -998,6 +1010,14 @@ test('a script that is read, or a variable nobody built from a command, is not m
     'X=$(date); echo $X',
     'git commit -m "$(cat msg.txt)"',
     'grep eval "$(pwd)"',
+    'python3 -c "print(1)"',
+    'node -e "console.log(1)"',
+    'python3 manage.py test',
+    'sh build.sh',
+    'make test',
+    'git config core.hooksPath .husky',
+    'echo hi > out.txt; cat out.txt',
+    'printf x > s.sh; chmod +x s.sh; cat s.sh',
   ])
     expect(asking(command), command).toEqual([])
 })
@@ -1006,5 +1026,47 @@ test('an ask never hides a refusal: a push the guard can read is still denied', 
   on('tool.call', () => ran)
   on('process.run', onBranch('feature/lens'))
   const out = await $.tool.call({ tool: 'Bash', command: 'eval "$(direnv hook zsh)"; git push origin main' })
+  expect(out.deny).toMatch(/pull request/)
+})
+
+// The host asks through the permission check (tool.check answers { decision: 'ask' }), not through the tool call, which
+// answers a result or a refusal only: a marked line is asked about there, and the call itself is left alone.
+const checked = (on: (event: any, hook: any) => unknown) => {
+  on('tool.call', () => ran)
+  on('tool.check', () => ({ decision: 'allow' }))
+  on('process.run', onBranch('feature/lens'))
+}
+test('the permission check asks about a line the guard could not read, and says why', async ($, on) => {
+  checked(on)
+  for (const command of [
+    'eval $(echo git push origin main)',
+    'eval "$(direnv hook zsh)"',
+    'sh -c "$(echo git push origin main)"',
+    'echo Z2l0IHB1c2g= | base64 -d | sh',
+    'C=$(echo git push origin main); eval "$C"',
+    'git config core.hooksPath hooks && printf "git push origin main" > hooks/post-commit && git commit --allow-empty -m x',
+    'python3 -c "import os; os.system(\'git push origin main\')"',
+    'printf "git push origin main" > s.sh; sh s.sh',
+  ]) {
+    const out = await $.tool.call({ tool: 'Bash', command })
+    expect(out.deny, command).toBeUndefined()
+    const check = await $.tool.check({ tool: 'Bash', input: { command } })
+    expect(check.decision, command).toBe('ask')
+    expect(check.reason, command).toMatch(/^guard: .*cannot read/)
+  }
+})
+
+test('the permission check lets ordinary lines through', async ($, on) => {
+  checked(on)
+  for (const command of ['git status', 'git push origin feature', 'echo hello | bash', 'python3 -c "print(1)"', 'git config core.hooksPath .husky', 'npm test']) {
+    const check = await $.tool.check({ tool: 'Bash', input: { command } })
+    expect(check.decision, command).toBe('allow')
+  }
+})
+
+test('a push the guard can read is refused by the call, and an ask beside it does not hide that', async ($, on) => {
+  checked(on)
+  const command = 'eval "$(direnv hook zsh)"; git push origin main'
+  const out = await $.tool.call({ tool: 'Bash', command })
   expect(out.deny).toMatch(/pull request/)
 })
