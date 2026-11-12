@@ -124,6 +124,7 @@ test('a turn begins with the wizard on the bar, and the turn ends with the critt
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   const look = () => /"look":"(\w+)"/.exec(JSON.stringify(kept.get('critter-buddy.scene')))?.[1]
   await $.prompt.submit({ text: 'hello', inputText: 'hello' } as never)
+  await settle()
   expect(look()).toBe('wizard')
   await $.turn.complete({ answer: 'done' } as never)
   expect(look()).toBe('done')
@@ -266,11 +267,13 @@ test('sound plays by default and stops when switched off, and a toast greets a c
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   const run = (args: string) => $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never)
   await $.tool.call({ tool: 'Skill' } as never)
+  await settle()
   await run('pet')
   expect(played).toEqual(['sounds/cast.wav', 'sounds/purr.wav']) // on by default
   expect(JSON.stringify(await run('sound maybe'))).toMatch(/Usage/)
   expect(JSON.stringify(await run('sound off'))).toMatch(/Sound is off/)
   await $.tool.call({ tool: 'Skill' } as never)
+  await settle()
   await run('pet')
   expect(played.length).toBe(2) // silent once switched off
   expect(JSON.stringify(await run('sound on'))).toMatch(/Sound is on/)
@@ -279,6 +282,7 @@ test('sound plays by default and stops when switched off, and a toast greets a c
   await run('sound off')
   await $.tool.call({ tool: 'Bash', command: 'git commit -m "x"' } as never)
   await $.tool.call({ tool: 'Bash', command: 'npm test' } as never)
+  await settle()
   expect(toasts.some(x => /Pip drew a star/.test(x))).toBe(true)
   expect(toasts.some(x => /Biscuit allows it/.test(x))).toBe(true)
 })
@@ -446,13 +450,16 @@ const PANE = {
 
 // An in-memory $.state, so an update reads what the last one wrote.
 const kept = new Map<string, { value: unknown; version: number }>()
+/** Lets the work a hook started on the side finish: the cat is told after the tool or the prompt has gone on. */
+const settle = () => new Promise<void>(r => setTimeout(r, 10))
+let stateGets = 0 // how many times the engine was asked for an atom
 let clockAt = 1_000_000_000_000 // the stub clock reads this; a test moves it to let time pass
 let stateBroken = false // while true the stub cannot save state
 const stub = (on: any) => {
   kept.clear()
   clockAt = 1_000_000_000_000
   stateBroken = false
-  on('state.get', (_: unknown, e: { plugin: string; key: string }) => ({ value: kept.get(`${e.plugin}.${e.key}`) ?? { value: undefined, version: 0 } }))
+  on('state.get', (_: unknown, e: { plugin: string; key: string }) => (stateGets += 1, { value: kept.get(`${e.plugin}.${e.key}`) ?? { value: undefined, version: 0 } }))
   on('state.set', (_: unknown, e: { plugin: string; key: string; value: unknown; ifVersion?: number }) => {
     const id = `${e.plugin}.${e.key}`
     if (stateBroken) throw new Error('the store is gone')
@@ -2830,4 +2837,59 @@ test('a call that is over, even one that threw, no longer counts as in flight: t
   clockAt += 60_000
   await gone.beat(); await gone.beat()
   expect(gone.diaryText()).not.toMatch(/window/)
+})
+
+// ---- smoothness: a decorative mod never slows a tool, and a row does not ask the engine what the clock already knows ----
+const hangs = () => new Promise<never>(() => undefined)
+const within = async <T,>(ms: number, p: Promise<T>): Promise<T | 'late'> => Promise.race([p, new Promise<'late'>(r => setTimeout(() => r('late'), ms))])
+
+test('a tool call is not held up by the store, the atoms or the clock: they may hang and the tool still runs and returns', async ($, on) => {
+  let frozen = false
+  on('state.get', (_: unknown, e: { plugin: string; key: string }) => (frozen ? hangs() : { value: kept.get(`${e.plugin}.${e.key}`) ?? { value: undefined, version: 0 } }) as never)
+  on('state.set', (_: unknown, e: { plugin: string; key: string; value: unknown }) => {
+    if (frozen) return hangs() as never
+    const id = `${e.plugin}.${e.key}`
+    const now = kept.get(id)?.version ?? 0
+    kept.set(id, { value: e.value, version: now + 1 })
+    return { value: { isSet: true, version: now + 1 } }
+  })
+  on('clock.now', () => (frozen ? hangs() : { value: 1_000_000_000_000 }) as never)
+  kept.clear()
+  on('tool.call', () => ({ result: 'ok' }) as never)
+  on('prompt.submit', (_, e: { text: string; inputText: string }) => ({ text: e.text, inputText: e.inputText }) as never)
+  on('ui.status', () => ({ value: undefined }))
+  on('ui.toast', () => ({ value: undefined }))
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('clock.every', () => ({ value: { cancel: () => undefined } }) as never)
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  frozen = true
+  expect(await within(500, $.prompt.submit({ text: 'hi', inputText: 'hi' } as never))).toEqual({ text: 'hi', inputText: 'hi' })
+  expect(await within(500, $.tool.call({ tool: 'Read' } as never))).toEqual({ result: 'ok' })
+  expect(await within(500, $.tool.call({ tool: 'Bash', command: 'git commit -m x' } as never))).toEqual({ result: 'ok' })
+})
+
+test('a row in the transcript asks the engine nothing once the session has started: hidden and detail are read from the mirror', async ($, on) => {
+  stub(on)
+  on('ui.status', () => ({ value: undefined }))
+  on('command.register', () => ({ value: { command: 'critter' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('clock.every', () => ({ value: { cancel: () => undefined } }) as never)
+  on('store.get', () => ({ value: undefined }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  const use = { isRunning: false, isErrored: false, isInterrupted: false }
+  stateGets = 0
+  for (let i = 0; i < 5; i++) {
+    const ui = await $.ui.mount({ plugin: 'critter-buddy', component: 'ToolUse', requestId: `m${i}`, props: use, surface: 'desktop' } as never)
+    expect(await ui.find({ type: 'Text' })).toBeDefined()
+    await ui.unmount()
+  }
+  expect(stateGets).toBe(0)
+  // and the mirror follows the command: lite stops the faces without a restart
+  const run = (args: string) => $.command.run({ command: 'critter', args, origin: { kind: 'composer' }, presentation: {} } as never)
+  await run('lite')
+  const lite = await $.ui.mount({ plugin: 'critter-buddy', component: 'ToolUse', requestId: 'lite', props: use, surface: 'desktop' } as never)
+  expect(await lite.find({ type: 'Text', text: /▐/ })).toBeUndefined()
+  await lite.unmount()
 })

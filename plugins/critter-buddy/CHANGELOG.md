@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.30.7
+
+- **Smoother: the pair never hold up a tool or a keystroke.** The tool hook used to wait for the store, the clock and a scene write before the tool ran; it now starts them on the side and goes straight on. The same for the prompt being sent and each key typed. Transcript rows read whether the pair are hidden and how much to show from a copy kept in memory, so a row costs the engine no questions (5 rows used to cost 10). Tests hang the store and the clock and check the tool still returns.
+
 ## 0.30.6
 
 - Docs: the README names the mod's pillar (Companion) in the sovereign-critters family, and the marketplace lists it under that tag. No behaviour change.
