@@ -1005,5 +1005,11 @@ export const register: Register = on => {
     const why = typeof command === 'string' && command ? pushes(command).find(p => p.ask)?.ask : undefined
     if (why) return { decision: 'ask' as const, reason: `guard: ${why}, so the guard cannot read what it runs. Allow it if you know what it does.` }
     return next(e)
-  }).catch(($, e, next) => next(e)) // a check that breaks asks nothing: the call's own guard already failed closed
+  })
+    // A check that breaks still gives a verdict of its own: it asks the person, never passing the call on unconfirmed.
+    // It asks and does not refuse: the call's own guard above already fails closed on a push, so this costs a click.
+    .catch(() => ({
+      decision: 'ask' as const,
+      reason: 'guard: the check could not finish, so the guard cannot say what this command does. Allow it if you know what it does.',
+    }))
 }
