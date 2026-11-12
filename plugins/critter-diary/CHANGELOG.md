@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.6
+
+- Portal: the postcard's hour variable is no longer named `h` (the JSX factory's name), and the store helpers take the engine handle as `api`, not `$`, so the plugin directory's validator no longer flags them. No behaviour change.
+- Docs: the README has a "What it does and sends" section.
+
 ## 0.6.5
 
 - Docs: the README names the mod's pillar (Witness) in the sovereign-critters family, and the marketplace lists it under that tag. No behaviour change.
