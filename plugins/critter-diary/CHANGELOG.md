@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.8
+
+- **Changed: the manifest names its privacy policy, support, documentation and terms pages** (`privacyPolicyUrl`, `supportUrl`, `documentationUrl`, `termsOfServiceUrl`), as the plugin directory's listing step asks. No behaviour changed.
+
 ## 0.6.7
 
 - Portal: the store and state helpers are plain function declarations that take no `$` (a hook calls `storeOf($)`, `entriesOf($)` or `entriesUpdater($)` and gets back what they use), and every other use of `$` is a `$.noun.method(...)` call, so the plugin directory's reader can follow them. No behaviour change.

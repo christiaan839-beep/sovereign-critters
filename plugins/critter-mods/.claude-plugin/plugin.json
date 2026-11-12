@@ -1,6 +1,6 @@
 {
   "name": "critter-mods",
-  "version": "0.7.6",
+  "version": "0.7.7",
   "license": "Apache-2.0",
   "icon": "./.claude-plugin/icon.png",
   "description": "The control room for the sovereign-critters mods: /mods opens one pane that lists every mod, switches each on or off through the plugin manager, installs the missing ones, and opens each mod's own panes.",
@@ -17,5 +17,9 @@
     "pane",
     "mods",
     "workshop"
-  ]
+  ],
+  "privacyPolicyUrl": "https://github.com/christiaan839-beep/sovereign-critters/blob/main/PRIVACY.md",
+  "supportUrl": "https://github.com/christiaan839-beep/sovereign-critters/issues",
+  "documentationUrl": "https://github.com/christiaan839-beep/sovereign-critters/blob/main/plugins/critter-mods/README.md",
+  "termsOfServiceUrl": "https://github.com/christiaan839-beep/sovereign-critters/blob/main/LICENSE"
 }

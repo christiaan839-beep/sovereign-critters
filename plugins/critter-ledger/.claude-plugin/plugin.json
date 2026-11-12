@@ -1,6 +1,6 @@
 {
   "name": "critter-ledger",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "license": "Apache-2.0",
   "icon": "./.claude-plugin/icon.png",
   "description": "Counts the tokens this session has used, only when you ask (/ledger). Set your own limit with /ledger limit 500k and it says so once when you pass it. Nothing leaves your machine.",
@@ -16,5 +16,9 @@
     "session",
     "status",
     "witness"
-  ]
+  ],
+  "privacyPolicyUrl": "https://github.com/christiaan839-beep/sovereign-critters/blob/main/PRIVACY.md",
+  "supportUrl": "https://github.com/christiaan839-beep/sovereign-critters/issues",
+  "documentationUrl": "https://github.com/christiaan839-beep/sovereign-critters/blob/main/plugins/critter-ledger/README.md",
+  "termsOfServiceUrl": "https://github.com/christiaan839-beep/sovereign-critters/blob/main/LICENSE"
 }

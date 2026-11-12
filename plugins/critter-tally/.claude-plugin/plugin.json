@@ -1,6 +1,6 @@
 {
   "name": "critter-tally",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "license": "Apache-2.0",
   "icon": "./.claude-plugin/icon.png",
   "description": "/everywhere opens a pane of the three tools the session called most, drawn by each app its own way (natively on the Desktop app), with a Hide button. Where no app draws it, the answer comes in words.",
@@ -17,5 +17,9 @@
     "desktop",
     "terminal",
     "witness"
-  ]
+  ],
+  "privacyPolicyUrl": "https://github.com/christiaan839-beep/sovereign-critters/blob/main/PRIVACY.md",
+  "supportUrl": "https://github.com/christiaan839-beep/sovereign-critters/issues",
+  "documentationUrl": "https://github.com/christiaan839-beep/sovereign-critters/blob/main/plugins/critter-tally/README.md",
+  "termsOfServiceUrl": "https://github.com/christiaan839-beep/sovereign-critters/blob/main/LICENSE"
 }

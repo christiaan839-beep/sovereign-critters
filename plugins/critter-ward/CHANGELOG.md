@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.10
+
+- **Changed: the manifest names its privacy policy, support, documentation and terms pages** (`privacyPolicyUrl`, `supportUrl`, `documentationUrl`, `termsOfServiceUrl`), as the plugin directory's listing step asks. No behaviour changed.
+
 ## 0.3.9
 
 - **Changed: the permission hook's parameters have names of their own (`checked`, `onward`).** The plugin directory reads a permission hook only when no variable in the file is spelled like one of the hook's parameters; the file used `e` and `next` elsewhere. What the guard asks about, and what it refuses, is unchanged: all 86 tests pass.

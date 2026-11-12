@@ -1,6 +1,6 @@
 {
   "name": "critter-ward",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "license": "Apache-2.0",
   "icon": "./.claude-plugin/icon.png",
   "description": "Stops a git push that forces, or that writes main or master, before Bash runs it. It fails closed when it cannot read the line. Best effort: no substitute for branch protection on the server.",
@@ -16,5 +16,9 @@
     "safety",
     "hook",
     "guard"
-  ]
+  ],
+  "privacyPolicyUrl": "https://github.com/christiaan839-beep/sovereign-critters/blob/main/PRIVACY.md",
+  "supportUrl": "https://github.com/christiaan839-beep/sovereign-critters/issues",
+  "documentationUrl": "https://github.com/christiaan839-beep/sovereign-critters/blob/main/plugins/critter-ward/README.md",
+  "termsOfServiceUrl": "https://github.com/christiaan839-beep/sovereign-critters/blob/main/LICENSE"
 }
