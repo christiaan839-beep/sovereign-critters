@@ -38,17 +38,38 @@ function readWord(s: string): { word: string; quoted: boolean; len: number } | u
   return word ? { word, quoted, len: i } : undefined
 }
 
-// The heredoc operators on a line that the shell would really read: not inside a quote, not in a comment, not <<<, not an
-// arithmetic shift.
+// From an opener at i ($[ or ${), the index of the bracket that closes it, quotes skipped.
+function closer(l: string, i: number, open: string, close: string): number {
+  let depth = 0
+  for (let j = i; j < l.length; j++) {
+    if (l[j] === '\\') j++
+    else if (l[j] === "'" || l[j] === '"') j = endQuote(l, j)
+    else if (l[j] === open) depth++
+    else if (l[j] === close && --depth === 0) return j
+  }
+  return l.length
+}
+// From a quote at i (', " or the ' of $'), the index of the quote that ends it: a backslash escapes in " and in $'.
+function endQuote(l: string, i: number): number {
+  const q = l[i]!
+  const escapes = q === '"' || l[i - 1] === '$'
+  for (let j = i + 1; j < l.length; j++) {
+    if (escapes && l[j] === '\\') j++
+    else if (l[j] === q) return j
+  }
+  return l.length
+}
+
+// The heredoc operators on a line that the shell would really read: not inside a quote, a $[ ] or a ${ }, not in a comment,
+// not <<<, not an arithmetic shift.
 function markers(l: string): { id: string; dash: boolean; quoted: boolean }[] {
   const out: { id: string; dash: boolean; quoted: boolean }[] = []
   for (let i = 0; i < l.length; i++) {
     const c = l[i]!
     if (c === '\\') i++
-    else if (c === "'" || c === '"') {
-      const e = l.indexOf(c, i + 1)
-      i = e < 0 ? l.length : e
-    } else if (c === '#' && (i === 0 || /\s/.test(l[i - 1]!))) break
+    else if (c === "'" || c === '"') i = endQuote(l, i)
+    else if (c === '$' && (l[i + 1] === '[' || l[i + 1] === '{')) i = closer(l, i + 1, l[i + 1]!, l[i + 1] === '[' ? ']' : '}')
+    else if (c === '#' && (i === 0 || /\s/.test(l[i - 1]!))) break
     else if (c === '<' && l[i + 1] === '<' && l[i + 2] !== '<' && l[i - 1] !== '<') {
       const before = l.slice(0, i)
       if ((before.match(/\(\(/g) ?? []).length > (before.match(/\)\)/g) ?? []).length) continue // $((1<<n))
@@ -242,7 +263,9 @@ export function parse(line: string): Parsed {
 
 const base = (w: string) => w.slice(w.lastIndexOf('/') + 1)
 const isAssign = (w: string) => /^[A-Za-z_][A-Za-z0-9_]*=/.test(w)
-const SHELLS = new Set(['bash', 'sh', 'zsh', 'dash', 'ksh', 'fish', 'su'])
+const SHELLS = new Set(['bash', 'sh', 'zsh', 'dash', 'ksh', 'fish', 'su', 'mksh', 'oksh', 'ash', 'yash', 'posh', 'rbash', 'csh', 'tcsh'])
+// A file a shell reads its script from that is really its standard input (source /dev/stdin <<< '…').
+const STDIN = /^(?:\/dev\/stdin|\/dev\/fd\/0|\/proc\/self\/fd\/0|-)$/
 const XARGS_VALUE = new Set(['-I', '-n', '-P', '-L', '-d', '-E', '-s', '-a', '-i', '-l', '-J', '-S'])
 const XARGS_LONG = new Set(['--max-args', '--max-procs', '--max-lines', '--max-chars', '--delimiter', '--arg-file', '--eof', '--process-slot-var'])
 // Wrappers that run what follows their own options: the options that take a value, how many positional words come first,
@@ -254,7 +277,7 @@ const WRAP: Record<string, { value: RegExp; skip: number; script?: RegExp }> = {
   timeout: { value: /^(?:-[sk]|--(?:signal|kill-after))$/, skip: 1 },
   nice: { value: /^(?:-n|--adjustment)$/, skip: 0 }, ionice: { value: /^(?:-[cnp]|--(?:class|classdata|pid))$/, skip: 0 },
   flock: { value: /^(?:-[wE]|--(?:timeout|conflict-exit-code))$/, skip: 1, script: /^(?:-c|--command)$/ },
-  watch: { value: /^(?:-[ndw]|--(?:interval|differences))$/, skip: 0 }, taskset: { value: /^-[cp]$/, skip: 1 }, chroot: { value: /^$/, skip: 1 },
+  watch: { value: /^(?:-n|--interval)$/, skip: 0 }, taskset: { value: /^-[cp]$/, skip: 1 }, chroot: { value: /^$/, skip: 1 },
   script: { value: /^$/, skip: 0, script: /^-[A-Za-z]*c$/ },
   command: { value: /^$/, skip: 0 }, builtin: { value: /^$/, skip: 0 }, exec: { value: /^-a$/, skip: 0 }, nohup: { value: /^$/, skip: 0 },
   time: { value: /^$/, skip: 0 }, stdbuf: { value: /^$/, skip: 0 }, setsid: { value: /^$/, skip: 0 }, caffeinate: { value: /^-[tuw]$/, skip: 0 },
@@ -278,10 +301,21 @@ function noRedirects(words: Word[]): Word[] {
 type Unwrapped = {
   cmd: Word[] // the command itself
   fed: boolean // its arguments also come from another command (xargs, find -exec, parallel), which the guard cannot read
-  roots?: string[] // where a find that feeds it looks
+  roots?: Word[] // where a find that feeds it looks
   extra: Word[][] // more commands it runs (every -exec of a find)
-  scripts: string[] // scripts it is handed (env -S, flock -c, script -c, parallel's command)
+  scripts: string[] // scripts it is handed (env -S, flock -c, script -c, parallel's command, watch's command)
+  chdir?: Word // the folder a wrapper runs it in (env -C, sudo -D, chroot)
 }
+
+// The letter that moves a wrapper's command to another folder, the other letters that take a value, and how its long option is
+// spelled at its shortest (getopt takes any unique prefix).
+const CHDIR: Record<string, { letter: string; values: string; long: RegExp }> = {
+  env: { letter: 'C', values: 'uCS', long: /^--c(?:h(?:d(?:ir?)?)?)?(?:=|$)/ },
+  sudo: { letter: 'D', values: 'ughpCDRTU', long: /^--chd(?:ir?)?(?:=|$)/ },
+}
+// find's options that come before the folders it looks in: -H -L -P (and BSD's -E -X -d -s -x), -O3, -D with a value, and BSD's
+// -f, whose value is a folder.
+const FIND_LEADING = /^-(?:[HLPEXdsx]+|O\d*)$/
 
 // Where a command really starts: past assignments, keywords, sudo, env, command, time, nice, busybox and the like.
 function unwrap(words: Word[]): Unwrapped {
@@ -289,8 +323,11 @@ function unwrap(words: Word[]): Unwrapped {
   let fed = false
   const extra: Word[][] = []
   const scripts: string[] = []
-  let roots: string[] | undefined
+  let roots: Word[] | undefined
+  let chdir: Word | undefined
   for (let guard = 0; guard < 12 && w.length; guard++) {
+    // zsh's =name runs the program name stands for
+    if (/^=[A-Za-z]/.test(w[0]!.text)) w = [{ ...w[0]!, text: w[0]!.text.slice(1) }, ...w.slice(1)]
     const head = base(w[0]!.text)
     if (isAssign(w[0]!.text) || /^(!|then|do|else|elif|if|while|until)$/.test(w[0]!.text)) {
       w = w.slice(1)
@@ -300,6 +337,7 @@ function unwrap(words: Word[]): Unwrapped {
     if (head === 'function') w = w.slice(2)
     else if (head in WRAP) {
       const { value, skip, script } = WRAP[head]!
+      const moves = CHDIR[head]
       let k = 1
       while (k < w.length && w[k]!.text.startsWith('-') && w[k]!.text !== '--') {
         const a = w[k]!.text
@@ -312,10 +350,33 @@ function unwrap(words: Word[]): Unwrapped {
           scripts.push(w[k + 1]?.text ?? '')
           return { cmd: [], fed, extra, scripts }
         }
+        if (moves && moves.long.test(a)) {
+          // --chdir DIR, --chdir=DIR
+          const eq = a.indexOf('=')
+          chdir = eq < 0 ? w[k + 1] : { text: a.slice(eq + 1), unread: w[k]!.unread }
+          k += eq < 0 ? 2 : 1
+          continue
+        }
+        if (moves && /^-[A-Za-z]/.test(a)) {
+          // a bundle: the first letter that takes a value takes the rest of the word, or the next word
+          const at = [...a.slice(1)].findIndex(l => moves.values.includes(l))
+          if (at >= 0) {
+            const rest = a.slice(at + 2)
+            if (a[at + 1] === moves.letter) chdir = rest ? { text: rest, unread: w[k]!.unread } : w[k + 1]
+            k += rest ? 1 : 2
+            continue
+          }
+        }
         k += value.test(a) && head !== 'time' ? 2 : 1
       }
       if (head === 'env') while (k < w.length && isAssign(w[k]!.text)) k++
       if (w[k]?.text === '--') k++
+      if (head === 'chroot' && w[k]) chdir = w[k] // the command starts in the new root
+      if (head === 'watch') {
+        // watch hands its words to sh -c as one script
+        scripts.push(w.slice(k).map(a => a.text).join(' '))
+        return { cmd: [], fed, extra, scripts, chdir }
+      }
       w = w.slice(k + skip)
     } else if (head === 'xargs') {
       let k = 1
@@ -335,19 +396,31 @@ function unwrap(words: Word[]): Unwrapped {
       w = rest
     } else if (head === 'find') {
       // every -exec, -execdir and -ok runs a command on files the guard cannot name, but it knows where find looks
-      const start = w.slice(1)
+      let start = w.slice(1)
+      const found: Word[] = []
+      for (;;) {
+        const a = start[0]?.text ?? ''
+        if (a === '--') start = start.slice(1)
+        else if (a === '-D') start = start.slice(2)
+        else if (a === '-f' && start[1]) {
+          found.push(start[1]) // BSD find -f DIR looks in DIR
+          start = start.slice(2)
+        } else if (FIND_LEADING.test(a)) start = start.slice(1)
+        else break
+        if (a === '--') break
+      }
       const stop = start.findIndex(a => a.text.startsWith('-') || a.text === '(' || a.text === '!')
-      roots = (stop < 0 ? start : start.slice(0, stop)).map(a => a.text)
+      roots = [...found, ...(stop < 0 ? start : start.slice(0, stop))]
       for (let i = 0; i < w.length; i++) {
         if (!/^-(?:exec|execdir|ok|okdir)$/.test(w[i]!.text)) continue
         const rest = w.slice(i + 1)
         const end = rest.findIndex(a => a.text === ';' || a.text === '+')
         extra.push(end < 0 ? rest : rest.slice(0, end))
       }
-      return { cmd: w.slice(0, 0), fed, roots: roots.length ? roots : ['.'], extra, scripts }
+      return { cmd: w.slice(0, 0), fed, roots: roots.length ? roots : [{ text: '.', unread: false }], extra, scripts, chdir }
     } else break
   }
-  return { cmd: w, fed, roots, extra, scripts }
+  return { cmd: w, fed, roots, extra, scripts, chdir }
 }
 
 // ---- paths ------------------------------------------------------------------------------------------------------
@@ -382,23 +455,53 @@ type Where = {
 
 const spells = (arg: string, long: string, min = 3) => arg.startsWith('--') && arg.length >= min && long.startsWith(arg)
 const EMPTIES = new Set(['*', '**', '.*'])
-// A wildcard segment that could stand for .. (a leading * does not match dot entries, so it cannot).
+// Whether a bracket expression ([.a], [!a], [^a], [[:punct:]], [!-/]) can match a dot.
+function bracketDot(body: string): boolean {
+  const neg = body.startsWith('!') || body.startsWith('^')
+  const set = neg ? body.slice(1) : body
+  const ranges = [...set.matchAll(/(.)-(.)/g)].some(m => m[1]!.charCodeAt(0) <= 46 && 46 <= m[2]!.charCodeAt(0))
+  const has = set.includes('.') || /\[:(?:punct|print|graph):\]/.test(set) || ranges
+  return neg ? !has : has
+}
+
+// A wildcard segment that could stand for .. (a leading * does not match dot entries, so it cannot). bash before 5.2 lets a
+// pattern that starts with a dot match . and .. alike.
 function mayBeParent(seg: string): boolean {
   if (!/[*?[]/.test(seg) || seg.startsWith('*')) return false
+  let re = ''
+  for (let i = 0; i < seg.length; i++) {
+    const c = seg[i]!
+    if (c === '*') re += '.*'
+    else if (c === '?') re += '.'
+    else if (c === '[') {
+      // a ] right after [ or [! is a member, and a POSIX class ([:punct:]) holds its own ]
+      let end = seg.indexOf(']', /[!^]/.test(seg[i + 1] ?? '') ? i + 3 : i + 2)
+      while (end >= 0 && /\[:\w*:?$/.test(seg.slice(i + 1, end))) end = seg.indexOf(']', end + 1)
+      if (end < 0) re += '\\['
+      else {
+        re += bracketDot(seg.slice(i + 1, end)) ? '\\.' : '[^.]'
+        i = end
+      }
+    } else re += c.replace(/[.+^${}()|\\]/g, '\\$&')
+  }
   try {
-    return new RegExp('^' + seg.replace(/[.+^${}()|\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$').test('..')
+    return new RegExp('^' + re + '$').test('..')
   } catch {
-    return false
+    return true
   }
 }
 
-function rm(args: Word[], where: Where, fed: boolean, roots: string[] | undefined): string | undefined {
+function rm(args: Word[], where: Where, fed: boolean, roots: Word[] | undefined): string | undefined {
   let recursive = false
   const targets: Word[] = []
   let ended = false
   for (const a of args) {
     if (!ended && a.text === '--') ended = true
-    else if (!ended && a.unread && a.text.startsWith('-')) recursive = true // an option made of an expansion could be -r
+    else if (!ended && a.unread && a.text.startsWith('-')) {
+      // an option made of an expansion could be -r, and could split into targets too (-rf${IFS}../x)
+      recursive = true
+      targets.push(a)
+    }
     else if (!ended && a.text.startsWith('--')) {
       if (spells(a.text, '--recursive', 3)) recursive = true
       if (a.text === '--no-preserve-root') return 'rm --no-preserve-root removes the root of the disk'
@@ -411,9 +514,9 @@ function rm(args: Word[], where: Where, fed: boolean, roots: string[] | undefine
   const { root, home } = where
   if (fed) {
     // What find or git ls-files names is inside where they look; anything else that feeds rm is unreadable.
-    const read = roots !== undefined && roots.every(r => !r.startsWith('~')) && [...where.dirs].every(d => d !== undefined)
+    const read = roots !== undefined && roots.every(r => !r.unread && !r.text.startsWith('~')) && [...where.dirs].every(d => d !== undefined)
     if (!read) return 'rm -r has a target the guard cannot read: it comes from another command'
-    if (!roots!.every(r => [...where.dirs].every(d => within(root, normalize(r.startsWith('/') ? r : d + '/' + r))))) return `rm -r reaches outside the folder you opened (${root})`
+    if (!roots!.every(({ text: r }) => [...where.dirs].every(d => within(root, normalize(r.startsWith('/') ? r : d + '/' + r))))) return `rm -r reaches outside the folder you opened (${root})`
   }
   for (const t of targets) {
     if (fed && /^(?:\{\}|\{\.\}|%|\{\})$/.test(t.text)) continue // the placeholder for what find or xargs hands over
@@ -441,22 +544,34 @@ function rm(args: Word[], where: Where, fed: boolean, roots: string[] | undefine
 
 const GIT_VALUE = /^(-C|-c|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix|--config-env|--attr-source)$/
 
-// The single-letter flags of a git command, as git reads them: a bundle ends at `e`, which takes the rest as its value.
-function letters(flags: string[]): Set<string> {
-  const out = new Set<string>()
+// Whether a git option is on once git has read every flag, in order: the last of -x, --long and --no-long (or a prefix of
+// either) wins. `stops` are the letters that take the rest of a bundle as their value (-e for clean, -s for restore).
+function on(flags: string[], letter: string, long: string, stops: string): boolean {
+  let v = false
   for (const a of flags) {
-    if (!/^-[A-Za-z]/.test(a)) continue
-    for (const ch of a.slice(1)) {
-      out.add(ch)
-      if (ch === 'e') break
+    if (a.startsWith('--no-')) {
+      if (spells('--' + a.slice(5), long, 3)) v = false
+    } else if (a.startsWith('--')) {
+      if (spells(a, long, 3)) v = true
+    } else if (/^-[A-Za-z]/.test(a)) {
+      for (const ch of a.slice(1)) {
+        if (ch === letter) v = true
+        if (stops.includes(ch)) break
+      }
     }
   }
-  return out
+  return v
 }
 
-// A path that names the whole tree: ., ./, ./., .//, ./*, *, **, .., sub/.., :/, :(top), :/*, :(glob)**, $PWD, or the folder itself.
-function wholeTree(p0: string, root: string | undefined): boolean {
-  if (p0 === '$PWD' || p0 === '${PWD}') return true
+// Pathspec magic that leaves out what it names (:!x, :^x, :(exclude)x): a list made only of these means everything else.
+const excludes = (p: string) => /^:(?:[!^]|\([^)]*\bexclude\b[^)]*\))/.test(p)
+// What a shell expands to the folder it is in: $PWD, ~+, $(pwd), `pwd`, $(git rev-parse --show-toplevel).
+const HERE = /^(?:\$PWD|\$\{PWD\}|~\+|\$\(\s*pwd\s*\)|`\s*pwd\s*`|\$\(\s*git\s+rev-parse\s+--show-toplevel\s*\))(?=\/|$)/
+
+// A path that names the whole tree: ., ./, ./., .//, ./*, *, **, ?*, .., sub/.., :/, :(top), :/*, :(glob)**, $PWD, ~+, or the
+// folder itself.
+function wholeTree(p00: string, root: string | undefined): boolean {
+  const p0 = p00.replace(HERE, '.')
   let p = p0
   const magic = /^:(?:\([^)]*\)|\/)/.exec(p)
   if (magic) p = p.slice(magic[0].length) // :/ and :(top) say "from the top of the repository"
@@ -470,7 +585,8 @@ function wholeTree(p0: string, root: string | undefined): boolean {
     if (s === '..' && stack.length && stack[stack.length - 1] !== '..') stack.pop()
     else stack.push(s)
   }
-  return stack.length === 0 || stack.every(s => s === '..') || (stack.length === 1 && (stack[0] === '*' || stack[0] === '**'))
+  // a wildcard of only * and ? with a * in it matches every path (git's * crosses /)
+  return stack.length === 0 || stack.every(s => s === '..') || (stack.length === 1 && /^[*?]*\*[*?]*$/.test(stack[0]!))
 }
 
 // `again` judges a command string that git runs (submodule foreach, rebase -x, bisect run).
@@ -481,7 +597,9 @@ function git(args: Word[], where: Where, again: (script: string) => string | und
     const v = args[k + 1]?.text ?? ''
     const attached = /^-calias\.(.+)$/.exec(a)
     const def = attached ? attached[1]! : a === '-c' ? v.replace(/^alias\./, 'alias.') : undefined
-    if (a === '-c' && /^clean\.requireforce=(?:false|no|off|0)$/i.test(v)) where.requireForce = false
+    // an empty value is false to git; --config-env takes the value from a variable the guard cannot read
+    if (a === '-c' && /^clean\.requireforce=(?:false|no|off|0)?$/i.test(v)) where.requireForce = false
+    if (/^--config-env(?:=|$)/.test(a) && /clean\.requireforce/i.test(a + v)) where.requireForce = false
     if (def && (attached || /^alias\./i.test(v))) {
       const m = /^(?:alias\.)?([^=]+)=(.*)$/s.exec(attached ? def : v)
       if (m) {
@@ -500,29 +618,33 @@ function git(args: Word[], where: Where, again: (script: string) => string | und
   const dd = rest.indexOf('--')
   const beforeDashes = dd < 0 ? rest : rest.slice(0, dd) // after -- nothing is a flag
   const flags = beforeDashes.filter(a => a.startsWith('-'))
-  const bundle = letters(flags)
+  // the letters of each command that take the rest of a bundle as their value
+  const stops = sub === 'clean' ? 'e' : sub === 'restore' ? 's' : sub === 'checkout' ? 'bB' : sub === 'switch' ? 'cC' : ''
+  const has = (letter: string, long: string) => on(flags, letter, long, stops)
   const pathspecs = [...beforeDashes.filter(a => !a.startsWith('-')), ...(dd < 0 ? [] : rest.slice(dd + 1))]
-  const patch = bundle.has('p') || flags.some(a => spells(a, '--patch', 3))
+  const patch = has('p', '--patch')
   const whole = (p: string) => wholeTree(p, where.root)
+  const paths = dd < 0 ? pathspecs : rest.slice(dd + 1) // after --, without checkout's tree-ish before it
+  const wholeList = pathspecs.some(whole) || (paths.length > 0 && paths.every(excludes))
   if (sub === 'reset' && flags.some(a => spells(a, '--hard'))) return 'git reset --hard drops changes you have not committed'
   if (sub === 'clean') {
-    const force = bundle.has('f') || flags.some(a => spells(a, '--force', 3)) || !where.requireForce
-    const dry = bundle.has('n') || flags.some(a => spells(a, '--dry-run', 3))
-    const asks = bundle.has('i') || flags.some(a => spells(a, '--interactive', 3))
+    const force = has('f', '--force') || !where.requireForce
+    const dry = has('n', '--dry-run')
+    const asks = has('i', '--interactive')
     if (force && !dry && !asks) return 'git clean -f removes files git does not track, for good'
   }
   if (sub === 'checkout' && !patch) {
-    if (bundle.has('f') || flags.some(a => spells(a, '--force', 3)) || pathspecs.some(whole)) return 'git checkout throws away every uncommitted change in the tree'
+    if (has('f', '--force') || wholeList) return 'git checkout throws away every uncommitted change in the tree'
   }
-  if (sub === 'switch' && (bundle.has('f') || flags.some(x => spells(x, '--force', 3) || spells(x, '--discard-changes', 3)))) return 'git switch throws away every uncommitted change in the tree'
+  if (sub === 'switch' && (has('f', '--force') || has('', '--discard-changes'))) return 'git switch throws away every uncommitted change in the tree'
   const fromFile = flags.some(x => x.startsWith('--pathspec-from-file'))
-  if ((sub === 'checkout' || sub === 'restore') && !patch && fromFile && !(sub === 'restore' && (bundle.has('S') || flags.some(x => spells(x, '--staged', 3))) && !bundle.has('W') && !flags.some(x => spells(x, '--worktree', 3)))) {
+  const staged = has('S', '--staged')
+  const worktree = has('W', '--worktree')
+  if ((sub === 'checkout' || sub === 'restore') && !patch && fromFile && !(sub === 'restore' && staged && !worktree)) {
     return `git ${sub} --pathspec-from-file reads its paths from a file the guard cannot read, so it waits`
   }
   if (sub === 'restore' && !patch) {
-    const staged = flags.some(a => spells(a, '--staged', 3)) || bundle.has('S')
-    const worktree = flags.some(a => spells(a, '--worktree', 3)) || bundle.has('W')
-    if (pathspecs.some(whole) && (!staged || worktree)) return 'git restore throws away every uncommitted change in the tree'
+    if (wholeList && (!staged || worktree)) return 'git restore throws away every uncommitted change in the tree'
   }
   if (sub === 'config') {
     const i = rest.findIndex(a => /^alias\./i.test(a))
@@ -532,7 +654,7 @@ function git(args: Word[], where: Where, again: (script: string) => string | und
       where.gitAliases.set(rest[i]!.slice(6), value)
     }
     const j = rest.findIndex(a => /^clean\.requireforce$/i.test(a))
-    if (j >= 0 && /^(?:false|no|off|0)$/i.test(rest[j + 1] ?? '')) where.requireForce = false
+    if (j >= 0 && rest[j + 1] !== undefined && /^(?:false|no|off|0)?$/i.test(rest[j + 1]!)) where.requireForce = false
   }
   // Commands git runs for you.
   if (sub === 'submodule') {
@@ -552,11 +674,13 @@ function git(args: Word[], where: Where, again: (script: string) => string | und
 
 // cd and pushd: where the command after it may run. Only a command chained with && after it is sure the cd worked.
 // A line with many cds is not followed further than a handful of folders: past that, no folder is trusted.
+// zsh's `cd old new` swaps a part of the folder's path, and `cd +1` takes a folder from the stack: neither is followed.
 function cd(args: Word[], where: Where): void {
-  const target = args.find(a => !a.text.startsWith('-'))
+  const named = args.filter(a => !a.text.startsWith('-'))
+  const target = named.length === 1 ? named[0] : undefined
   const ok = new Set<string | undefined>()
   for (const d of where.dirs) {
-    if (!target || target.unread || target.text === '-' || target.text.startsWith('~') || d === undefined || where.root === undefined) ok.add(undefined)
+    if (!target || target.unread || target.text.startsWith('+') || target.text.startsWith('~') || d === undefined || where.root === undefined) ok.add(undefined)
     else {
       const next = normalize(target.text.startsWith('/') ? target.text : d + '/' + target.text)
       ok.add(next) // a folder outside is still a folder the guard read: what is deleted from there reaches outside
@@ -591,10 +715,16 @@ export function judge(line: string, root: string | undefined, home: string | und
   const { text, docs } = prepare(line)
   const { segments, inner } = parse(spaced(text))
   const again = (script: string) => judge(script, root, home, depth + 1)
+  // bash <(echo …) runs what the substitution prints, as echo … | bash does.
+  for (const m of text.matchAll(/(?:^|[\s;&|(])(?:\S*\/)?(?:bash|sh|zsh|dash|ksh|mksh|oksh|ash|yash|posh|fish|csh|tcsh|source|\.)\s+(?:-\S+\s+)*<\(/g)) {
+    const open = m.index! + m[0].length - 1
+    const why = again(`${text.slice(open + 1, closer(text, open, '(', ')'))} | sh`)
+    if (why) return why
+  }
   const first = new Set<string | undefined>([root])
   const where: Where = { root, home, dirs: new Set(first), all: new Set(first), requireForce: true, gitAliases: new Map(), shellAliases: new Map() }
   let feed: { text: string; unread: boolean } | undefined // what the command before a pipe printed
-  let previous: { name: string; args: Word[]; roots?: string[] } | undefined
+  let previous: { name: string; args: Word[]; roots?: Word[] } | undefined
   for (const { words: raw, sep } of segments) {
     // A new chain (after ;, a newline, |, || or a bracket) may run in any folder the line could have reached.
     if (sep === '&&' && where.pending) where.dirs = where.pending
@@ -603,7 +733,14 @@ export function judge(line: string, root: string | undefined, home: string | und
     const herestring = raw.findIndex(w => w.text === '<<<')
     const procSub = raw.some(w => w.text === '<')
     const piped = /(?:^|[^|])\|(?:[^|]|$)/.test(sep)
+    // git settings in the environment can turn clean.requireForce off
+    if (raw.some(w => /^GIT_CONFIG_\w*=.*clean\.requireforce/i.test(w.text))) where.requireForce = false
     const u = unwrap(noRedirects(raw))
+    // A wrapper that runs the command in another folder (env -C, sudo -D, chroot) moves what it deletes.
+    const t = u.chdir
+    const here: Where = t
+      ? { ...where, dirs: new Set([...where.dirs].map(d => (t.unread || t.text.startsWith('~') || d === undefined ? undefined : normalize(t.text.startsWith('/') ? t.text : d + '/' + t.text)))) }
+      : where
     for (const s of u.scripts) {
       const why = again(s)
       if (why) return why
@@ -616,7 +753,9 @@ export function judge(line: string, root: string | undefined, home: string | und
       const aliased = where.shellAliases.get(base(cmd[0]!.text))
       if (aliased !== undefined && !cmd[0]!.unread) cmd = [...argWords(aliased), ...cmd.slice(1)]
       if (cmd[0]!.unread) {
-        // A command named by a variable: the guard cannot tell what runs, but options that delete give it away.
+        // A command named by a variable: the guard cannot tell what runs, but options that delete give it away, and so does
+        // rm or git split from its words by $IFS.
+        if (/(?:^|\/)(?:rm|git)(?:\$\{?IFS|$)/.test(cmd[0]!.text)) return 'a command named by an expansion spells rm or git, so it waits'
         if (cmd.slice(1).some(a => /^-[A-Za-z]*[rR]/.test(a.text) || a.text === '--recursive' || a.text === '--hard')) return 'a command named by a variable is given options that delete, so it waits'
         continue
       }
@@ -625,12 +764,15 @@ export function judge(line: string, root: string | undefined, home: string | und
       let why: string | undefined
       if (fed && !roots && piped && previous) {
         // xargs after git ls-files, or after a find that looks only inside the folder
-        if (previous.name === 'git' && previous.args[0]?.text === 'ls-files' && previous.args.slice(1).every(a => a.text.startsWith('-'))) roots = ['.']
+        // (not with --format, which can print any path)
+        if (previous.name === 'git' && previous.args[0]?.text === 'ls-files' && previous.args.slice(1).every(a => a.text.startsWith('-') && !a.text.startsWith('--fo') && !a.text.includes('%'))) roots = [{ text: '.', unread: false }]
         else if (previous.name === 'find' && previous.roots) roots = previous.roots
       }
-      if (name === 'rm') why = rm(args, where, fed, roots)
+      const program = /^git-(reset|clean|checkout|switch|restore)$/.exec(name) // git-reset by its path is git reset
+      if (name === 'rm') why = rm(args, here, fed, roots)
       else if (name === 'git') why = git(args, where, again)
-      else if (name === 'cd' || name === 'pushd') cd(args, where)
+      else if (program) why = git([{ text: program[1]!, unread: false }, ...args], where, again)
+      else if (name === 'cd' || name === 'pushd' || name === 'chdir') cd(args, where)
       else if (name === 'popd') {
         where.all.add(undefined)
         where.pending = new Set([undefined])
@@ -651,10 +793,12 @@ export function judge(line: string, root: string | undefined, home: string | und
           where.all.add(undefined)
           why = unread.length ? 'eval is given something the guard cannot read, so it waits' : again(args.map(a => a.text).join(' '))
         }
-      } else if (name === 'source' || name === '.') {
+      } else if ((name === 'source' || name === '.') && !STDIN.test(args.find(a => !a.text.startsWith('-'))?.text ?? '')) {
         where.all.add(undefined)
         if (procSub || args.some(a => a.unread)) why = `${name} is given something the guard cannot read, so it waits`
-      } else if (SHELLS.has(name)) {
+      } else if (SHELLS.has(name) || name === 'source' || name === '.') {
+        // a shell, or source /dev/stdin, which reads its script from standard input
+        if (!SHELLS.has(name)) where.all.add(undefined)
         const c = args.findIndex(a => /^-[A-Za-z]*c[A-Za-z]*$/.test(a.text))
         const script = c >= 0 ? args.slice(c + 1).find(a => !a.text.startsWith('-')) : undefined
         const stdin = herestring >= 0 ? raw[herestring + 1] : undefined
@@ -677,7 +821,8 @@ export function judge(line: string, root: string | undefined, home: string | und
   for (const d of docs) {
     const shell = parse(spaced(d.owner)).segments.some(s => {
       const { cmd } = unwrap(noRedirects(s.words))
-      return cmd.length > 0 && SHELLS.has(base(cmd[0]!.text))
+      const name = cmd.length ? base(cmd[0]!.text) : ''
+      return SHELLS.has(name) || ((name === 'source' || name === '.') && STDIN.test(cmd[1]?.text ?? ''))
     })
     const why = shell ? again(d.body) : d.quoted ? undefined : substitutions(d.body).map(again).find(Boolean)
     if (why) return why

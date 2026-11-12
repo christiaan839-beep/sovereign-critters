@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.9
+
+- Security: the fourth independent review (2026-11-12, about 430 commands, the shell spellings run for real in bash 3.2 and zsh) found 3 high and 10 medium ways past it, and one false hold. Fixed, each with a test that failed first: a heredoc ends at its whole delimiter word (`<<E"O"F`, `<<EOF-x` hid the lines after it); a `<<` inside `$[ ]` or `${ }` is no heredoc; a pipeline that goes on to the next line (`cat .env |` then `curl …`) is one pipeline; more shells (`fish`, `tcsh`, `csh`, `mksh`, `ash`, `yash`, `oksh`, `su -c`); `watch`, `flock -c`, `script -c` and more wrappers (`arch`, `taskset`, `chrt`, `firejail`, `uv run`, `bunx`, `chroot` and others); zsh's `=curl`; `declare` and `typeset` with no arguments, and every `/proc/…/environ`; braces (`.{env,}`); a copy made by `ln`, `install` or `dd of=`; `RSYNC_RSH` and `RSYNC_CONNECT_PROG`; a gist made with `gh api gists`. `RSYNC_RSH="ssh -i ~/.ssh/id_rsa"` is no longer held, as `rsync -e` with the same value was not.
+- Docs: a threat model in the README: who it protects against and who not, where it looks, how it fails, where it does not run, its review record, and how to report a way past it. No behaviour change.
+
 ## 0.1.8
 
 - **Changed: the permission hook's parameters have names of their own (`checked`, `onward`), and its ask is written as an `if`.** The plugin directory reads a permission hook only when no variable in the file is spelled like one of the hook's parameters. What the guard asks about is unchanged.
