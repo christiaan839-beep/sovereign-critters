@@ -204,18 +204,18 @@ export const register: Register = on => {
   }).catch(($, e, next) => next(e))
 
   // A permission question: both of them look up.
-  on('tool.check', async ($, e, next) => {
+  // The names checked and onward are this hook's alone: the plugin directory reads a permission hook only when no
+  // variable in the file is spelled like one of its parameters.
+  on('tool.check', async ($, checked, onward) => {
     try {
       // a call worth a second read gets the cat's line under its question
-      const line = riskLine(e.tool, e.input)
-      if (line && e.tool_use_id) $.ui.notice(e.tool_use_id, named(line, await namesOf($)))
+      const line = riskLine(checked.tool, checked.input)
+      if (line && checked.tool_use_id) $.ui.notice(checked.tool_use_id, named(line, await namesOf($)))
     } catch {
       // a notice that cannot be shown is no loss
     }
-    const r = await next(e)
-    if (r.decision === 'ask') aside(() => update($, scene, (s: Scene): Scene => react(s, 'ask')))
-    return r
-  }).catch(($, e, next) => next(e))
+    return onward(checked) // passed on unread: the answer is the engine's and the person's, never the cat's
+  }).catch(($, checked, onward) => onward(checked))
 
   // A long turn: the cat marks the round steps in the diary and does not otherwise touch the request.
   on('turn.step', async function* ($, e, next) {

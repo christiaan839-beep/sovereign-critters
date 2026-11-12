@@ -675,11 +675,14 @@ export const register: Register = (on, options) => {
     )
 
   // The permission check asks about what the guard could not read.
-  on('tool.check', { tool: 'Bash' }, (_$, e, next) => {
-    const command = (e.input as { command?: unknown } | undefined)?.command
+  // The names checked and onward are this hook's alone: the plugin directory reads a permission hook only when no
+  // variable in the file is spelled like one of its parameters.
+  on('tool.check', { tool: 'Bash' }, (_$, checked, onward) => {
+    const command = (checked.input as { command?: unknown } | undefined)?.command
     const why = typeof command === 'string' ? judge(command, hosts) : undefined
-    return why && unsure(why) ? { decision: 'ask' as const, reason: `seal: ${why}.` } : next(e)
-  }).catch(($, e, next) => next(e))
+    if (why && unsure(why)) return { decision: 'ask', reason: `seal: ${why}.` }
+    return onward(checked)
+  }).catch((_$, checked, onward) => onward(checked))
 
   on('tool.call', { tool: 'WebFetch' }, (_$, e, next) => {
     const why = typeof e.url === 'string' ? judgeUrl(e.url, hosts) : undefined

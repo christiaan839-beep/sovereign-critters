@@ -714,14 +714,16 @@ export const register: Register = on => {
     )
 
   // The permission check asks about what the guard could not read.
-  on('tool.check', { tool: 'Bash' }, async ($, e, next) => {
-    const command = (e.input as { command?: unknown } | undefined)?.command
+  // The names checked and onward are this hook's alone: the plugin directory reads a permission hook only when no
+  // variable in the file is spelled like one of its parameters.
+  on('tool.check', { tool: 'Bash' }, async ($, checked, onward) => {
+    const command = (checked.input as { command?: unknown } | undefined)?.command
     if (typeof command === 'string' && command) {
       const root = await $.session.cwd().catch(() => undefined)
       const home = await $.env.get('HOME').catch(() => undefined)
       const reason = judge(command, root, home)
       if (reason && unsure(reason)) return { decision: 'ask' as const, reason: `latch: ${reason}.` }
     }
-    return next(e)
-  }).catch(($, e, next) => next(e))
+    return onward(checked)
+  }).catch(($, checked, onward) => onward(checked))
 }

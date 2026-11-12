@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.8
+
+- **Changed: the permission hook's parameters have names of their own (`checked`, `onward`).** The plugin directory reads a permission hook only when no variable in the file is spelled like one of the hook's parameters. What the guard asks about is unchanged.
+
 ## 0.1.7
 
 - Docs: the README has a "What it does and sends" section, written from the code: what the mod reads, keeps, sends and runs, and whether it plays sound files. It has an install line and a licence line. No behaviour change.

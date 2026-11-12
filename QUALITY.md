@@ -35,7 +35,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 ## The lead mods
 
-### critter-buddy 0.30.9
+### critter-buddy 0.30.10
 
 | | |
 | --- | --- |
@@ -101,7 +101,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the index cards have not been photographed in the real app
 
-### critter-ward 0.3.8
+### critter-ward 0.3.9
 
 | | |
 | --- | --- |
@@ -399,7 +399,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 - never seen in the real app; token counts come from the engine's per-turn usage, not checked against a bill
 - the toast for passing a limit has not been seen in the real app
 
-### critter-latch 0.1.7
+### critter-latch 0.1.8
 
 | | |
 | --- | --- |
@@ -431,7 +431,7 @@ met: done, and nothing has changed since. stale: done, but the plugin has change
 
 - the fixes after the review have not been reviewed again
 
-### critter-seal 0.1.7
+### critter-seal 0.1.8
 
 | | |
 | --- | --- |
