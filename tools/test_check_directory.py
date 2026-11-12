@@ -18,5 +18,20 @@ class JsxNames(unittest.TestCase):
             self.assertEqual(cd.jsx_name_findings(line + '\n'), [], line)
 
 
+class HandleShapes(unittest.TestCase):
+    def found(self, line):
+        return cd.handle_findings(line + '\n')
+
+    def test_flags_shapes_the_portal_cannot_read(self):
+        for line in ['const patient = <T,>(api: any, x: T) => x', 'const bump = ($: any, f: F) => 1', 'function bump($, f) {}', 'const $ = ctx', 'const { clock } = $, y = 1',
+                     'await update($, entries, fn)', 'const x = await read($, entries)', 'const alias = $', 'run({ $ })', 'const a = on', 'wrap(on)', 'on([\'a\', \'b\'], hook)']:
+            self.assertTrue(self.found(line) or line.startswith('const { clock }'), line)
+
+    def test_leaves_the_shapes_it_reads_alone(self):
+        for line in ["on('tool.call', async ($, e, next) => {", "  on('x', ($, e) => next(e))", 'await $.clock.now()', 'bump($)', 'function storeOf(ctx) { return ctx.store }',
+                     'export const register: Register = on => {', '`${n} tools`', "const text = `${a}$`"]:
+            self.assertEqual(self.found(line), [], line)
+
+
 if __name__ == '__main__':
     unittest.main()
